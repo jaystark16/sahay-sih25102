@@ -388,11 +388,11 @@ def model_status(con):
             "target": r["task"]["target"],
             "target_is_not": r["task"]["target_is_not"],
             "excluded_features": r["task"]["excluded_features"],
-            "beats_baselines": None,
-            "beats_rules_ledger": None,
-            "beats_persistence_baseline": None,
-            "early_warning_gain_over_rules": None,
-            "early_warning": None,
+            "beats_baselines": r["model_beats_baselines"],
+            "beats_rules_ledger": r.get("beats_rules_ledger"),
+            "beats_persistence_baseline": r.get("beats_persistence_baseline"),
+            "early_warning_gain_over_rules": r.get("early_warning_pr_auc_gain_over_rules"),
+            "early_warning": r.get("early_warning"),
             "overall": r["overall"],
             "data": r["data"]}
 
@@ -576,20 +576,25 @@ def get_worklist(con, mentor_id=None, capacity=5, page=1, page_size=50):
             "scores_computed_at": stamp}
 
 
-def list_students(con, mentor_id=None, q="", page=1, page_size=50):
+def list_students(con, mentor_id=None, q="", risk="all", page=1, page_size=50):
     """Paginated directory. At 20,000 students you cannot ship the whole table."""
     where, args = ["1=1"], []
     if mentor_id and MENTORS.get(mentor_id, {}).get("role") == "mentor":
-        where.append("mentor_id=?")
+        where.append("s.mentor_id=?")
         args.append(mentor_id)
     if q:
-        where.append("(roll_no LIKE ? OR name LIKE ?)")
+        where.append("(s.roll_no LIKE ? OR s.name LIKE ?)")
         args += [f"%{q.upper()}%", f"%{q}%"]
+        
+    if risk == "at_risk":
+        where.append("r.band IN ('Medium', 'High')")
+
     w = " AND ".join(where)
-    total = con.execute(f"SELECT COUNT(*) c FROM students WHERE {w}", args).fetchone()["c"]
+    total = con.execute(f"SELECT COUNT(*) c FROM students s LEFT JOIN risk_snapshots r ON s.roll_no = r.roll_no WHERE {w}", args).fetchone()["c"]
     rows = con.execute(
-        f"SELECT roll_no,name,dept,year,section,status,admitted_on FROM students "
-        f"WHERE {w} ORDER BY roll_no LIMIT ? OFFSET ?",
+        f"SELECT s.roll_no, s.name, s.dept, s.year, s.section, s.status, s.admitted_on, r.score, r.band "
+        f"FROM students s LEFT JOIN risk_snapshots r ON s.roll_no = r.roll_no "
+        f"WHERE {w} ORDER BY s.roll_no LIMIT ? OFFSET ?",
         (*args, page_size, (page - 1) * page_size)).fetchall()
     return {"total": total, "page": page, "page_size": page_size,
             "pages": max(1, -(-total // page_size)),
@@ -617,6 +622,35 @@ def get_summary(con, mentor_id=None):
                 "SELECT COUNT(*) c FROM interventions WHERE status='open'").fetchone()["c"],
             "mode": model_status(con)["mode"], "data_source": "Synthetic demo data"}
 
+
+def get_dashboard(con, mentor_id=None):
+    mentor_id = mentor_id or default_mentor(con)
+    scope, args = "1=1", []
+    if MENTORS.get(mentor_id, {}).get("role") == "mentor":
+        scope, args = "mentor_id=?", [mentor_id]
+        
+    bands = {"Low": 0, "Medium": 0, "High": 0}
+    for r in con.execute(f"SELECT band, COUNT(*) c FROM risk_snapshots WHERE {scope} "
+                         f"GROUP BY band", args):
+        if r["band"]:
+            bands[r["band"]] = r["c"]
+            
+    total = con.execute(f"SELECT COUNT(*) c FROM students WHERE {scope}", args).fetchone()["c"]
+    rising = con.execute(f"SELECT COUNT(*) c FROM risk_snapshots WHERE {scope} "
+                         f"AND delta >= 10", args).fetchone()["c"]
+                         
+    cgpa_row = con.execute(
+        f"SELECT AVG((IFNULL(ia1,0)+IFNULL(ia2,0)+IFNULL(ia3,0))/(ia_max*3.0)*10.0) as cgpa "
+        f"FROM students WHERE {scope} AND ia_max > 0", args
+    ).fetchone()
+    avg_cgpa = round(cgpa_row["cgpa"], 2) if cgpa_row and cgpa_row["cgpa"] is not None else 7.50
+
+    return {
+        "at_risk": bands["Medium"] + bands["High"],
+        "total_students": total,
+        "rising": rising,
+        "average_cgpa": avg_cgpa
+    }
 
 def get_student(con, roll_no):
     cfg = get_config(con)

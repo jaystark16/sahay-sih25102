@@ -17,13 +17,15 @@ the logic belongs in service.py instead.
 import io
 import os
 
-from fastapi import FastAPI, File, HTTPException, Query, UploadFile
+from fastapi import FastAPI, File, HTTPException, Query, Request, UploadFile
+from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 from typing import List, Optional
 
 from pydantic import BaseModel
 
+import auth
 import service
 
 
@@ -46,6 +48,85 @@ service.get_model()          # load once at boot, not on the first request
 if service.snapshots_stale(con):
     service.refresh_scores(con)
 
+# Seed auth users for every mentor + staff account
+auth.ensure_auth_schema(con)
+auth.seed_users(con, service.MENTORS)
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["http://localhost:5173", "http://localhost:3000"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+
+# ----------------------------------------------------------------------------
+# Auth
+# ----------------------------------------------------------------------------
+class LoginIn(BaseModel):
+    user_id: str
+    password: str
+
+
+class ChangePasswordIn(BaseModel):
+    old_password: str
+    new_password: str
+
+
+def _token_from_request(request: Request) -> str:
+    auth_header = request.headers.get("Authorization", "")
+    if auth_header.startswith("Bearer "):
+        return auth_header[7:]
+    return ""
+
+
+@app.post("/api/auth/login")
+def api_login(body: LoginIn):
+    try:
+        return auth.login(con, body.user_id, body.password)
+    except ValueError as e:
+        raise HTTPException(401, str(e))
+
+
+@app.post("/api/auth/logout")
+def api_logout(request: Request):
+    token = _token_from_request(request)
+    auth.logout(con, token)
+    return {"ok": True}
+
+
+@app.get("/api/auth/me")
+def api_me(request: Request):
+    token = _token_from_request(request)
+    user = auth.verify_token(con, token)
+    if not user:
+        raise HTTPException(401, "Not authenticated")
+    return user
+
+
+@app.post("/api/auth/change-password")
+def api_change_password(body: ChangePasswordIn, request: Request):
+    token = _token_from_request(request)
+    user = auth.verify_token(con, token)
+    if not user:
+        raise HTTPException(401, "Not authenticated")
+    try:
+        auth.change_password(con, user["id"], body.old_password, body.new_password)
+        return {"ok": True}
+    except ValueError as e:
+        raise HTTPException(400, str(e))
+
+
+@app.get("/api/auth/users")
+def api_users(request: Request):
+    """Admin-only: list all user accounts."""
+    token = _token_from_request(request)
+    user = auth.verify_token(con, token)
+    if not user or user["role"] not in ("admin", "hod"):
+        raise HTTPException(403, "Admin only")
+    return auth.list_users(con)
+
 
 # ----------------------------------------------------------------------------
 # Read
@@ -62,10 +143,10 @@ def worklist(mentor: Optional[str] = None, capacity: int = Query(5, ge=1, le=50)
 
 
 @app.get("/api/students")
-def students(mentor: Optional[str] = None, q: str = "", page: int = Query(1, ge=1),
+def students(mentor: Optional[str] = None, q: str = "", risk: str = "all", page: int = Query(1, ge=1),
              page_size: int = Query(50, ge=1, le=200)):
     """Paginated. At 20,000 students the full table is not a response body."""
-    return service.list_students(con, mentor, q, page, page_size)
+    return service.list_students(con, mentor, q, risk, page, page_size)
 
 
 @app.get("/api/onboarding")
@@ -330,6 +411,9 @@ def demo_reset():
     out = service.reset_db()
     con = service.connect()
     out["refresh"] = service.refresh_scores(con)
+    # Re-seed user accounts after full DB rebuild
+    auth.ensure_auth_schema(con)
+    auth.seed_users(con, service.MENTORS)
     return out
 
 

@@ -297,6 +297,18 @@ def train(seed=0, verbose=True):
     iso = IsolationForest(n_estimators=200, contamination=0.03, random_state=seed)
     iso.fit(Xtr)
 
+    # Compare shipped model (results[2]) to persistence (results[0]) and rules (results[1])
+    beats_persistence = results[2]["pr_auc"] > results[0]["pr_auc"]
+    beats_rules = results[2]["pr_auc"] > results[1]["pr_auc"]
+
+    # Early warning task: evaluate specifically on students who look fine today (att_now >= HEALTHY_NOW_PCT)
+    i_now = FEATURES.index("att_now")
+    fine_mask = Xte[:, i_now] >= HEALTHY_NOW_PCT
+    if fine_mask.sum() > 0:
+        ew_eval = evaluate("xgboost (early warning)", yte[fine_mask], p_xgb[fine_mask], p_xgb[fine_mask])
+    else:
+        ew_eval = None
+
     report = {
         "task": {
             "target": "dropout",
@@ -310,6 +322,11 @@ def train(seed=0, verbose=True):
         "overall": results,
         "shipped_model": best[0],
         "data": "synthetic",
+        "model_beats_baselines": bool(beats_persistence and beats_rules),
+        "beats_rules_ledger": bool(beats_rules),
+        "beats_persistence_baseline": bool(beats_persistence),
+        "early_warning_pr_auc_gain_over_rules": float(results[2]["pr_auc"] / results[1]["pr_auc"]) if results[1]["pr_auc"] > 0 else 1.0,
+        "early_warning": ew_eval,
     }
 
     bundle = {"model": best[1], "kind": best[0], "features": FEATURES,

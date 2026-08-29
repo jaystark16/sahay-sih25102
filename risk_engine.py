@@ -74,12 +74,11 @@ def _c_attendance_level(f, cfg):
     if current is None:
         return None
     if current >= c["threshold_pct"]:
-        return (0, f"Attendance {current:.0f}% is at or above the {c['threshold_pct']:.0f}% threshold",
+        return (0, f"Attendance is {current:.0f}% (meets the {c['threshold_pct']:.0f}% minimum threshold)",
                 {"attendance_pct": round(current, 1)})
     gap = c["threshold_pct"] - current
     pts = _clamp(round(gap * c["points_per_pct"]), 0, c["weight"])
-    return (pts, f"Attendance {current:.0f}%, which is {gap:.0f} points below the "
-                 f"{c['threshold_pct']:.0f}% threshold",
+    return (pts, f"Attendance is {current:.0f}% ({gap:.0f}% below the {c['threshold_pct']:.0f}% requirement)",
             {"attendance_pct": round(current, 1), "gap_pct": round(gap, 1)})
 
 
@@ -107,7 +106,7 @@ def _c_attendance_decline(f, cfg):
                 {"recent_pct": round(recent, 1), "prior_pct": round(prior, 1),
                  "drop_pct": round(drop, 1)})
     pts = _clamp(round(drop * c["points_per_pct"]), 0, c["weight"])
-    return (pts, f"Attendance fell {drop:.0f} points: averaged {prior:.0f}% for "
+    return (pts, f"Attendance dropped {drop:.0f}%: averaged {prior:.0f}% for "
                  f"{c['prior_weeks']} weeks, now {recent:.0f}%",
             {"recent_pct": round(recent, 1), "prior_pct": round(prior, 1),
              "drop_pct": round(drop, 1)})
@@ -129,12 +128,12 @@ def _c_assessment_level(f, cfg):
         return None
     label, latest = ias[-1]
     if latest >= c["pass_pct"]:
-        return (0, f"Latest internal ({label.upper()}) at {latest:.0f}%, above the pass mark",
+        return (0, f"Latest internal ({label.upper()}) is {latest:.0f}% (above pass mark)",
                 {"latest_pct": latest, "which": label})
     gap = c["pass_pct"] - latest
     pts = _clamp(round(gap * c["points_per_pct"]), 0, c["weight"])
-    return (pts, f"Latest internal ({label.upper()}) at {latest:.0f}%, "
-                 f"{gap:.0f} points below the {c['pass_pct']:.0f}% pass mark",
+    return (pts, f"Latest internal ({label.upper()}) is {latest:.0f}% "
+                 f"({gap:.0f}% below {c['pass_pct']:.0f}% pass mark)",
             {"latest_pct": latest, "which": label})
 
 
@@ -149,7 +148,7 @@ def _c_assessment_trend(f, cfg):
         return (0, f"Internals stable or improving ({first_v:.0f}% to {last_v:.0f}%)",
                 {"from_pct": first_v, "to_pct": last_v, "drop_pct": round(drop, 1)})
     pts = _clamp(round(drop * c["points_per_pct"]), 0, c["weight"])
-    return (pts, f"Internals declining: {first_l.upper()} {first_v:.0f}% to "
+    return (pts, f"Internal exam scores declined {drop:.0f}%: {first_l.upper()} {first_v:.0f}% to "
                  f"{last_l.upper()} {last_v:.0f}%",
             {"from_pct": first_v, "to_pct": last_v, "drop_pct": round(drop, 1)})
 
