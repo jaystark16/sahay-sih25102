@@ -23,13 +23,28 @@ function AuthProvider({ children }) {
   }, [token]);
 
   const login = useCallback(async (userId, password) => {
-    const r = await fetch('/api/auth/login', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ user_id: userId, password }),
-    });
-    if (!r.ok) { const d = await r.json(); throw new Error(d.detail || 'Login failed'); }
-    const d = await r.json();
+    let r;
+    try {
+      r = await fetch('/api/auth/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ user_id: userId, password }),
+      });
+    } catch {
+      throw new Error('Cannot reach the server. Is the backend running on port 8000?');
+    }
+    // When the API is down the dev proxy answers with an HTML error page, and
+    // r.json() then fails with "Unexpected token '<'" -- which tells the user
+    // nothing. Read the body once and decide what it actually is.
+    const body = await r.text();
+    let d = null;
+    try { d = JSON.parse(body); } catch (e) { /* not JSON */ }
+    if (!d) {
+      throw new Error(r.ok
+        ? 'The server sent an unreadable response. Check that the backend is running.'
+        : `Cannot reach the server (HTTP ${r.status}). Is the backend running on port 8000?`);
+    }
+    if (!r.ok) throw new Error(d.detail || 'Login failed');
     localStorage.setItem('sahay_token', d.token);
     setToken(d.token);
     setUser(d.user);
