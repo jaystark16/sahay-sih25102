@@ -1,0 +1,915 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Sahay — Student support</title>
+<style>
+/* ---------------------------------------------------------------------------
+   No web fonts, no CDN, no build step. The whole interface is this one file,
+   so it loads on bad campus wifi and works with the network unplugged.
+
+   The audience is a professor with forty mentees and two spare hours. Every
+   choice below serves reading speed: 18px base, one column, high contrast,
+   one obvious action per screen.
+--------------------------------------------------------------------------- */
+:root{
+  --paper:#FBFAF6; --card:#FFFFFF; --ink:#16181C; --slate:#565C64;
+  --rule:#DAD7CD; --rule-soft:#EDEBE4;
+  --marigold:#E0952A; --marigold-bg:#FDF4E4;
+  --red:#A32B22; --red-bg:#FBEDEC;
+  --green:#2E6B4F; --green-bg:#EAF3EE;
+  --serif:Georgia,'Times New Roman',serif;
+  --sans:system-ui,-apple-system,'Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif;
+  --mono:ui-monospace,'SF Mono',SFMono-Regular,Menlo,Consolas,'Liberation Mono',monospace;
+}
+*{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%}
+body{
+  margin:0; background:var(--paper); color:var(--ink);
+  font:400 18px/1.6 var(--sans);
+}
+.wrap{max-width:780px;margin:0 auto;padding:0 20px 96px}
+
+/* ---- masthead ---- */
+header{border-bottom:2px solid var(--ink);background:var(--paper);
+  position:sticky;top:0;z-index:20}
+.mast{max-width:780px;margin:0 auto;padding:18px 20px 0;
+  display:flex;align-items:baseline;justify-content:space-between;gap:16px;flex-wrap:wrap}
+.brand{font:600 27px/1.1 var(--serif);letter-spacing:-.01em}
+.brand span{font:400 15px/1 var(--sans);color:var(--slate);margin-left:10px;
+  letter-spacing:.02em}
+.who{font-size:16px;color:var(--slate)}
+.who select{font:inherit;padding:5px 8px;border:1px solid var(--rule);
+  border-radius:6px;background:var(--card);color:var(--ink)}
+nav{max-width:780px;margin:0 auto;padding:12px 20px 0;display:flex;gap:4px;flex-wrap:wrap}
+nav button{
+  font:500 17px/1 var(--sans); background:none; border:0; cursor:pointer;
+  padding:12px 16px; color:var(--slate); border-bottom:3px solid transparent;
+  margin-bottom:-2px; border-radius:6px 6px 0 0;
+}
+nav button:hover{color:var(--ink);background:var(--rule-soft)}
+nav button[aria-current="page"]{color:var(--ink);border-bottom-color:var(--marigold);
+  font-weight:600}
+nav button:focus-visible,a:focus-visible,button:focus-visible,
+select:focus-visible,input:focus-visible,textarea:focus-visible{
+  outline:3px solid var(--marigold);outline-offset:2px}
+
+/* ---- headline ---- */
+h1{font:600 34px/1.2 var(--serif);margin:36px 0 6px;letter-spacing:-.015em}
+h2{font:600 24px/1.25 var(--serif);margin:38px 0 12px}
+h3{font:600 19px/1.3 var(--sans);margin:24px 0 8px}
+.sub{color:var(--slate);margin:0 0 26px;font-size:17px}
+
+/* ---- cards ---- */
+.card{background:var(--card);border:1px solid var(--rule);border-radius:10px;
+  padding:20px 22px;margin-bottom:14px}
+.card.flag{border-left:5px solid var(--red)}
+.card.section-alert{border-left:5px solid var(--marigold);background:var(--marigold-bg)}
+.card.quiet{background:transparent;border-style:dashed;color:var(--slate)}
+
+.person{display:flex;justify-content:space-between;align-items:flex-start;gap:18px;
+  flex-wrap:wrap}
+.person .nm{font:600 22px/1.25 var(--serif)}
+.person .meta{font-size:15px;color:var(--slate);font-family:var(--mono)}
+.reason{margin:12px 0 4px;font-size:18px}
+.change{font-size:16px;color:var(--red);font-weight:600;margin-top:6px}
+.change.calm{color:var(--slate);font-weight:400}
+
+/* ---- buttons ---- */
+.btn{font:600 17px/1 var(--sans);padding:13px 20px;border-radius:8px;cursor:pointer;
+  border:1px solid var(--ink);background:var(--ink);color:#fff}
+.btn:hover{opacity:.88}
+.btn.ghost{background:var(--card);color:var(--ink)}
+.btn.ghost:hover{background:var(--rule-soft);opacity:1}
+.btn.small{font-size:15px;padding:9px 14px}
+.btn[disabled]{opacity:.45;cursor:not-allowed}
+.row{display:flex;gap:10px;flex-wrap:wrap;margin-top:16px}
+
+/* ---- THE RECEIPT ----------------------------------------------------------
+   The signature element. The risk score is an itemised bill: each line is a
+   reason with points, then a rule, then a total. A professor can add it up on
+   paper. That is the entire product thesis, made visible.                    */
+.receipt{background:var(--card);border:1px solid var(--rule);border-radius:10px;
+  padding:26px 24px;font-family:var(--mono);font-size:16px}
+.receipt .rhead{text-align:center;border-bottom:1px dashed var(--rule);
+  padding-bottom:14px;margin-bottom:16px;letter-spacing:.09em;font-size:13px;
+  color:var(--slate);text-transform:uppercase}
+.line{display:flex;flex-wrap:wrap;align-items:baseline;gap:0 8px;padding:10px 0}
+.line .lbl{white-space:nowrap}
+.line .dots{flex:1 1 40px;min-width:24px;border-bottom:1px dotted var(--rule);transform:translateY(-5px)}
+.line .pts{font-weight:700;min-width:56px;text-align:right;font-variant-numeric:tabular-nums}
+.line .pts.zero{color:var(--slate);font-weight:400}
+.line .pts.na{color:var(--slate);font-weight:400;font-style:italic}
+.line .why{flex:0 0 100%;font-family:var(--sans);font-size:16px;color:var(--slate);
+  margin:2px 0 0;padding-left:2px;line-height:1.45}
+.rtotal{display:flex;align-items:baseline;gap:8px;border-top:2px solid var(--ink);
+  margin-top:14px;padding-top:14px;font-weight:700;font-size:19px}
+.rtotal .dots{flex:1}
+.rtotal .pts{min-width:56px;text-align:right;font-variant-numeric:tabular-nums}
+.rfoot{margin-top:14px;padding-top:12px;border-top:1px dashed var(--rule);
+  font-family:var(--sans);font-size:15px;color:var(--slate)}
+
+/* ---- notices ---- */
+.note{border-radius:8px;padding:14px 16px;font-size:16px;margin:14px 0;line-height:1.5}
+.note.warn{background:var(--marigold-bg);border:1px solid var(--marigold)}
+.note.good{background:var(--green-bg);border:1px solid var(--green);color:var(--green)}
+.note.bad{background:var(--red-bg);border:1px solid var(--red);color:var(--red)}
+.note.plain{background:var(--rule-soft);border:1px solid var(--rule);color:var(--slate)}
+.note b{color:var(--ink)}
+
+/* ---- misc ---- */
+.pill{display:inline-block;font:600 13px/1 var(--sans);letter-spacing:.05em;
+  text-transform:uppercase;padding:6px 10px;border-radius:99px;
+  background:var(--rule-soft);color:var(--slate)}
+.pill.hot{background:var(--red-bg);color:var(--red)}
+.pill.warm{background:var(--marigold-bg);color:#8A5A0B}
+table{width:100%;border-collapse:collapse;font-size:16px;margin-top:10px}
+th{text-align:left;font-weight:600;font-size:14px;letter-spacing:.04em;
+  text-transform:uppercase;color:var(--slate);padding:10px 8px;
+  border-bottom:2px solid var(--ink)}
+td{padding:12px 8px;border-bottom:1px solid var(--rule-soft);vertical-align:middle}
+td.num{text-align:right;font-family:var(--mono);font-variant-numeric:tabular-nums}
+.bar{height:12px;background:var(--rule-soft);border-radius:99px;overflow:hidden;
+  min-width:90px}
+.bar i{display:block;height:100%;background:var(--green);border-radius:99px}
+label{display:block;font-weight:600;font-size:16px;margin:16px 0 6px}
+input,select,textarea{font:inherit;width:100%;padding:12px 13px;border-radius:8px;
+  border:1px solid var(--rule);background:var(--card);color:var(--ink)}
+textarea{min-height:112px;resize:vertical;line-height:1.5}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:0 18px}
+.back{background:none;border:0;padding:8px 0;font:500 17px/1 var(--sans);
+  color:var(--slate);cursor:pointer;margin-top:26px}
+.back:hover{color:var(--ink)}
+.spin{color:var(--slate);padding:44px 0;font-size:17px}
+svg.spark{display:block;width:100%;height:190px}
+input[type=range]{-webkit-appearance:none;appearance:none;background:transparent;
+  padding:0;border:0;height:32px;cursor:pointer}
+input[type=range]::-webkit-slider-runnable-track{height:8px;border-radius:99px;
+  background:var(--rule-soft);border:1px solid var(--rule)}
+input[type=range]::-moz-range-track{height:8px;border-radius:99px;
+  background:var(--rule-soft);border:1px solid var(--rule)}
+input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;appearance:none;
+  width:26px;height:26px;border-radius:50%;background:var(--ink);
+  border:3px solid var(--paper);box-shadow:0 0 0 1px var(--ink);margin-top:-10px}
+input[type=range]::-moz-range-thumb{width:26px;height:26px;border-radius:50%;
+  background:var(--ink);border:3px solid var(--paper);box-shadow:0 0 0 1px var(--ink)}
+input[type=range]:focus-visible::-webkit-slider-thumb{box-shadow:0 0 0 4px var(--marigold)}
+.legend{font-size:15px;color:var(--slate);margin-top:6px}
+footer{border-top:1px solid var(--rule);margin-top:44px;padding-top:18px;
+  font-size:15px;color:var(--slate)}
+@media (max-width:560px){
+  body{font-size:17px} h1{font-size:28px} .grid2{grid-template-columns:1fr}
+  .receipt{padding:20px 16px;font-size:15px}
+}
+@media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="mast">
+    <div class="brand">Sahay <span>Student support</span></div>
+    <div class="who">
+      Signed in as
+      <select id="mentor" aria-label="Choose who you are signed in as"></select>
+    </div>
+  </div>
+  <nav id="nav">
+    <button data-tab="week" aria-current="page">This week</button>
+    <button data-tab="students">Students</button>
+    <button data-tab="worked">Did it work?</button>
+    <button data-tab="setup">Setup</button>
+  </nav>
+</header>
+
+<main class="wrap" id="main"><p class="spin">Loading…</p></main>
+
+<script>
+"use strict";
+/* -------------------------------------------------------------------------
+   Rules for the copy in this file:
+     - no jargon on screen. No "delta", "cohort", "PR-AUC", "primary driver".
+     - every number is followed by what it means.
+     - one obvious action per screen.
+   The technical vocabulary lives in Setup, where it belongs.
+------------------------------------------------------------------------- */
+const $ = (s, r) => (r || document).querySelector(s);
+const main = $("#main");
+let wiTimer = null;
+let MENTOR = "";   // resolved from the server at startup
+let TAB = "week";
+
+const esc = s => String(s == null ? "" : s).replace(/[&<>"']/g,
+  c => ({ "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;" }[c]));
+
+async function api(path, opts) {
+  const r = await fetch(path, opts);
+  if (!r.ok) {
+    let d = "";
+    try { d = (await r.json()).detail || ""; } catch (e) {}
+    throw new Error(d || ("Could not load. The server said " + r.status + "."));
+  }
+  return r.json();
+}
+const busy = (m) => { main.innerHTML = '<p class="spin">' + esc(m || "Loading…") + "</p>"; };
+const oops = (e) => {
+  main.innerHTML = '<h1>Something did not load</h1><div class="note bad">' + esc(e.message) +
+    '</div><p class="sub">If the server was restarted, refresh this page. ' +
+    'Nothing has been changed or lost.</p>';
+};
+
+/* ---- plain-language helpers -------------------------------------------- */
+function changeWords(d) {
+  if (d >= 20) return { t: "Sharply worse over the last 4 weeks", hot: true };
+  if (d >= 8)  return { t: "Getting worse over the last 4 weeks", hot: true };
+  if (d <= -8) return { t: "Improving over the last 4 weeks", hot: false };
+  return { t: "About the same as 4 weeks ago", hot: false };
+}
+const bandWords = b => b === "High" ? "Needs attention now"
+                    : b === "Medium" ? "Worth a conversation"
+                    : "Doing all right";
+const bandPill = b => b === "High" ? "hot" : b === "Medium" ? "warm" : "";
+
+/* ---- attendance chart, drawn by hand so there is no chart library ------- */
+function spark(points, weeks) {
+  const w = 700, h = 190, L = 44, R = 16, T = 16, B = 34;
+  if (!points || points.length < 2) return "";
+  const n = points.length;
+  const x = i => L + (i * (w - L - R)) / (n - 1);
+  const y = v => h - B - (v / 100) * (h - T - B);
+  const line = points.map((p, i) => (i ? "L" : "M") + x(i).toFixed(1) + " " +
+                                    y(p).toFixed(1)).join(" ");
+  const last = points[n - 1];
+  const lbl = (t, i) => (weeks && weeks[i]) ? String(weeks[i]).slice(5) : "wk " + (i + 1);
+  let g = "";
+  /* horizontal scale, so the numbers mean something */
+  [0, 25, 50, 75, 100].forEach(v => {
+    g += '<line x1="' + L + '" y1="' + y(v) + '" x2="' + (w - R) + '" y2="' + y(v) +
+      '" stroke="' + (v === 75 ? "#E0952A" : "#EDEBE4") + '" stroke-width="1"' +
+      (v === 75 ? ' stroke-dasharray="6 4"' : "") + "/>" +
+      '<text x="' + (L - 8) + '" y="' + (y(v) + 4) + '" text-anchor="end" font-size="12" ' +
+      'fill="#565C64" font-family="system-ui">' + v + "%</text>";
+  });
+  g += '<text x="' + (w - R) + '" y="' + (y(75) - 6) + '" text-anchor="end" font-size="12" ' +
+    'fill="#8A5A0B" font-family="system-ui">75% required</text>';
+  /* first, middle and last week, so a drop can be dated */
+  [0, Math.floor((n - 1) / 2), n - 1].forEach(i => {
+    g += '<text x="' + x(i) + '" y="' + (h - 10) + '" text-anchor="' +
+      (i === 0 ? "start" : i === n - 1 ? "end" : "middle") +
+      '" font-size="12" fill="#565C64" font-family="system-ui">' + lbl("", i) + "</text>";
+  });
+  return '<svg class="spark" viewBox="0 0 ' + w + " " + h + '" role="img" ' +
+    'aria-label="Weekly attendance, most recent ' + last.toFixed(0) + ' percent">' + g +
+    '<path d="' + line + '" fill="none" stroke="#16181C" stroke-width="2.5" ' +
+    'stroke-linejoin="round" stroke-linecap="round"/>' +
+    '<circle cx="' + x(n - 1) + '" cy="' + y(last) + '" r="6" fill="' +
+    (last < 75 ? "#A32B22" : "#2E6B4F") + '"/></svg>';
+}
+
+/* =========================================================================
+   SCREEN 1 — This week
+   ========================================================================= */
+async function week() {
+  busy();
+  const [wl, sm] = await Promise.all([
+    api("/api/worklist?mentor=" + MENTOR + "&capacity=5"),
+    api("/api/summary?mentor=" + MENTOR)
+  ]);
+  const list = wl.this_week || [];
+  const n = list.length;
+
+  let h = "<h1>" + (n === 0
+      ? "Nobody needs you urgently this week."
+      : n + (n === 1 ? " student needs you this week." : " students need you this week."))
+    + "</h1>";
+  h += '<p class="sub">Out of ' + sm.total_students.toLocaleString() +
+       " students you look after. Sorted by who changed the most, not by who is lowest.</p>";
+
+  if (n === 0) {
+    h += '<div class="card quiet"><p>No sharp changes in the last four weeks. ' +
+         'The list will fill itself when something moves.</p></div>';
+  }
+
+  list.forEach(s => {
+    const c = changeWords(s.delta);
+    h += '<div class="card' + (s.band === "High" ? " flag" : "") + '">' +
+      '<div class="person"><div>' +
+        '<div class="nm">' + esc(s.name) + "</div>" +
+        '<div class="meta">' + esc(s.roll_no) + " &nbsp;·&nbsp; " +
+          esc(s.dept) + "-" + esc(s.year) + esc(s.section) + "</div>" +
+      "</div>" +
+      '<span class="pill ' + bandPill(s.band) + '">' + bandWords(s.band) + "</span></div>" +
+      '<p class="reason">' + esc(s.headline) + "</p>" +
+      '<p class="change' + (c.hot ? "" : " calm") + '">' + c.t + "</p>" +
+      (s.anomaly ? '<div class="note warn">This student\u2019s pattern is unlike anyone ' +
+        "else\u2019s in the year. Worth a look even though no single rule stands out.</div>" : "") +
+      '<div class="row"><button class="btn" data-open="' + esc(s.roll_no) + '">' +
+        "Open " + esc(s.name.split(" ")[0]) + "</button></div></div>";
+  });
+
+  (wl.cohort_alerts || []).forEach(a => {
+    h += '<div class="card section-alert"><h3 style="margin-top:0">' +
+      "This is a whole-section problem, not " + a.students_affected + " separate ones</h3>" +
+      "<p>Attendance in <b>" + esc(a.cohort) + "</b> has fallen about <b>" +
+      Math.round(a.mean_drop_pct) + " points</b> for " + a.students_affected +
+      " of its " + a.students_in_cohort + " students, all at the same time. " +
+      "When a whole section moves together the cause is usually the timetable, a " +
+      "class slot or the hostel &mdash; not " + a.students_affected + " individual choices.</p>" +
+      "<p><b>Send this to the " + esc(a.route_to) + ".</b> Those students have been kept " +
+      "off your list so they do not use up your week.</p></div>";
+  });
+
+  const watching = (wl.watch_page && wl.watch_page.total) || 0;
+  const newOnes = (wl.onboarding || []).length;
+  if (watching || newOnes) {
+    h += '<div class="card quiet"><p style="margin:0">' +
+      (watching ? "<b>" + watching + "</b> more students are being watched but are not " +
+        "urgent this week. " : "") +
+      (newOnes ? "<b>" + newOnes + "</b> recently joined and do not have enough " +
+        "attendance yet to say anything useful about them." : "") + "</p></div>";
+  }
+  h += '<footer>Scores last worked out ' + esc(wl.scores_computed_at || "just now") +
+       ". " + esc(sm.data_source) + ".</footer>";
+  main.innerHTML = h;
+}
+
+/* =========================================================================
+   SCREEN 2 — One student
+   ========================================================================= */
+async function student(roll) {
+  busy();
+  const d = await api("/api/student/" + encodeURIComponent(roll));
+  const s = d.student, L = d.ledger, H = d.hybrid;
+  let h = '<button class="back" data-back>&larr; Back to this week</button>';
+  h += "<h1>" + esc(s.name) + "</h1>";
+  h += '<p class="sub">' + esc(s.roll_no) + " &nbsp;·&nbsp; " + esc(s.dept) + "-" +
+       esc(s.year) + esc(s.section) +
+       (s.last_contact_at ? " &nbsp;·&nbsp; last spoken to " + esc(s.last_contact_at)
+                          : " &nbsp;·&nbsp; never contacted through this system") + "</p>";
+
+  /* not enough data yet */
+  if (!L) {
+    h += '<div class="note plain"><b>' + esc(d.stage.label) + ".</b> " +
+      esc(d.stage.explain) +
+      (d.stage.weeks_until_next ? " About " + d.stage.weeks_until_next +
+        " more weeks of attendance are needed." : "") + "</div>";
+    h += '<div class="card"><h3 style="margin-top:0">What we do know</h3><p>Joined ' +
+      esc(s.admitted_on || "recently") + ". " + d.attendance.length +
+      " week(s) of attendance recorded so far.</p></div>";
+    main.innerHTML = h;
+    return;
+  }
+
+  /* attendance */
+  const pts = d.attendance.map(a => a.pct);
+  h += "<h2>Attendance, week by week</h2><div class='card'>" +
+    spark(pts, d.attendance.map(a => a.week_start)) +
+    '<p class="legend">Most recent week: <b>' + (pts.length ? pts[pts.length - 1].toFixed(0) : "—") +
+    "%</b>. The dashed line is the 75% requirement.</p></div>";
+  if (d.forecast) {
+    h += '<div class="note plain">' + esc(d.forecast.statement) + "</div>";
+  }
+
+  /* ---- the receipt ---- */
+  h += "<h2>Why this student is on the list</h2>";
+  h += '<div class="receipt"><div class="rhead">Risk worked out line by line</div>';
+  L.components.forEach(c => {
+    const cls = c.points === null ? "na" : (c.points ? "" : "zero");
+    const val = c.points === null ? "no data" : (c.points > 0 ? "+" + c.points : "0");
+    h += '<div class="line"><span class="lbl">' + esc(c.label) + "</span>" +
+      '<span class="dots"></span><span class="pts ' + cls + '">' + val + "</span>" +
+      '<p class="why">' + esc(c.reason) + "</p></div>";
+  });
+  h += '<div class="rtotal"><span>TOTAL</span><span class="dots"></span>' +
+    '<span class="pts">' + L.score + "</span></div>";
+  h += '<div class="rfoot">' + esc(bandWords(L.band)) +
+    ". Add the numbers above yourself &mdash; they come to " + L.score + ". " +
+    (L.scale_note
+      ? esc(L.scale_note) + " The bands adjust to that, so a gap in the paperwork " +
+        "cannot hide a student who needs help."
+      : "Out of 100, using all " + L.signals_total + " kinds of information.") +
+    "</div>";
+  h += "</div>";
+
+  (L.guardrails || []).forEach(g => {
+    h += '<div class="note warn"><b>Rule applied automatically.</b> ' + esc(g.message) + "</div>";
+  });
+  if (L.scholarship_referral) {
+    h += '<div class="note plain">Fees are outstanding. This sends a quiet referral to the ' +
+      "scholarship desk. It is not raised as an academic problem and should not be " +
+      "discussed in front of other students.</div>";
+  }
+
+  /* ---- what the computer expects ---- */
+  h += "<h2>What the computer expects next</h2>";
+  if (H.model) {
+    h += '<div class="card"><p style="margin-top:0;font-size:20px"><b>' +
+      esc(H.model.statement) + "</b></p>";
+    if (H.model.contributions && H.model.contributions.length) {
+      h += "<p>It is looking mainly at:</p><ul style='margin:0 0 6px;padding-left:22px'>";
+      H.model.contributions.slice(0, 3).forEach(c => {
+        h += "<li>" + esc(c.label) + " (" + c.value + ") &mdash; " + esc(c.direction) + "</li>";
+      });
+      h += "</ul>";
+    }
+    h += "<p class='legend'>This is a forecast about attendance, not a statement about " +
+      "whether the student will leave. It can be wrong. You decide.</p></div>";
+  } else {
+    h += '<div class="note plain">' + esc(H.model_note || d.stage.explain) + "</div>";
+  }
+  if (H.disagreement) {
+    h += '<div class="note warn"><b>The rules and the computer disagree here.</b> ' +
+      esc(H.disagreement.message) + "</div>";
+  }
+
+  /* ---- what-if ---- */
+  h += "<h2>What would change things</h2>";
+  h += '<div class="card" id="wi-card">' +
+    '<p style="margin-top:0" class="legend">Move a control to see what the score ' +
+    "would be if that number were true. This is the same arithmetic as the receipt " +
+    "above, run on different figures &mdash; not a guess, and not a promise about " +
+    "what the student will do.</p><div id="+'"wi-controls"'+"></div>" +
+    '<div id="wi-out"></div></div>';
+
+  /* ---- action ---- */
+  const pb = d.suggested_playbook;
+  h += "<h2>What you could do</h2>";
+  if (pb) {
+    h += '<div class="card"><h3 style="margin-top:0">' + esc(pb.title) + "</h3>" +
+      '<label for="act">Suggested approach. Change anything you like before saving.</label>' +
+      '<textarea id="act">' + esc(pb.draft) + "</textarea>" +
+      '<div class="row">' +
+      '<button class="btn" id="save-act" data-roll="' + esc(s.roll_no) + '" data-pb="' +
+        esc(pb.title) + '" data-tr="' + esc(pb.trigger) + '" data-fu="' + pb.followup_days + '">' +
+        "I have done this</button>" +
+      '<button class="btn ghost small" data-fb="not_at_risk" data-roll="' + esc(s.roll_no) +
+        '">No concern &mdash; I know the reason</button>' +
+      '<button class="btn ghost small" data-fb="confirm_at_risk" data-roll="' + esc(s.roll_no) +
+        '">Yes, genuinely at risk</button></div>' +
+      '<p class="legend">Saving this sets a reminder in ' + pb.followup_days +
+      " days to check whether it helped. Nothing is sent to the student.</p></div>";
+  }
+
+  /* ---- history ---- */
+  if (d.interventions.length) {
+    h += "<h2>What has been tried before</h2><table><thead><tr><th>When</th>" +
+      "<th>What was done</th><th>Result</th><th></th></tr></thead><tbody>";
+    d.interventions.slice(0, 8).forEach(i => {
+      const done = i.status === "closed";
+      h += "<tr><td>" + esc(i.created_at) + "</td><td>" + esc(i.playbook) + "</td><td>" +
+        (done ? esc({ improved: "It helped", unchanged: "No change",
+                      worsened: "Got worse", unreachable: "Could not reach them"
+                    }[i.outcome] || i.outcome)
+              : "Waiting &mdash; check on " + esc(i.followup_at)) + "</td><td>" +
+        (done ? "" : '<select class="oc" data-iv="' + esc(i.id) + '" ' +
+          'style="width:auto;padding:8px 10px;font-size:15px">' +
+          "<option value=''>Record result…</option><option value='improved'>It helped</option>" +
+          "<option value='unchanged'>No change</option><option value='worsened'>Got worse</option>" +
+          "<option value='unreachable'>Could not reach them</option></select>") +
+        "</td></tr>";
+    });
+    h += "</tbody></table>";
+  }
+  main.innerHTML = h;
+  if (L) initWhatIf(s.roll_no);
+}
+
+/* ---- what-if panel ------------------------------------------------------ */
+const WI_HELP = {
+  attendance_pct: "if this student attends at this rate from now on",
+  latest_ia_pct: "if the next internal comes back at this mark",
+  submission_pct: "if outstanding assignments get handed in",
+  backlogs: "if backlogs are cleared down to this many"
+};
+
+async function initWhatIf(roll) {
+  window.__wiRoll = roll;
+  let base;
+  try { base = await api("/api/student/" + encodeURIComponent(roll) + "/whatif"); }
+  catch (e) {
+    $("#wi-card").innerHTML = '<div class="note bad">' + esc(e.message) + "</div>";
+    return;
+  }
+  const cur = base.levers.current, spec = base.levers.fields;
+  const keys = ["attendance_pct", "latest_ia_pct", "submission_pct", "backlogs"]
+    .filter(k => cur[k] !== null && cur[k] !== undefined && spec[k]);
+
+  $("#wi-controls").innerHTML = keys.map(k => {
+    const f = spec[k], v = Math.round(cur[k]);
+    return '<label for="wi-' + k + '">' + esc(f.label) + ": " +
+      '<span id="wi-v-' + k + '">' + v + esc(f.unit) + "</span>" +
+      '<span class="legend" style="font-weight:400"> &mdash; ' +
+      esc(WI_HELP[k] || "") + "</span></label>" +
+      '<input type="range" data-wi="' + k + '" id="wi-' + k + '" min="' + f.min +
+      '" max="' + f.max + '" step="' + f.step + '" value="' + v +
+      '" style="padding:0;height:36px">';
+  }).join("");
+
+  const tips = Object.values(base.to_reach_low || {})
+    .filter(t => t && t.already_there === false && t.value !== null &&
+                 t.value !== undefined);
+  if (tips.length) {
+    $("#wi-out").innerHTML = '<div class="note plain">' + esc(tips[0].statement) + "</div>";
+  } else {
+    $("#wi-out").innerHTML = '<p class="legend">Move a control to see the effect.</p>';
+  }
+}
+
+async function runWhatIf() {
+  const roll = window.__wiRoll;
+  if (!roll) return;
+  const body = {};
+  document.querySelectorAll("[data-wi]").forEach(el => { body[el.dataset.wi] = +el.value; });
+  try {
+    const r = await api("/api/student/" + encodeURIComponent(roll) + "/whatif", {
+      method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body) });
+    let h = '<div class="note ' +
+      (r.score_change < 0 ? "good" : r.score_change > 0 ? "bad" : "plain") +
+      '"><b>' + esc(r.statement) + "</b></div>";
+    if (r.lines && r.lines.length) {
+      h += '<div class="receipt" style="padding:16px 18px">';
+      r.lines.forEach(l => {
+        h += '<div class="line"><span class="lbl">' + esc(l.label) + "</span>" +
+          '<span class="dots"></span><span class="pts">' +
+          (l.was === null ? "\u2014" : l.was) + " \u2192 " +
+          (l.now === null ? "\u2014" : l.now) + "</span></div>";
+      });
+      h += "</div>";
+    }
+    if (r.model) {
+      h += '<div class="note plain">The prediction moves from <b>' +
+        r.model.before_percent + "%</b> to <b>" + r.model.after_percent + "%</b>. " +
+        esc(r.model.note) + "</div>";
+    }
+    h += '<p class="legend">' + esc(r.caveat) + "</p>";
+    $("#wi-out").innerHTML = h;
+  } catch (e) {
+    $("#wi-out").innerHTML = '<div class="note bad">' + esc(e.message) + "</div>";
+  }
+}
+
+/* =========================================================================
+   SCREEN 3 — Students (directory + admission)
+   ========================================================================= */
+async function students(q, page) {
+  busy();
+  q = q || ""; page = page || 1;
+  const d = await api("/api/students?q=" + encodeURIComponent(q) + "&page=" + page +
+                      "&page_size=25");
+  let h = "<h1>Students</h1><p class='sub'>" + d.total.toLocaleString() +
+    " on record. A student appears here from the day they join, long before there is " +
+    "enough attendance to say anything about them.</p>";
+  h += '<div class="card"><label for="q">Search by name or roll number</label>' +
+    '<div class="row" style="margin-top:0"><input id="q" value="' + esc(q) +
+    '" placeholder="e.g. Priya, or 22CSE0034" style="flex:1;min-width:240px">' +
+    '<button class="btn" id="do-q">Search</button></div></div>';
+
+  h += "<table><thead><tr><th>Roll number</th><th>Name</th><th>Class</th>" +
+       "<th>Joined</th></tr></thead><tbody>";
+  d.students.forEach(s => {
+    h += '<tr><td><a href="#" data-open="' + esc(s.roll_no) + '">' + esc(s.roll_no) +
+      "</a></td><td>" + esc(s.name) + "</td><td>" + esc(s.dept) + "-" + esc(s.year) +
+      esc(s.section) + "</td><td>" + esc(s.admitted_on || "—") + "</td></tr>";
+  });
+  h += "</tbody></table>";
+  if (d.pages > 1) {
+    h += '<div class="row">' +
+      (page > 1 ? '<button class="btn ghost small" data-page="' + (page - 1) + '">Previous</button>' : "") +
+      "<span style='padding:10px 4px;color:var(--slate)'>Page " + page + " of " + d.pages + "</span>" +
+      (page < d.pages ? '<button class="btn ghost small" data-page="' + (page + 1) + '">Next</button>' : "") +
+      "</div>";
+  }
+
+  h += "<h2>Add a student who has just joined</h2>" +
+    '<div class="card"><p style="margin-top:0" class="legend">Only what the admissions ' +
+    "desk has on day one. A roll number is created automatically. No risk score is shown " +
+    "until there are four weeks of attendance.</p>" +
+    '<div class="grid2">' +
+    '<div><label for="a-name">Full name</label><input id="a-name" placeholder="Meera Nair"></div>' +
+    '<div><label for="a-dept">Department</label><input id="a-dept" placeholder="CSE"></div>' +
+    '<div><label for="a-year">Year</label><input id="a-year" type="number" min="1" max="5" value="1"></div>' +
+    '<div><label for="a-sec">Section</label><input id="a-sec" value="A"></div>' +
+    "</div>" +
+    '<div class="row"><button class="btn" id="do-admit">Add student</button></div>' +
+    '<div id="admit-out"></div></div>';
+  main.innerHTML = h;
+  $("#q").addEventListener("keydown", e => { if (e.key === "Enter") students($("#q").value, 1); });
+}
+
+/* =========================================================================
+   SCREEN 4 — Did it work?
+   ========================================================================= */
+async function worked() {
+  busy();
+  const e = await api("/api/analytics/effectiveness");
+  const M = e.measured || {};
+  let h = "<h1>Did it work?</h1><p class='sub'>Worked out from attendance records, " +
+    "not from what anyone reported. This is the only page that says whether the " +
+    "system is worth your time.</p>";
+
+  if (!M.rows || !M.rows.length) {
+    h += '<div class="card quiet"><p>Nothing has enough follow-up data yet. Record ' +
+      "a few actions and come back once the reminders fall due.</p></div>";
+    main.innerHTML = h; return;
+  }
+
+  h += '<div class="note warn"><b>Read the last column, not the first.</b> Students ' +
+    "get helped when they are at their worst, and many recover on their own from " +
+    "there. The “helped” column takes credit for that. The last column does not: " +
+    "it compares each student against others who were at the same level in the same " +
+    "week and got nothing.</div>";
+
+  h += "<table><thead><tr><th>What was done</th><th class='num'>Times</th>" +
+    "<th class='num'>Helped</th><th class='num'>They changed</th>" +
+    "<th class='num'>Similar students who got nothing</th>" +
+    "<th class='num'>Real difference</th></tr></thead><tbody>";
+  M.rows.forEach(r => {
+    const eff = r.estimated_effect;
+    const col = eff == null ? "var(--slate)" : eff > 1 ? "var(--green)" :
+                eff < -1 ? "var(--red)" : "var(--slate)";
+    h += "<tr><td>" + esc(r.playbook) + "</td>" +
+      "<td class='num'>" + r.n + "</td>" +
+      "<td class='num'>" + (r.improved_rate == null ? "\u2014" : r.improved_rate + "%") + "</td>" +
+      "<td class='num'>" + (r.mean_change == null ? "\u2014" :
+        (r.mean_change > 0 ? "+" : "") + r.mean_change + " pts") + "</td>" +
+      "<td class='num'>" + (r.control_mean_change == null ? "\u2014" :
+        (r.control_mean_change > 0 ? "+" : "") + r.control_mean_change + " pts") + "</td>" +
+      "<td class='num' style='color:" + col + ";font-weight:700'>" +
+        (eff == null ? "not enough to compare" : (eff > 0 ? "+" : "") + eff + " pts") +
+      "</td></tr>";
+  });
+  h += "</tbody></table>";
+
+  h += '<div class="note plain"><b>How this was worked out.</b> ' + esc(M.method || "") +
+    "</div>";
+  h += '<div class="note plain"><b>What it does not prove.</b> ' + esc(M.caution || "") +
+    "</div>";
+
+  const sr = e.self_reported && e.self_reported.rows ? e.self_reported.rows : [];
+  if (sr.length) {
+    h += "<h2>What mentors reported</h2><p class='sub'>Kept separately, because what " +
+      "someone felt happened and what the register shows are two different things.</p>" +
+      "<table><thead><tr><th>What was done</th><th class='num'>Reported as helping</th>" +
+      "</tr></thead><tbody>";
+    sr.forEach(r => {
+      h += "<tr><td>" + esc(r.playbook) + "</td><td class='num'>" +
+        (r.improvement_rate == null ? "\u2014" : r.improvement_rate + "%") + "</td></tr>";
+    });
+    h += "</tbody></table>";
+  }
+  h += "<footer>" + e.measured_total + " actions measured from attendance data.</footer>";
+  main.innerHTML = h;
+}
+
+/* =========================================================================
+   SCREEN 5 — Setup
+   ========================================================================= */
+async function setup() {
+  busy();
+  const [m, f] = await Promise.all([
+    api("/api/model").catch(() => null),
+    api("/api/analytics/fairness").catch(() => null)
+  ]);
+  let h = "<h1>Setup</h1><p class='sub'>Loading your spreadsheets, and the checks that " +
+    "run on this system whether or not anyone asks for them.</p>";
+
+  h += "<h2>Load a spreadsheet</h2><div class='card'>" +
+    "<p style='margin-top:0'>Attendance registers, mark sheets, fee lists. Column names " +
+    "do not have to match anything &mdash; the system works them out and shows you what " +
+    "it decided before saving.</p>" +
+    '<input type="file" id="file" accept=".csv,.xlsx,.xls,.tsv">' +
+    '<div class="row"><button class="btn" id="do-preview">Check this file</button></div>' +
+    '<div id="up-out"></div></div>';
+
+  h += "<h2>Fairness check</h2>";
+  if (f) {
+    h += "<div class='card'><p style='margin-top:0'>How often each group of students gets " +
+      "flagged. If one group is flagged much more than another, that shows up here without " +
+      "anyone having to ask.</p>";
+    Object.keys(f.dimensions).forEach(dim => {
+      const rows = f.dimensions[dim];
+      h += "<h3>" + esc(dim.replace(/_/g, " ")) + "</h3><table><thead><tr><th>Group</th>" +
+        "<th class='num'>Students</th><th class='num'>Flagged</th>" +
+        "<th class='num'>Compared to lowest</th></tr></thead><tbody>";
+      rows.forEach(r => {
+        h += "<tr><td>" + esc(r.group) + (r.review ?
+            " <span class='pill hot'>Review</span>" : "") +
+          "</td><td class='num'>" + r.n + "</td><td class='num'>" + r.flag_rate +
+          "%</td><td class='num'>" + r.disparity_ratio + "&times;</td></tr>";
+      });
+      h += "</tbody></table>";
+    });
+    h += "<p class='legend'>" + esc(f.note) + " " + esc(f.method) + "</p></div>";
+  }
+
+  h += "<h2>About the prediction</h2>";
+  if (m && m.trained) {
+    const ew = m.early_warning || {};
+    h += "<div class='card'><p style='margin-top:0'><b>What it predicts:</b> " +
+      esc(m.target) + "</p>" +
+      "<p><b>What it does not predict:</b> " + esc(m.target_is_not) + "</p>" +
+      "<p><b>What it is never allowed to look at:</b> " +
+      esc(Object.keys(m.excluded_features).join(", ").replace(/_/g, " ")) + "</p>" +
+      "<table><thead><tr><th>Measured on students who look fine today</th>" +
+      "<th class='num'>Score</th></tr></thead><tbody>" +
+      "<tr><td>Ranking quality (AUC, 1.0 is perfect, 0.5 is a coin toss)</td>" +
+      "<td class='num'>" + (ew.roc_auc == null ? "—" : ew.roc_auc) + "</td></tr>" +
+      "<tr><td>Of the top 5% it flags, how many were right</td><td class='num'>" +
+      (ew["p@5%_precision"] == null ? "—" : Math.round(ew["p@5%_precision"] * 100) + "%") +
+      "</td></tr>" +
+      "<tr><td>Beats the plain threshold rules</td><td class='num'>" +
+      (m.beats_rules_ledger ? "Yes" : "No") + "</td></tr>" +
+      "<tr><td>Beats simply ranking by today\u2019s attendance</td><td class='num'>" +
+      (m.beats_persistence_baseline ? "Yes" : "No") + "</td></tr>" +
+      "</tbody></table>" +
+      "<p class='legend'>Trained only on this institution\u2019s own records. " +
+      esc(m.data) + " data.</p></div>";
+  } else {
+    h += "<div class='note plain'>No prediction model has been trained. The system is " +
+      "running on threshold rules only, which is the correct state until there is enough " +
+      "history.</div>";
+  }
+
+  h += "<h2>Start the demonstration again</h2><div class='card'>" +
+    "<p style='margin-top:0'>Puts everything back to how it started. Use this if something " +
+    "goes wrong while you are showing it to someone.</p>" +
+    '<div class="row"><button class="btn ghost" id="do-reset">Reset the demonstration</button>' +
+    '<button class="btn ghost" id="do-refresh">Work out all scores again</button></div>' +
+    '<div id="sys-out"></div></div>';
+  main.innerHTML = h;
+}
+
+/* ---- upload preview rendering ------------------------------------------ */
+function uploadReport(rep, committed) {
+  const mapped = rep.mapping.filter(m => m.status === "mapped");
+  const weeks = rep.weekly_columns_found;
+  const blocked = rep.blocked_columns || [];
+  let h = '<div class="note ' + (committed ? "good" : "plain") + '">' +
+    (committed ? "<b>Saved.</b> " + rep.applied + " students updated."
+               : "<b>Nothing has been saved yet.</b> Check the columns below first.") + "</div>";
+  h += "<p>Found the headings on row " + (rep.header_row_detected + 1) + ", skipping " +
+    rep.rows_above_header_skipped + " row(s) of titles above it. Read " + rep.rows_keyed +
+    " of " + rep.rows_total + " rows" +
+    (rep.rows_unmatched ? "; " + rep.rows_unmatched + " had no recognisable roll number" : "") +
+    ".</p>";
+  h += "<table><thead><tr><th>Column in your file</th><th>Understood as</th>" +
+    "</tr></thead><tbody>";
+  mapped.forEach(m => {
+    h += "<tr><td>" + esc(m.source) + "</td><td>" +
+      esc(m.field.replace(/_/g, " ")) +
+      (m.confidence < 1 ? " <span class='legend'>(best guess)</span>" : "") + "</td></tr>";
+  });
+  if (weeks) {
+    h += "<tr><td>" + weeks + " date columns</td><td>weekly attendance</td></tr>";
+  }
+  blocked.forEach(b => {
+    h += "<tr><td>" + esc(b) + "</td><td style='color:var(--red)'><b>Not loaded on purpose.</b> " +
+      "Personal contact details are never stored.</td></tr>";
+  });
+  h += "</tbody></table>";
+  if (rep.missing_required && rep.missing_required.length) {
+    h += '<div class="note bad">No roll number column found, so nothing can be matched. ' +
+      "Check the file has a column of roll or enrolment numbers.</div>";
+  } else if (!committed) {
+    h += '<div class="row"><button class="btn" id="do-commit">Looks right &mdash; save it</button></div>';
+  }
+  return h;
+}
+
+/* =========================================================================
+   Wiring
+   ========================================================================= */
+const render = () => ({ week, students, worked, setup }[TAB] || week)().catch(oops);
+
+document.addEventListener("click", async (e) => {
+  const t = e.target.closest("button, a");
+  if (!t) return;
+
+  if (t.dataset.tab) {
+    TAB = t.dataset.tab;
+    document.querySelectorAll("#nav button").forEach(b =>
+      b.setAttribute("aria-current", b === t ? "page" : "false"));
+    return render();
+  }
+  if (t.dataset.open) { e.preventDefault(); return student(t.dataset.open).catch(oops); }
+  if (t.hasAttribute("data-back")) return week().catch(oops);
+  if (t.dataset.page) return students($("#q") ? $("#q").value : "", +t.dataset.page).catch(oops);
+  if (t.id === "do-q") return students($("#q").value, 1).catch(oops);
+
+  if (t.dataset.fb) {
+    t.disabled = true;
+    try {
+      await api("/api/feedback", { method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ roll_no: t.dataset.roll, mentor: MENTOR, verdict: t.dataset.fb }) });
+      t.textContent = "Thank you \u2014 noted";
+    } catch (err) { t.disabled = false; alert(err.message); }
+    return;
+  }
+
+  if (t.id === "save-act") {
+    t.disabled = true;
+    try {
+      await api("/api/interventions", { method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ roll_no: t.dataset.roll, mentor: MENTOR,
+          playbook: t.dataset.pb, trigger: t.dataset.tr,
+          action_text: $("#act").value, followup_days: +t.dataset.fu }) });
+      return student(t.dataset.roll).catch(oops);
+    } catch (err) { t.disabled = false; alert(err.message); }
+    return;
+  }
+
+  if (t.id === "do-admit") {
+    const body = { name: $("#a-name").value.trim(), dept: $("#a-dept").value.trim().toUpperCase(),
+      year: +$("#a-year").value, section: $("#a-sec").value.trim().toUpperCase() || "A" };
+    if (!body.name || !body.dept) {
+      $("#admit-out").innerHTML = '<div class="note bad">A name and a department are needed.</div>';
+      return;
+    }
+    t.disabled = true;
+    try {
+      const r = await api("/api/students", { method: "POST",
+        headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
+      $("#admit-out").innerHTML = '<div class="note good"><b>' + esc(r.name) +
+        " added as " + esc(r.roll_no) + ".</b> " + esc(r.message) + "</div>";
+      $("#a-name").value = "";
+    } catch (err) { $("#admit-out").innerHTML = '<div class="note bad">' + esc(err.message) + "</div>"; }
+    t.disabled = false;
+    return;
+  }
+
+  if (t.id === "do-preview" || t.id === "do-commit") {
+    const f = $("#file").files[0];
+    const out = $("#up-out");
+    if (!f) { out.innerHTML = '<div class="note bad">Choose a file first.</div>'; return; }
+    const commit = t.id === "do-commit";
+    out.innerHTML = '<p class="spin">Reading ' + esc(f.name) + "…</p>";
+    const fd = new FormData(); fd.append("file", f);
+    try {
+      const r = await fetch("/api/upload?commit=" + commit, { method: "POST", body: fd });
+      const rep = await r.json();
+      if (rep.error) { out.innerHTML = '<div class="note bad">' + esc(rep.error) +
+        " " + esc(rep.hint || "") + "</div>"; return; }
+      out.innerHTML = uploadReport(rep, commit);
+    } catch (err) { out.innerHTML = '<div class="note bad">' + esc(err.message) + "</div>"; }
+    return;
+  }
+
+  if (t.id === "do-reset" || t.id === "do-refresh") {
+    const out = $("#sys-out");
+    out.innerHTML = '<p class="spin">Working…</p>';
+    try {
+      const r = await api(t.id === "do-reset" ? "/api/demo/reset" : "/api/refresh",
+                          { method: "POST" });
+      out.innerHTML = '<div class="note good">Done. ' +
+        esc(JSON.stringify(r).slice(0, 220)) + "</div>";
+    } catch (err) { out.innerHTML = '<div class="note bad">' + esc(err.message) + "</div>"; }
+    return;
+  }
+});
+
+document.addEventListener("input", (e) => {
+  if (!e.target.dataset || !e.target.dataset.wi) return;
+  const k = e.target.dataset.wi;
+  const lbl = $("#wi-v-" + k);
+  if (lbl) lbl.textContent = e.target.value + (k === "backlogs" ? "" : "%");
+  clearTimeout(wiTimer);
+  wiTimer = setTimeout(runWhatIf, 220);   // debounce; a drag fires many events
+});
+
+document.addEventListener("change", async (e) => {
+  if (e.target.classList.contains("oc") && e.target.value) {
+    const iv = e.target.dataset.iv, val = e.target.value;
+    e.target.disabled = true;
+    try {
+      await api("/api/interventions/" + iv + "/outcome", { method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ outcome: val, mentor: MENTOR }) });
+      TAB = "week";
+      await week();
+    } catch (err) { e.target.disabled = false; alert(err.message); }
+  }
+  if (e.target.id === "mentor") { MENTOR = e.target.value; render(); }
+});
+
+(async function boot() {
+  try {
+    const r = await api("/api/mentors");
+    const list = r.mentors || r;
+    MENTOR = r.default || (list[0] && list[0].id) || MENTOR;
+    $("#mentor").innerHTML = list.map(m => {
+      const where = m.scope && m.scope[0]
+        ? " \u2014 " + m.scope[0] + "-" + m.scope[1] + (m.section || "")
+        : " (" + m.role + ")";
+      return '<option value="' + esc(m.id) + '">' + esc(m.name) + esc(where) + "</option>";
+    }).join("");
+    $("#mentor").value = MENTOR;
+  } catch (e) { /* the page still works without the picker */ }
+  render();
+})();
+</script>
+</body>
+</html>
