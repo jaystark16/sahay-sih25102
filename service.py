@@ -13,6 +13,7 @@ import os
 import sqlite3
 from datetime import date, datetime, timedelta
 
+import auth
 import lifecycle
 import ml
 import outcomes
@@ -31,10 +32,9 @@ DB_PATH = os.path.join(BASE, "sahay.db")
 # the data, one per section, because a mentor with 4,883 mentees is not a
 # mentor. A real caseload is about forty, and the whole product argument rests
 # on a worklist a person can actually work through.
-STAFF = {
-    "hod":   {"name": "Dr. A. Bose", "role": "hod", "scope": (None, None)},
-    "admin": {"name": "Registrar",   "role": "admin", "scope": (None, None)},
-}
+# There is one role in this system: mentor. Every account belongs to a person
+# who is responsible for a caseload of students and answers for it.
+STAFF = {}
 MENTOR_TITLES = ["Dr.", "Prof.", "Dr.", "Prof.", "Dr."]
 MENTOR_SURNAMES = ["Rao", "Iyer", "Fernandes", "Menon", "Kulkarni", "Bose", "Nair",
                    "Sharma", "Reddy", "Pillai", "Joshi", "Das", "Shetty", "Gupta",
@@ -61,34 +61,33 @@ def load_mentors(con):
     return m
 
 
+PRIMARY_MENTOR = "mentor"
+PRIMARY_MENTOR_NAME = "Dr. K. Fernandes"
+
+
 def _seed_mentors(con):
-    """One mentor per section, so a caseload is about forty students."""
-    sections = con.execute(
-        "SELECT dept, year, section, COUNT(*) n FROM students "
-        "WHERE dept IS NOT NULL GROUP BY dept, year, section ORDER BY dept, year, section"
-    ).fetchall()
-    rows = []
-    for i, r in enumerate(sections):
-        mid = f"m{r['dept']}{r['year']}{r['section']}".lower()
-        name = (f"{MENTOR_TITLES[i % len(MENTOR_TITLES)]} "
-                f"{MENTOR_INITIALS[i % len(MENTOR_INITIALS)]}. "
-                f"{MENTOR_SURNAMES[i % len(MENTOR_SURNAMES)]}")
-        rows.append((mid, name, "mentor", r["dept"], r["year"], r["section"]))
+    """One mentor, holding the whole caseload.
+
+    A cohort this size is exactly what a single mentor is meant to carry, which
+    is the point of capping the weekly worklist and routing section-wide drops
+    out of it. The per-section scoping in get_worklist / get_dashboard is
+    unchanged and still keys off mentor_id, so adding a second mentor and
+    splitting the roster needs no code change.
+    """
     con.execute("DELETE FROM mentors")
-    con.executemany("INSERT INTO mentors (id,name,role,dept,year,section) "
-                    "VALUES (?,?,?,?,?,?)", rows)
-    for mid, _n, _r, dept, year, sec in rows:
-        con.execute("UPDATE students SET mentor_id=? WHERE dept=? AND year=? "
-                    "AND section=?", (mid, dept, year, sec))
+    con.execute("INSERT INTO mentors (id,name,role,dept,year,section) "
+                "VALUES (?,?,?,?,?,?)",
+                (PRIMARY_MENTOR, PRIMARY_MENTOR_NAME, "mentor", None, None, None))
+    con.execute("UPDATE students SET mentor_id=?", (PRIMARY_MENTOR,))
     con.commit()
     load_mentors(con)
-    return len(rows)
+    return 1
 
 SCHEMA = """
 CREATE TABLE IF NOT EXISTS students (
   roll_no TEXT PRIMARY KEY, name TEXT, dept TEXT, year INT, section TEXT,
   gender TEXT, category TEXT, first_gen INT, hostel INT,
-  ia1 REAL, ia2 REAL, ia3 REAL, ia_max INT DEFAULT 30,
+  ia1 REAL, ia2 REAL, ia3 REAL, cgpa REAL, ia_max INT DEFAULT 30,
   backlogs INT, submission_pct REAL, fee_status TEXT,
   mentor_id TEXT, last_contact_at TEXT,
   status TEXT DEFAULT 'active', admitted_on TEXT, term_start TEXT,
@@ -123,7 +122,8 @@ CREATE TABLE IF NOT EXISTS risk_snapshots (
   roll_no TEXT PRIMARY KEY, score INT, band TEXT, delta INT, priority REAL,
   confidence REAL, headline TEXT, primary_driver TEXT, stage TEXT,
   model_pct REAL, anomaly INT, cohort TEXT, guardrail TEXT,
-  dept TEXT, year INT, section TEXT, mentor_id TEXT, name TEXT, computed_at TEXT
+  dept TEXT, year INT, section TEXT, mentor_id TEXT, name TEXT, computed_at TEXT,
+  flagged INT DEFAULT 0
 );
 CREATE TABLE IF NOT EXISTS mentors (
   id TEXT PRIMARY KEY, name TEXT, role TEXT, dept TEXT, year INT, section TEXT
@@ -143,14 +143,73 @@ CREATE INDEX IF NOT EXISTS ix_iv_roll ON interventions(roll_no);
 CREATE INDEX IF NOT EXISTS ix_iv_status ON interventions(status);
 CREATE INDEX IF NOT EXISTS ix_snap_mentor ON risk_snapshots(mentor_id, priority DESC);
 CREATE INDEX IF NOT EXISTS ix_snap_band ON risk_snapshots(band);
+CREATE INDEX IF NOT EXISTS ix_snap_flagged ON risk_snapshots(flagged, priority DESC);
 CREATE INDEX IF NOT EXISTS ix_students_weeks ON students(weeks_of_data);
 """
+
+
+# CGPA band by backlogs carried forward. Mirrors generate_demo_data.cgpa_for so
+# a migrated database and a freshly generated one agree.
+CGPA_BANDS = ((0, 8.0, 9.0), (2, 7.0, 8.0), (99, 5.0, 6.0))
+
+
+def cgpa_for(backlogs, engagement):
+    """engagement: 0..1, positions the student inside their band."""
+    b = backlogs or 0
+    lo, hi = next((lo, hi) for cap, lo, hi in CGPA_BANDS if b <= cap)
+    pos = min(1.0, max(0.0, engagement if engagement is not None else 0.5))
+    return round(lo + pos * (hi - lo), 2)
+
+
+def _backfill_cgpa(con):
+    """Derive CGPA for rows that predate the column, from backlogs + attendance."""
+    eng = {r["roll_no"]: (r["m"] or 0) / 100.0 for r in con.execute(
+        "SELECT roll_no, AVG(pct) m FROM attendance GROUP BY roll_no")}
+    rows = [(cgpa_for(r["backlogs"], eng.get(r["roll_no"], 0.5)), r["roll_no"])
+            for r in con.execute("SELECT roll_no, backlogs FROM students "
+                                 "WHERE cgpa IS NULL")]
+    if rows:
+        con.executemany("UPDATE students SET cgpa=? WHERE roll_no=?", rows)
+        con.commit()
+    return len(rows)
+
+
+def _migrate(con):
+    """Additive migrations for databases created before a column existed.
+
+    SCHEMA only runs on a full reset, so an existing sahay.db would otherwise
+    crash on the first query that names a newer column.
+    """
+    try:
+        cols = {r["name"] for r in con.execute("PRAGMA table_info(risk_snapshots)")}
+    except sqlite3.Error:
+        return
+    try:
+        scols = {r["name"] for r in con.execute("PRAGMA table_info(students)")}
+    except sqlite3.Error:
+        scols = set()
+    if scols and "cgpa" not in scols:
+        con.execute("ALTER TABLE students ADD COLUMN cgpa REAL")
+        con.commit()
+        # One-off, for rows that predate the column. Deliberately NOT run on
+        # every connect: a student admitted today has no prior semester, so
+        # deriving a CGPA for them would invent an academic record.
+        _backfill_cgpa(con)
+
+    if cols and "flagged" not in cols:
+        con.execute("ALTER TABLE risk_snapshots ADD COLUMN flagged INT DEFAULT 0")
+        # Old rows were worklist-only, so every one of them was flagged work.
+        con.execute("UPDATE risk_snapshots SET flagged=1")
+        con.execute("CREATE INDEX IF NOT EXISTS ix_snap_flagged "
+                    "ON risk_snapshots(flagged, priority DESC)")
+        con.commit()
 
 
 def connect():
     con = sqlite3.connect(DB_PATH, check_same_thread=False)
     con.row_factory = sqlite3.Row
     con.execute("PRAGMA foreign_keys=ON")
+    _migrate(con)
     load_mentors(con)
     return con
 
@@ -184,6 +243,15 @@ def _assign_mentor(dept, year, section="A"):
     return f"m{str(dept).lower()}{year}{str(section).lower()}"
 
 
+def _cgpa_from_row(r):
+    """CGPA from master.csv, or derived if the file predates the column."""
+    if r.get("cgpa"):
+        return float(r["cgpa"])
+    weeks = [float(r[k]) for k in r if k.startswith("w") and k[1:].isdigit() and r[k]]
+    eng = (sum(weeks) / len(weeks) / 100.0) if weeks else 0.5
+    return cgpa_for(int(r["backlogs"]), eng)
+
+
 def reset_db(actor="admin"):
     """Rebuild everything from demo_data/. This is the Reset Demo button."""
     if os.path.exists(DB_PATH):
@@ -202,15 +270,16 @@ def reset_db(actor="admin"):
             year = int(r["year"])
             con.execute(
                 "INSERT INTO students (roll_no,name,dept,year,section,gender,category,"
-                "first_gen,hostel,ia1,ia2,ia3,backlogs,submission_pct,fee_status,"
+                "first_gen,hostel,ia1,ia2,ia3,backlogs,submission_pct,fee_status,cgpa,"
                 "mentor_id,last_contact_at,status,admitted_on,term_start) "
-                "VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,'active','2025-07-07','2025-07-07')",
+                "VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,'active','2025-07-07','2025-07-07')",
                 (r["roll_no"], r["name"], r["dept"], year, r["section"], r["gender"],
                  r["category"], int(r["first_gen"]), int(r["hostel"]),
                  float(r["ia1"]) if r["ia1"] else None,
                  float(r["ia2"]) if r["ia2"] else None,
                  float(r["ia3"]) if r["ia3"] else None,
                  int(r["backlogs"]), float(r["submission_pct"]), r["fee_status"],
+                 _cgpa_from_row(r),
                  _assign_mentor(r["dept"], year, r["section"]), None))
             for i in range(26):
                 pct = float(r[f"w{i:02d}"])
@@ -239,9 +308,14 @@ def reset_db(actor="admin"):
     con.commit()
     # Work out from the attendance data whether each seeded intervention helped,
     # so the effectiveness screen is measured rather than asserted from day one.
-    n_mentors = _seed_mentors(con)
+    _seed_mentors(con)
     m = outcomes.measure_all(con, audit_fn=audit, actor=actor)
     joined = _seed_recent_admissions(con, actor)
+    # Recent admissions can open sections that did not exist a moment ago, and a
+    # section with no mentor is a student no mentor can ever see. Re-seed after
+    # they land so every section has an owner, then issue the login accounts.
+    n_mentors = _seed_mentors(con)
+    auth.seed_users(con, MENTORS)
     con.execute("UPDATE students SET weeks_of_data = (SELECT COUNT(*) FROM attendance a "
                 "WHERE a.roll_no = students.roll_no)")
     con.commit()
@@ -257,11 +331,13 @@ def _seed_recent_admissions(con, actor="system"):
     scoring stages are invisible. The demo needs at least one student in each.
     """
     from datetime import date as _d
-    plan = [("Meera Nair", "CSE", 1, 0), ("Arjun Pillai", "CSE", 1, 2),
-            ("Kavya Reddy", "ECE", 1, 5), ("Imran Shaikh", "ECE", 1, 8),
-            ("Nandini Bose", "MEC", 1, 12), ("Rahul Menon", "MEC", 1, 14)]
+    # One per stage, no more: at a 14-student demo size six of these would be
+    # nearly half the cohort. 0 weeks -> onboarding, 6 -> rules_only, 14 -> full.
+    plan = [("Meera Nair", "CSE", 1, 0, "F"),
+            ("Kavya Reddy", "ECE", 1, 6, "F"),
+            ("Rahul Menon", "MEC", 1, 14, "M")]
     made = []
-    for name, dept, year, weeks in plan:
+    for name, dept, year, weeks, gender in plan:
         try:
             start = _d(2025, 7, 7)
             st = lifecycle.admit(con, name=name, dept=dept, year=year, section="A",
@@ -277,8 +353,9 @@ def _seed_recent_admissions(con, actor="system"):
                         (st["roll_no"], w,
                          (start + timedelta(weeks=w)).isoformat(),
                          round(pct, 1), int(round(pct / 100 * 40)), 40))
-        con.execute("UPDATE students SET status=?, weeks_of_data=? WHERE roll_no=?",
-                    ("active" if weeks else "enrolled", weeks, st["roll_no"]))
+        con.execute("UPDATE students SET status=?, weeks_of_data=?, gender=? "
+                    "WHERE roll_no=?",
+                    ("active" if weeks else "enrolled", weeks, gender, st["roll_no"]))
         made.append({"roll_no": st["roll_no"], "name": name, "weeks": weeks,
                      "stage": lifecycle.stage_for(weeks)})
     con.commit()
@@ -397,6 +474,107 @@ def model_status(con):
             "data": r["data"]}
 
 
+# Plain-language review thresholds. CGPA is not part of the risk ledger, so it
+# has no entry in DEFAULT_CONFIG; the rest read from the live config so the
+# review can never contradict the score shown beside it.
+CGPA_LOW = 6.0
+CGPA_WEAK = 7.0
+CGPA_GOOD = 8.0
+
+
+def _join_plain(parts):
+    """a / a and b / a, b and c -- read aloud without sounding like a list."""
+    parts = [p for p in parts if p]
+    if not parts:
+        return ""
+    if len(parts) == 1:
+        return parts[0]
+    return ", ".join(parts[:-1]) + " and " + parts[-1]
+
+
+def plain_review(student, features, cfg):
+    """A mentor-readable account of what is actually wrong with this student.
+
+    SHAP contributions answer "which input moved the model", which is the wrong
+    question for someone about to phone a nineteen-year-old. This answers "what
+    is going wrong", in the words a mentor would use.
+    """
+    att_min = cfg["attendance_level"]["threshold_pct"]
+    sub_min = cfg["submission"]["threshold_pct"]
+    weeks = [w for w in (features.get("weekly_attendance") or []) if w is not None]
+    recent = sum(weeks[-4:]) / len(weeks[-4:]) if weeks else None
+
+    concerns, positives, short = [], [], []
+
+    # --- attendance ---------------------------------------------------------
+    if recent is not None:
+        if recent < att_min * 0.66:
+            concerns.append(("Attendance", f"Attendance is very low at {recent:.0f}%, "
+                                           f"well under the {att_min:.0f}% needed."))
+            short.append("attendance is very low")
+        elif recent < att_min:
+            concerns.append(("Attendance", f"Attendance is low at {recent:.0f}%, "
+                                           f"under the {att_min:.0f}% needed."))
+            short.append("attendance is low")
+        else:
+            positives.append(("Attendance", f"Attendance is fine at {recent:.0f}%."))
+
+    # --- cgpa ---------------------------------------------------------------
+    cgpa = student.get("cgpa")
+    if cgpa is not None:
+        if cgpa < CGPA_LOW:
+            concerns.append(("CGPA", f"CGPA is low at {cgpa:.2f}."))
+            short.append("CGPA is low")
+        elif cgpa < CGPA_WEAK:
+            concerns.append(("CGPA", f"CGPA is on the low side at {cgpa:.2f}."))
+            short.append("CGPA is on the low side")
+        elif cgpa >= CGPA_GOOD:
+            positives.append(("CGPA", f"CGPA is good at {cgpa:.2f}."))
+
+    # --- submissions --------------------------------------------------------
+    sub = student.get("submission_pct")
+    if sub is not None:
+        if sub < sub_min * 0.66:
+            concerns.append(("Submissions", f"Most assignments have not been handed "
+                                            f"in — only {sub:.0f}% submitted."))
+            short.append("most assignments are missing")
+        elif sub < sub_min:
+            concerns.append(("Submissions", f"Some assignments have not been handed "
+                                            f"in — {sub:.0f}% submitted."))
+            short.append("some assignments are missing")
+        else:
+            positives.append(("Submissions", f"Assignments are being handed in "
+                                             f"({sub:.0f}%)."))
+
+    # --- backlogs -----------------------------------------------------------
+    backlogs = student.get("backlogs") or 0
+    if backlogs:
+        word = "backlog" if backlogs == 1 else "backlogs"
+        concerns.append(("Backlogs", f"{backlogs} {word} still to clear."))
+        short.append(f"there {'is' if backlogs == 1 else 'are'} {backlogs} {word}")
+
+    # --- the one-line verdict ----------------------------------------------
+    name = (student.get("name") or "This student").split()[0]
+    if concerns:
+        line = _join_plain(short)
+        # Not .capitalize(): that would lowercase the rest and turn CGPA into cgpa.
+        summary = line[0].upper() + line[1:] + "."
+    elif recent is None:
+        # No attendance at all. A clean bill of health here would be a guess,
+        # and this student is exactly the one the lifecycle stages exist for.
+        summary = (f"There is not enough data on {name} yet. Attendance is still "
+                   f"being collected, so nothing can be judged.")
+    else:
+        summary = f"Nothing is going wrong for {name} right now."
+
+    return {
+        "summary": summary,
+        "concerns": [{"area": a, "text": t} for a, t in concerns],
+        "positives": [{"area": a, "text": t} for a, t in positives],
+        "concern_count": len(concerns),
+    }
+
+
 def _hybrid(ledger, mlres, stage):
     """Put the two opinions side by side and flag it when they disagree.
 
@@ -476,7 +654,15 @@ def refresh_scores(con, actor="system"):
     weeks_by_roll = {s["roll_no"]: len(s["features"]["weekly_attendance"])
                      for s in students}
     rows = []
-    for item in wl["this_week"] + wl["watch"] + wl["routed_to_cohort"]:
+    # `flagged` separates "this is work for a mentor this week" from "this
+    # student is scored and healthy". Both belong in risk_snapshots: the
+    # directory and the band counts need every scoreable student, while the
+    # worklist reads only the flagged ones.
+    buckets = ([(i, 1) for i in wl["this_week"]]
+               + [(i, 1) for i in wl["watch"]]
+               + [(i, 1) for i in wl["routed_to_cohort"]]
+               + [(i, 0) for i in wl.get("healthy", [])])
+    for item, is_flagged in buckets:
         rn = item["roll_no"]
         m = mlres.get(rn) or {}
         md = meta.get(rn, {})
@@ -489,21 +675,22 @@ def refresh_scores(con, actor="system"):
                      (item.get("explained_by_cohort") or {}).get("cohort"),
                      json.dumps(item.get("guardrails") or []),
                      md.get("dept"), md.get("year"), md.get("section"),
-                     md.get("mentor_id"), md.get("name"), now))
+                     md.get("mentor_id"), md.get("name"), now, is_flagged))
 
     con.execute("DELETE FROM risk_snapshots")
     con.executemany(
         "INSERT INTO risk_snapshots (roll_no,score,band,delta,priority,confidence,"
         "headline,primary_driver,stage,model_pct,anomaly,cohort,guardrail,dept,"
-        "year,section,mentor_id,name,computed_at) "
-        "VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)", rows)
+        "year,section,mentor_id,name,computed_at,flagged) "
+        "VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)", rows)
     con.execute("DELETE FROM cohort_alerts")
     con.executemany("INSERT INTO cohort_alerts VALUES (?,?,?)",
                     [(a["cohort"], json.dumps(a), now) for a in alerts])
+    flagged_n = sum(f for _, f in buckets)
     audit(con, actor, "scores_refreshed", "cohort",
-          f"{len(rows)} scored, {len(alerts)} cohort alerts")
+          f"{len(rows)} scored ({flagged_n} flagged), {len(alerts)} cohort alerts")
     con.commit()
-    return {"scored": len(rows), "cohort_alerts": len(alerts),
+    return {"scored": len(rows), "flagged": flagged_n, "cohort_alerts": len(alerts),
             "seconds": round(_t.time() - t0, 2), "at": now}
 
 
@@ -519,10 +706,14 @@ def default_mentor(con):
 
 
 def get_worklist(con, mentor_id=None, capacity=5, page=1, page_size=50):
-    mentor_id = mentor_id or default_mentor(con)
     """Served from risk_snapshots. Flat in cohort size: an indexed SQL query
     returns the top `capacity` rows whether the college has 400 students or
-    40,000."""
+    40,000.
+
+    `mentor_id` of None means the whole institution. It must NOT fall back to
+    some default mentor, or an institution-wide view silently shows one
+    mentor's caseload and is mistaken for the whole college.
+    """
     if snapshots_stale(con):
         refresh_scores(con)
 
@@ -550,7 +741,7 @@ def get_worklist(con, mentor_id=None, capacity=5, page=1, page_size=50):
         return con.execute(f"SELECT COUNT(*) c FROM risk_snapshots WHERE {scope} "
                            f"AND {where}", (*args, *extra)).fetchone()["c"]
 
-    individual = "cohort IS NULL"
+    individual = "flagged=1 AND cohort IS NULL"
     this_week = rows(individual, limit=capacity)
     total_flagged = count(individual)
     watch_total = max(0, total_flagged - capacity)
@@ -559,15 +750,15 @@ def get_worklist(con, mentor_id=None, capacity=5, page=1, page_size=50):
     alerts = [json.loads(r["payload"]) for r in
               con.execute("SELECT payload FROM cohort_alerts")]
     stamp = con.execute("SELECT MAX(computed_at) m FROM risk_snapshots").fetchone()["m"]
-    in_scope = con.execute(f"SELECT COUNT(*) c FROM students WHERE "
-                           f"{scope.replace('mentor_id', 'mentor_id')}", args).fetchone()["c"]
+    in_scope = con.execute(f"SELECT COUNT(*) c FROM students WHERE {scope}",
+                           args).fetchone()["c"]
 
     return {"this_week": this_week, "watch": watch,
             "watch_page": {"page": page, "page_size": page_size, "total": watch_total,
                            "pages": max(1, -(-watch_total // page_size))},
-            "routed_to_cohort_count": count("cohort IS NOT NULL"),
+            "routed_to_cohort_count": count("flagged=1 AND cohort IS NOT NULL"),
             "capacity": capacity, "total_flagged": total_flagged,
-            "total_routed": count("cohort IS NOT NULL"),
+            "total_routed": count("flagged=1 AND cohort IS NOT NULL"),
             "cohort_alerts": alerts,
             "mentor": MENTORS.get(mentor_id, {}).get("name", mentor_id),
             "mentor_id": mentor_id, "students_in_scope": in_scope,
@@ -602,7 +793,6 @@ def list_students(con, mentor_id=None, q="", risk="all", page=1, page_size=50):
 
 
 def get_summary(con, mentor_id=None):
-    mentor_id = mentor_id or default_mentor(con)
     if snapshots_stale(con):
         refresh_scores(con)
     scope, args = "1=1", []
@@ -623,8 +813,26 @@ def get_summary(con, mentor_id=None):
             "mode": model_status(con)["mode"], "data_source": "Synthetic demo data"}
 
 
+def get_roster(con, mentor_id=None):
+    """Every student in scope with the four facts a mentor reads at a glance.
+
+    Attendance is the mean across all recorded weeks, so a student admitted
+    last week correctly shows no percentage rather than a misleading 0.
+    """
+    scope, args = "1=1", []
+    if MENTORS.get(mentor_id, {}).get("role") == "mentor":
+        scope, args = "s.mentor_id=?", [mentor_id]
+    rows = con.execute(
+        f"SELECT s.roll_no, s.name, s.gender, s.cgpa, r.band, r.score, "
+        f"       ROUND((SELECT AVG(a.pct) FROM attendance a "
+        f"              WHERE a.roll_no = s.roll_no), 1) AS attendance_pct "
+        f"FROM students s LEFT JOIN risk_snapshots r ON r.roll_no = s.roll_no "
+        f"WHERE {scope} ORDER BY attendance_pct IS NULL, attendance_pct ASC", args
+    ).fetchall()
+    return {"students": [dict(r) for r in rows], "total": len(rows)}
+
+
 def get_dashboard(con, mentor_id=None):
-    mentor_id = mentor_id or default_mentor(con)
     scope, args = "1=1", []
     if MENTORS.get(mentor_id, {}).get("role") == "mentor":
         scope, args = "mentor_id=?", [mentor_id]
@@ -640,9 +848,8 @@ def get_dashboard(con, mentor_id=None):
                          f"AND delta >= 10", args).fetchone()["c"]
                          
     cgpa_row = con.execute(
-        f"SELECT AVG((IFNULL(ia1,0)+IFNULL(ia2,0)+IFNULL(ia3,0))/(ia_max*3.0)*10.0) as cgpa "
-        f"FROM students WHERE {scope} AND ia_max > 0", args
-    ).fetchone()
+        f"SELECT AVG(cgpa) as cgpa FROM students WHERE {scope} AND cgpa IS NOT NULL",
+        args).fetchone()
     avg_cgpa = round(cgpa_row["cgpa"], 2) if cgpa_row and cgpa_row["cgpa"] is not None else 7.50
 
     return {
@@ -682,7 +889,7 @@ def get_student(con, roll_no):
         # Never expose gender/category on the mentor's screen. They exist solely
         # so the fairness audit can run, and are never scoring inputs.
         "student": {k: s[k] for k in ("roll_no", "name", "dept", "year", "section",
-                                      "backlogs", "submission_pct", "fee_status",
+                                      "backlogs", "submission_pct", "fee_status", "cgpa",
                                       "ia1", "ia2", "ia3", "ia_max", "last_contact_at",
                                       "status", "admitted_on")},
         "stage": stage,
@@ -691,6 +898,7 @@ def get_student(con, roll_no):
         "forecast": fc,
         "delta": d if stage["scoring"] != "none" else None,
         "attendance": [dict(a) for a in att],
+        "review": plain_review(dict(s), f, cfg),
         "suggested_playbook": suggest_playbook(ledger) if stage["scoring"] != "none" else None,
         "interventions": [dict(i) for i in ivs],
         "feedback": [dict(x) for x in fb],
@@ -1005,6 +1213,32 @@ def admit_students_bulk(con, records, actor="admin"):
     return lifecycle.admit_bulk(con, records, actor=actor, audit_fn=audit)
 
 
+def remove_student(con, roll_no, actor="mentor"):
+    """Delete a student and everything keyed to them.
+
+    None of the child tables declare a foreign key, so nothing cascades. Left
+    alone, the attendance rows and interventions of a deleted student stay in
+    the database for ever and quietly skew every cohort statistic.
+    """
+    roll_no = (roll_no or "").strip().upper()
+    row = con.execute("SELECT roll_no, name FROM students WHERE roll_no=?",
+                      (roll_no,)).fetchone()
+    if not row:
+        raise ValueError(f"{roll_no} not found")
+
+    removed = {}
+    for table in ("attendance", "interventions", "feedback", "risk_snapshots"):
+        cur = con.execute(f"DELETE FROM {table} WHERE roll_no=?", (roll_no,))
+        removed[table] = cur.rowcount
+    con.execute("DELETE FROM students WHERE roll_no=?", (roll_no,))
+    audit(con, actor, "student_removed", roll_no,
+          f"{row['name']} removed with "
+          f"{removed['attendance']} attendance weeks, "
+          f"{removed['interventions']} interventions")
+    con.commit()
+    return {"roll_no": roll_no, "name": row["name"], "removed": removed}
+
+
 def set_student_status(con, roll_no, status, actor="admin", note=""):
     return lifecycle.set_status(con, roll_no, status, actor, note, audit_fn=audit)
 
@@ -1037,7 +1271,7 @@ if __name__ == "__main__":
           f"rising={s['rising']}  open interventions={s['open_interventions']}")
     wl = get_worklist(con, mid, 5)
     print(f"\nWorklist for {wl['mentor']}  ({wl['students_in_scope']} in scope, "
-          f"{wl['total_flagged']} flagged, {wl['total_routed']} routed to HOD)")
+          f"{wl['total_flagged']} flagged, {wl['total_routed']} routed for review)")
     for i, w in enumerate(wl["this_week"], 1):
         print(f"  {i}. {w['roll_no']} {w['name'][:20]:20s} {w['score']:3d} "
               f"{w['delta']:+3d}  {w['headline'][:46]}")

@@ -120,17 +120,22 @@ def api_change_password(body: ChangePasswordIn, request: Request):
 
 @app.get("/api/auth/users")
 def api_users(request: Request):
-    """Admin-only: list all user accounts."""
+    """List all mentor accounts."""
     token = _token_from_request(request)
     user = auth.verify_token(con, token)
-    if not user or user["role"] not in ("admin", "hod"):
-        raise HTTPException(403, "Admin only")
+    if not user or user["role"] != "mentor":
+        raise HTTPException(403, "Mentors only")
     return auth.list_users(con)
 
 
 # ----------------------------------------------------------------------------
 # Read
 # ----------------------------------------------------------------------------
+@app.get("/api/dashboard")
+def dashboard(mentor: Optional[str] = None):
+    return service.get_dashboard(con, mentor)
+
+
 @app.get("/api/summary")
 def summary(mentor: Optional[str] = None):
     return service.get_summary(con, mentor)
@@ -219,6 +224,11 @@ def measure(actor: str = "admin"):
 @app.get("/api/analytics/effectiveness")
 def effectiveness():
     return service.get_effectiveness(con)
+
+
+@app.get("/api/analytics/roster")
+def analytics_roster(mentor: Optional[str] = None):
+    return service.get_roster(con, mentor)
 
 
 @app.get("/api/analytics/fairness")
@@ -330,6 +340,7 @@ class AdmitIn(BaseModel):
     category: Optional[str] = None
     first_gen: Optional[bool] = None
     hostel: Optional[bool] = None
+    cgpa: Optional[float] = None
     mentor_id: Optional[str] = None
 
 
@@ -359,6 +370,20 @@ def admit(body: AdmitIn, actor: str = "admin"):
         return service.admit_student(con, actor=actor, **_fields(body))
     except ValueError as e:
         raise HTTPException(400, str(e))
+
+
+@app.delete("/api/students/{roll_no}")
+def remove_student(roll_no: str, request: Request):
+    """Delete a student and their attendance, interventions and score history."""
+    user = auth.verify_token(con, _token_from_request(request))
+    if not user:
+        raise HTTPException(401, "Not authenticated")
+    try:
+        result = service.remove_student(con, roll_no, actor=user["id"])
+    except ValueError as e:
+        raise HTTPException(404, str(e))
+    service.refresh_scores(con, actor=user["id"])
+    return result
 
 
 @app.post("/api/students/bulk")

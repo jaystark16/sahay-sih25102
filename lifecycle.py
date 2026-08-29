@@ -100,7 +100,7 @@ def next_roll_no(con, dept, admission_year):
 # ----------------------------------------------------------------------------
 def admit(con, *, name, dept, year, section="A", admission_date=None, roll_no=None,
           gender=None, category=None, first_gen=None, hostel=None,
-          mentor_id=None, actor="admin", audit_fn=None):
+          cgpa=None, mentor_id=None, actor="admin", audit_fn=None):
     """Create a student record on admission day. No academic data required.
 
     Only the fields an admissions office actually has on day one. gender and
@@ -119,12 +119,13 @@ def admit(con, *, name, dept, year, section="A", admission_date=None, roll_no=No
     mentor_id = mentor_id or _auto_mentor(con, dept, year, section)
     con.execute(
         "INSERT INTO students (roll_no,name,dept,year,section,gender,category,"
-        "first_gen,hostel,backlogs,submission_pct,fee_status,mentor_id,"
-        "status,admitted_on,term_start) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
+        "first_gen,hostel,cgpa,backlogs,submission_pct,fee_status,mentor_id,"
+        "status,admitted_on,term_start) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
         (roll_no, name.strip(), dept.upper(), int(year), (section or "A").upper(),
          gender, category,
          None if first_gen is None else int(bool(first_gen)),
          None if hostel is None else int(bool(hostel)),
+         None if cgpa in (None, "") else float(cgpa),
          0, None, "Unknown", mentor_id, "enrolled", admission_date, admission_date))
     if audit_fn:
         audit_fn(con, actor, "student_admitted", roll_no, f"{name} {dept}-{year}")
@@ -152,14 +153,26 @@ def admit_bulk(con, records, actor="admin", audit_fn=None):
 
 
 def _auto_mentor(con, dept, year, section="A"):
-    """The mentor who already looks after this section, or a new id for it."""
+    """The mentor who already looks after this section.
+
+    Whatever this returns must be a mentor that actually exists. Handing back
+    an id with no mentor row makes the student invisible to every mentor -- the
+    record saves, and then nobody ever sees it.
+    """
     row = con.execute(
-        "SELECT mentor_id, COUNT(*) c FROM students WHERE dept=? AND year=? "
-        "AND section=? AND mentor_id IS NOT NULL GROUP BY mentor_id "
-        "ORDER BY c DESC LIMIT 1",
+        "SELECT s.mentor_id, COUNT(*) c FROM students s "
+        "JOIN mentors m ON m.id = s.mentor_id "
+        "WHERE s.dept=? AND s.year=? AND s.section=? "
+        "GROUP BY s.mentor_id ORDER BY c DESC LIMIT 1",
         (dept.upper(), int(year), (section or "A").upper())).fetchone()
     if row:
         return row["mentor_id"]
+    # New section: fall back to an existing mentor rather than inventing an id
+    # for a mentor record that was never created.
+    any_mentor = con.execute(
+        "SELECT id FROM mentors WHERE role='mentor' ORDER BY id LIMIT 1").fetchone()
+    if any_mentor:
+        return any_mentor["id"]
     return f"m{str(dept).lower()}{year}{str(section or 'A').lower()}"
 
 

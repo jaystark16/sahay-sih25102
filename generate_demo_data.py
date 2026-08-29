@@ -77,12 +77,33 @@ PER_SECTION = 40
 
 
 # ----------------------------------------------------------------------------
+# CGPA
+# ----------------------------------------------------------------------------
+# Backlogs are the dominant signal for past academic standing, so the band is
+# chosen by backlog count and engagement only positions the student inside it.
+CGPA_BANDS = (
+    (0, 8.0, 9.0),    # nothing carried forward
+    (2, 7.0, 8.0),    # one or two
+    (99, 5.0, 6.0),   # more than two
+)
+
+
+def cgpa_for(backlogs, mean_eng, rng=np.random):
+    lo, hi = next((lo, hi) for cap, lo, hi in CGPA_BANDS if backlogs <= cap)
+    # Engagement places the student in the band; the jitter stops the whole
+    # cohort landing on identical values.
+    pos = float(np.clip(mean_eng + rng.normal(0, 0.12), 0.0, 1.0))
+    return round(float(np.clip(lo + pos * (hi - lo), lo, hi)), 2)
+
+
+# ----------------------------------------------------------------------------
 # Latent engagement process
 # ----------------------------------------------------------------------------
 class Student:
     __slots__ = ("roll_no", "name", "dept", "year", "section", "gender", "category",
                  "first_gen", "hostel", "fragility", "baseline",
-                 "att", "marks", "backlogs", "submission_pct", "fee_status", "dropout")
+                 "att", "marks", "backlogs", "submission_pct", "fee_status", "dropout",
+                 "cgpa")
 
     def __init__(self, rng, roll_no, name, dept, year, section):
         self.roll_no, self.name = roll_no, name
@@ -141,6 +162,11 @@ def run_trajectory(s, n_weeks, cohort_shock=None):
     # institutional fact, not evidence about the student, and the fairness audit
     # needs to be able to demonstrate that.
     s.fee_status = str(np.random.choice(["Paid", "Pending", "Part Paid"], p=[0.78, 0.14, 0.08]))
+    # CGPA banded by backlogs carried forward. Position within the band is
+    # nudged by engagement, so a student at the top of the 7-8 band reads
+    # differently from one at the bottom, but the band itself is decided by
+    # backlogs alone.
+    s.cgpa = cgpa_for(s.backlogs, mean_eng)
     s.dropout = int(s.backlogs >= 2 or (mean_eng < 0.7 and np.random.random() < 0.3))
     return s
 
@@ -148,9 +174,10 @@ def run_trajectory(s, n_weeks, cohort_shock=None):
 # ----------------------------------------------------------------------------
 # Cohort construction
 # ----------------------------------------------------------------------------
-def build_cohort(n_students, n_weeks, rng):
+def build_cohort(n_students, n_weeks, rng, per_section=None):
+    per_section = per_section or PER_SECTION
     combos = [(d, y, s) for d in DEPT_POOL for y in (2, 3, 4) for s in ("A", "B", "C")]
-    needed = max(1, -(-n_students // PER_SECTION))
+    needed = max(1, -(-n_students // per_section))
     while len(combos) < needed:                       # scale past the base pool
         extra = len(combos) // 90 + 1
         combos += [(f"{d}{extra}", y, s) for d in DEPT_POOL for y in (2, 3, 4)
@@ -166,7 +193,7 @@ def build_cohort(n_students, n_weeks, rng):
     for (dept, year, sec) in combos:
         if len(students) >= n_students:
             break
-        for _ in range(min(PER_SECTION, n_students - len(students))):
+        for _ in range(min(per_section, n_students - len(students))):
             nm = f"{rng.choice(FIRST_NAMES)} {rng.choice(LAST_NAMES)}"
             k = (dept, year)
             serial[k] = serial.get(k, 0) + 1
@@ -182,7 +209,8 @@ def build_cohort(n_students, n_weeks, rng):
 def write_master(students, n_weeks, week_starts):
     cols = (["roll_no", "name", "dept", "year", "section", "gender", "category",
              "first_gen", "hostel", "ia1", "ia2", "ia3", "backlogs",
-             "submission_pct", "fee_status", "dropout"] + [f"w{i:02d}" for i in range(n_weeks)])
+             "submission_pct", "fee_status", "cgpa", "dropout"]
+            + [f"w{i:02d}" for i in range(n_weeks)])
     with open(os.path.join(OUT, "master.csv"), "w", newline="", encoding="utf-8") as f:
         w = csv.writer(f)
         w.writerow(cols)
@@ -191,7 +219,8 @@ def write_master(students, n_weeks, week_starts):
             w.writerow([s.roll_no, s.name, s.dept, s.year, s.section, s.gender,
                         s.category, int(s.first_gen), int(s.hostel),
                         m[0], m[1], m[2], s.backlogs, round(s.submission_pct, 1),
-                        s.fee_status.title(), s.dropout] + [round(a, 1) for a in s.att])
+                        s.fee_status.title(), s.cgpa, s.dropout]
+                       + [round(a, 1) for a in s.att])
     with open(os.path.join(OUT, "week_starts.csv"), "w", newline="", encoding="utf-8") as f:
         w = csv.writer(f)
         w.writerow(["week_index", "week_start"])
@@ -366,6 +395,9 @@ def main():
     ap.add_argument("--weeks", type=int, default=26)
     ap.add_argument("--seed", type=int, default=25102)
     ap.add_argument("--messy-sample", type=int, default=600)
+    ap.add_argument("--per-section", type=int, default=PER_SECTION,
+                    help="students per section; lower it for small demo cohorts "
+                         "so more than one section exists")
     a = ap.parse_args()
 
     random.seed(a.seed)
@@ -374,7 +406,8 @@ def main():
     os.makedirs(OUT, exist_ok=True)
 
     week_starts = [date(2025, 7, 7) + timedelta(weeks=w) for w in range(a.weeks)]
-    students, depts, anomaly, anomaly_week = build_cohort(a.students, a.weeks, rng)
+    students, depts, anomaly, anomaly_week = build_cohort(a.students, a.weeks, rng,
+                                                          a.per_section)
     rolls = [s.roll_no for s in students]
     assert len(rolls) == len(set(rolls)), "roll numbers must be unique"
 

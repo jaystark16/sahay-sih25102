@@ -41,7 +41,11 @@
   /* Semantic */
   --red:    #ff453a;
   --orange: #ff9f0a;
-  --green:  #32d74b;
+  /* #32d74b sat at deltaE 5.1 from --orange under deuteranopia -- below the
+     CVD floor, so a red-green colourblind mentor could not separate Low from
+     Medium. #30d158 reaches 7.1, which is legal because every risk indicator
+     in this UI also carries its band name as text. */
+  --green:  #30d158;
   --red-muted:    rgba(255, 69, 58, 0.15);
   --orange-muted: rgba(255, 159, 10, 0.15);
   --green-muted:  rgba(50, 215, 75, 0.15);
@@ -141,9 +145,14 @@ p  { color: var(--label-secondary); }
 /* -------------------------------------------------------- */
 /* Layout                                                   */
 /* -------------------------------------------------------- */
+/* A fixed-height shell, so .main-content's own overflow-y actually engages and
+   the sidebar never scrolls away. With min-height the document scrolled
+   instead, which on a short viewport (a 768p projector) left the bottom of a
+   page unreachable. */
 .app-shell {
   display: flex;
-  min-height: 100vh;
+  height: 100vh;
+  overflow: hidden;
 }
 
 .sidebar {
@@ -156,9 +165,7 @@ p  { color: var(--label-secondary); }
   display: flex;
   flex-direction: column;
   padding: 1.5rem 0;
-  position: sticky;
-  top: 0;
-  height: 100vh;
+  height: 100%;
   overflow-y: auto;
 }
 
@@ -286,6 +293,26 @@ p  { color: var(--label-secondary); }
   flex: 1;
   overflow-y: auto;
   background: var(--bg-primary);
+  position: relative;
+}
+
+/* The working surface was flat #000, which flattens the cards sitting on it.
+   One cool light source at the top edge gives the page a horizon and makes
+   the elevated surfaces read as elevated. Fixed so it does not scroll away. */
+.main-content::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  background:
+    radial-gradient(78% 46% at 50% -8%, rgba(10, 132, 255, 0.10) 0%, transparent 70%),
+    radial-gradient(50% 34% at 96% 4%, rgba(50, 215, 75, 0.045) 0%, transparent 72%);
+}
+
+.main-content > * {
+  position: relative;
+  z-index: 1;
 }
 
 .page {
@@ -430,6 +457,9 @@ p  { color: var(--label-secondary); }
 .badge-medium { background: var(--orange-muted); color: var(--orange); border: 1px solid var(--orange-border); }
 .badge-low    { background: var(--green-muted);  color: var(--green);  border: 1px solid var(--green-border); }
 .badge-blue   { background: var(--accent-muted); color: var(--accent); border: 1px solid var(--accent-border); }
+/* Not a risk level. A student we deliberately decline to score yet. */
+.badge-none   { background: var(--fill-primary);  color: var(--label-tertiary);
+                border: 1px dashed var(--separator-thick); }
 
 /* -------------------------------------------------------- */
 /* Table                                                    */
@@ -493,7 +523,9 @@ p  { color: var(--label-secondary); }
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.06em;
-  color: var(--label-tertiary);
+  /* Was --label-tertiary (0.28 alpha) = ~2.2:1 on black, under WCAG AA and
+     effectively invisible on a projector. --label-secondary is ~6:1. */
+  color: var(--label-secondary);
 }
 
 .stat-value {
@@ -543,20 +575,43 @@ p  { color: var(--label-secondary); }
   overflow: hidden;
 }
 
-/* Subtle ambient glow — not a gradient, just light leaking */
+/* Ambient light. Two offset sources rather than one centred blob, so the
+   card sits in a lit room instead of on a flat black sheet. Kept low-opacity
+   on purpose: this should read as depth, not as decoration. */
 .login-bg::before {
   content: '';
   position: absolute;
-  width: 700px;
-  height: 700px;
-  border-radius: 50%;
-  background: radial-gradient(circle at center,
-    rgba(10, 132, 255, 0.08) 0%,
-    transparent 70%);
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
+  inset: -20%;
+  background:
+    radial-gradient(46% 42% at 22% 18%, rgba(10, 132, 255, 0.16) 0%, transparent 68%),
+    radial-gradient(40% 38% at 82% 78%, rgba(50, 215, 75, 0.09) 0%, transparent 66%),
+    radial-gradient(60% 55% at 50% 50%, rgba(10, 132, 255, 0.05) 0%, transparent 72%);
   pointer-events: none;
+  animation: ambient-drift 24s ease-in-out infinite alternate;
+}
+
+/* A faint engineering grid. Reinforces "institutional instrument", and gives
+   the eye a reference plane behind the glass card. */
+.login-bg::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background-image:
+    linear-gradient(rgba(255, 255, 255, 0.028) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.028) 1px, transparent 1px);
+  background-size: 56px 56px;
+  -webkit-mask-image: radial-gradient(circle at 50% 50%, #000 0%, transparent 72%);
+  mask-image: radial-gradient(circle at 50% 50%, #000 0%, transparent 72%);
+  pointer-events: none;
+}
+
+@keyframes ambient-drift {
+  from { transform: translate3d(-1.5%, -1%, 0) scale(1); }
+  to   { transform: translate3d(1.5%, 1%, 0) scale(1.04); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .login-bg::before { animation: none; }
 }
 
 .login-card {
@@ -777,6 +832,16 @@ p  { color: var(--label-secondary); }
   max-width: 100%;
 }
 
+/* The driver is the reason the student is on the list. Cutting it to one
+   ellipsised line hides the single most useful cell in the table. */
+.driver-text {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  line-height: 1.45;
+}
+
 .divider {
   height: 1px;
   background: var(--separator);
@@ -862,3 +927,107 @@ p  { color: var(--label-secondary); }
   gap: 0.75rem;
   margin-top: 0.5rem;
 }
+
+
+/* -------------------------------------------------------- */
+/* Toast                                                    */
+/* -------------------------------------------------------- */
+/* Bottom-left, so it confirms the save without covering the
+   content the mentor just changed. Sits above the modal layer
+   because a save can be confirmed while a dialog is closing. */
+.toast {
+  position: fixed;
+  left: 1.5rem;
+  bottom: 1.5rem;
+  z-index: 1100;
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
+  max-width: 380px;
+  padding: 0.875rem 1rem;
+  border-radius: var(--r-md);
+  background: rgba(24, 30, 25, 0.96);
+  backdrop-filter: var(--blur-md);
+  -webkit-backdrop-filter: var(--blur-md);
+  box-shadow: var(--shadow-xl), inset 0 1px 0 rgba(255, 255, 255, 0.06);
+  animation: toast-in 0.22s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.toast-success { border: 1px solid var(--green-border); border-left: 3px solid var(--green); }
+.toast-error   { border: 1px solid var(--red-border);   border-left: 3px solid var(--red);
+                 background: rgba(32, 22, 22, 0.96); }
+
+.toast-icon {
+  flex-shrink: 0;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.72rem;
+  font-weight: 700;
+  margin-top: 1px;
+}
+.toast-success .toast-icon { background: var(--green-muted); color: var(--green); }
+.toast-error   .toast-icon { background: var(--red-muted);   color: var(--red); }
+
+.toast-title {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--label-primary);
+  line-height: 1.35;
+}
+
+.toast-detail {
+  margin-top: 0.2rem;
+  font-size: 0.78rem;
+  color: var(--label-secondary);
+  line-height: 1.4;
+}
+
+.toast-close {
+  flex-shrink: 0;
+  background: none;
+  border: none;
+  color: var(--label-tertiary);
+  font-size: 1.1rem;
+  line-height: 1;
+  cursor: pointer;
+  padding: 0 0 0 0.25rem;
+}
+.toast-close:hover { color: var(--label-primary); }
+
+@keyframes toast-in {
+  from { opacity: 0; transform: translateX(-14px) scale(0.98); }
+  to   { opacity: 1; transform: translateX(0) scale(1); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .toast { animation: none; }
+}
+
+
+/* -------------------------------------------------------- */
+/* Plain-language review                                    */
+/* -------------------------------------------------------- */
+.review-line {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.6rem;
+  font-size: 0.85rem;
+  line-height: 1.5;
+  padding: 0.28rem 0;
+  color: var(--label-primary);
+}
+
+.review-dot {
+  flex-shrink: 0;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  margin-top: 0.48rem;
+}
+
+.review-dot-bad  { background: var(--red); }
+.review-dot-good { background: var(--green); }

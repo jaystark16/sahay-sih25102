@@ -347,21 +347,20 @@ def build_worklist(students, capacity=5, config=None, cohort_alerts=None):
 
     1. The list is CAPPED at the mentor's stated capacity.
     2. Students whose decline is fully explained by a section-wide anomaly are
-       ROUTED OUT to the HOD rather than filling the mentor's five slots. A
+       ROUTED OUT for department review rather than filling the mentor's five
+       slots. A
        student who fell substantially further than their section still appears,
        because that excess is individual.
     """
     cfg = config or DEFAULT_CONFIG
     cohort_map = {(a["dept"], a["year"], a["section"]): a
                   for a in (cohort_alerts or [])}
-    scored, routed = [], []
+    scored, routed, healthy = [], [], []
 
     for s in students:
         ledger = score_student(s["features"], cfg)
         d = risk_delta(s["features"], config=cfg)
         if ledger["provisional"]:
-            continue
-        if ledger["score"] < cfg["bands"]["medium_at"] and d["delta"] < 10:
             continue
 
         item = {
@@ -376,6 +375,13 @@ def build_worklist(students, capacity=5, config=None, cohort_alerts=None):
                                        s.get("weeks_since_contact", 0), cfg),
             "explained_by_cohort": None,
         }
+
+        # A student below the action threshold is still SCORED -- they are just
+        # not work for this week. They belong in the directory and in the band
+        # counts, not in the mentor's five slots.
+        if ledger["score"] < cfg["bands"]["medium_at"] and d["delta"] < 10:
+            healthy.append(item)
+            continue
 
         alert = cohort_map.get((s.get("dept"), s.get("year"), s.get("section")))
         if alert and ledger["primary_driver"] in ("attendance_decline", "attendance_level"):
@@ -394,8 +400,8 @@ def build_worklist(students, capacity=5, config=None, cohort_alerts=None):
                     "message": (f"Fell {own_drop:.0f} points against a {alert['cohort']} "
                                 f"section average of {alert['mean_drop_pct']:.0f} "
                                 f"(+/-{alert['drop_std_pct']:.0f}). Within the section's own "
-                                f"spread, so handled as one cohort issue with the HOD "
-                                f"rather than as an individual case."),
+                                f"spread, so handled as one cohort issue for "
+                                f"department review rather than as an individual case."),
                 }
                 routed.append(item)
                 continue
@@ -407,7 +413,7 @@ def build_worklist(students, capacity=5, config=None, cohort_alerts=None):
     # Diversity cap. Even after routing out the students a section-wide drop
     # explains, its tail can still fill the mentor's whole list. At most
     # MAX_PER_COHORT slots go to any one alerted section: if a section has
-    # collapsed, the mentor should be working it WITH the HOD, not picking off
+    # collapsed, the mentor should be escalating it as one issue, not picking off
     # its students one at a time. The rest keep their rank in the watch list.
     top, spill, used = [], [], {}
     alerted = set(cohort_map.keys())
@@ -423,6 +429,7 @@ def build_worklist(students, capacity=5, config=None, cohort_alerts=None):
     return {"this_week": top,
             "watch": spill,
             "routed_to_cohort": routed,
+            "healthy": healthy,
             "capacity": capacity,
             "total_flagged": len(scored),
             "total_routed": len(routed)}
@@ -435,8 +442,8 @@ def detect_cohort_anomalies(students, config=None):
     """Group by (dept, year, section) and find section-wide attendance drops.
 
     A section-wide drop is a timetable, faculty or hostel problem. Routing it to
-    a mentor as 30 individual alerts is the wrong answer; routing it to the HOD
-    as one alert is the right one.
+    a mentor as 30 individual alerts is the wrong answer; escalating it for
+    department review as one alert is the right one.
     """
     cfg = config or DEFAULT_CONFIG
     c, groups = cfg["cohort"], {}
@@ -472,8 +479,8 @@ def detect_cohort_anomalies(students, config=None):
                 "mean_drop_pct": round(mean_drop, 1),
                 "mean_recent_pct": round(_mean([m['recent'] for m in members]), 1),
                 "mean_prior_pct": round(_mean([m['prior'] for m in members]), 1),
-                "route_to": "Head of Department",
-                "message": (f"{dept}-{year}{section}: attendance down {mean_drop:.0f} points "
+                "route_to": "Department review",
+                "message": (f"Attendance down {mean_drop:.0f} points "
                             f"across {len(affected)} of {len(members)} students. "
                             f"This pattern is section-wide, so treat it as a timetable, "
                             f"faculty-slot or hostel issue before treating it as "
