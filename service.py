@@ -28,6 +28,13 @@ BASE = os.path.dirname(os.path.abspath(__file__))
 DEMO = os.path.join(BASE, "demo_data")
 DB_PATH = os.path.join(BASE, "sahay.db")
 
+if os.environ.get("VERCEL"):
+    import shutil
+    tmp_db = "/tmp/sahay.db"
+    if not os.path.exists(tmp_db) and os.path.exists(DB_PATH):
+        shutil.copy2(DB_PATH, tmp_db)
+    DB_PATH = tmp_db
+
 # Only the institution-wide roles are fixed. Section mentors are generated from
 # the data, one per section, because a mentor with 4,883 mentees is not a
 # mentor. A real caseload is about forty, and the whole product argument rests
