@@ -1,0 +1,83 @@
+{
+  "task": {
+    "target": "dropout",
+    "target_is_not": "short term disengagement",
+    "horizon_weeks": 6,
+    "min_history_weeks": 10,
+    "split": "by student, 70/30. No student appears in both sides.",
+    "excluded_features": {
+      "fee_status": "institutional fact, not evidence about the student",
+      "gender": "protected attribute, audit-only",
+      "category": "protected attribute, audit-only",
+      "first_gen": "protected attribute, audit-only",
+      "hostel": "protected attribute, audit-only",
+      "submission_pct_final": "term-level aggregate, would leak the future",
+      "backlogs_final": "term-level aggregate, would leak the future",
+      "weeks_observed": "calendar artifact, does not transfer across time",
+      "ia_count_available": "calendar artifact, does not transfer across time"
+    },
+    "n_features": 17
+  },
+  "overall": [
+    {
+      "model": "baseline: current attendance",
+      "n": 15000,
+      "positives": 2550,
+      "base_rate": 0.17,
+      "roc_auc": 0.7717,
+      "pr_auc": 0.4157,
+      "p@5%_k": 750,
+      "p@5%_k_frac": 0.05,
+      "p@5%_hits": 421,
+      "p@5%_precision": 0.5613,
+      "p@5%_recall": 0.1651
+    },
+    {
+      "model": "baseline: rules ledger",
+      "n": 15000,
+      "positives": 2550,
+      "base_rate": 0.17,
+      "roc_auc": 0.6986,
+      "pr_auc": 0.3423,
+      "p@5%_k": 750,
+      "p@5%_k_frac": 0.05,
+      "p@5%_hits": 357,
+      "p@5%_precision": 0.476,
+      "p@5%_recall": 0.14
+    },
+    {
+      "model": "xgboost",
+      "n": 15000,
+      "positives": 2550,
+      "base_rate": 0.17,
+      "roc_auc": 0.7856,
+      "pr_auc": 0.4393,
+      "p@5%_k": 750,
+      "p@5%_k_frac": 0.05,
+      "p@5%_hits": 416,
+      "p@5%_precision": 0.5547,
+      "p@5%_recall": 0.1631,
+      "brier": 0.1862
+    }
+  ],
+  "shipped_model": "xgboost",
+  "data": "synthetic",
+  "model_beats_baselines": true,
+  "beats_rules_ledger": true,
+  "beats_persistence_baseline": true,
+  "early_warning_pr_auc_gain_over_rules": 1.2833771545427988,
+  "early_warning": {
+    "model": "xgboost (early warning)",
+    "n": 14005,
+    "positives": 2019,
+    "base_rate": 0.1442,
+    "roc_auc": 0.7603,
+    "pr_auc": 0.3515,
+    "p@5%_k": 700,
+    "p@5%_k_frac": 0.05,
+    "p@5%_hits": 362,
+    "p@5%_precision": 0.5171,
+    "p@5%_recall": 0.1793,
+    "brier": 0.1779
+  }
+}

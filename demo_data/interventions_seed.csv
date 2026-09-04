@@ -1,0 +1,901 @@
+id,roll_no,mentor,trigger,playbook,approved_by_mentor,created_at,followup_at,status,outcome
+IV00001,21EEE0102,Dr. S. Rao,fee_pressure,Scholarship / instalment referral,1,2025-09-22,2025-10-13,closed,improved
+IV00002,21BIO0002,Prof. A. Bose,fee_pressure,Scholarship / instalment referral,1,2025-09-08,2025-09-29,closed,improved
+IV00003,23AER0104,Prof. M. Iyer,chronic_low_attendance,Weekly attendance contract,1,2025-08-18,2025-09-08,closed,improved
+IV00004,22ECE20002,Dr. K. Fernandes,sudden_disengagement,15-minute check-in call,1,2025-10-20,2025-11-10,closed,improved
+IV00005,23CHE0120,Dr. S. Rao,backlog_burden,Backlog clearing plan + peer mentor,1,2025-09-01,2025-09-22,closed,improved
+IV00006,22MEC20023,Dr. K. Fernandes,fee_pressure,Scholarship / instalment referral,1,2025-11-10,2025-12-01,closed,improved
+IV00007,21CSE20001,Prof. A. Bose,assessment_decline,Subject remedial slot,1,2025-10-20,2025-11-10,closed,worsened
+IV00008,23CIV20033,Prof. A. Bose,fee_pressure,Scholarship / instalment referral,1,2025-09-01,2025-09-22,closed,improved
+IV00009,22MET0104,Prof. A. Bose,fee_pressure,Scholarship / instalment referral,1,2025-08-04,2025-08-25,closed,unchanged
+IV00010,21BIO0065,Prof. M. Iyer,low_submission,Assignment catch-up plan,1,2025-08-04,2025-08-25,closed,unchanged
+IV00011,23IT0015,Prof. M. Iyer,fee_pressure,Scholarship / instalment referral,1,2025-09-15,2025-10-06,closed,unchanged
+IV00012,23CIV20065,Prof. M. Iyer,backlog_burden,Backlog clearing plan + peer mentor,1,2025-11-17,2025-12-08,closed,improved
+IV00013,21BIO0001,Dr. S. Rao,assessment_decline,Subject remedial slot,1,2025-09-08,2025-09-29,closed,improved
+IV00014,22CHE0107,Dr. K. Fernandes,assessment_decline,Subject remedial slot,1,2025-08-04,2025-08-25,closed,improved
+IV00015,22CHE0034,Prof. A. Bose,low_submission,Assignment catch-up plan,1,2025-10-06,2025-10-27,closed,improved
+IV00016,21MEC0089,Dr. K. Fernandes,assessment_decline,Subject remedial slot,1,2025-09-29,2025-10-20,closed,improved
+IV00017,23EEE0078,Prof. A. Bose,assessment_decline,Subject remedial slot,1,2025-11-10,2025-12-01,closed,improved
+IV00018,23CHE0057,Prof. M. Iyer,low_submission,Assignment catch-up plan,1,2025-11-10,2025-12-01,closed,improved
+IV00019,21ECE20108,Dr. S. Rao,sudden_disengagement,15-minute check-in call,1,2025-10-13,2025-11-03,closed,improved
+IV00020,22CHE0103,Prof. M. Iyer,assessment_decline,Subject remedial slot,1,2025-10-13,2025-11-03,closed,improved
+IV00021,21ECE20094,Prof. A. Bose,chronic_low_attendance,Weekly attendance contract,1,2025-10-20,2025-11-10,closed,improved
+IV00022,22EEE0071,Prof. A. Bose,fee_pressure,Scholarship / instalment referral,1,2025-08-25,2025-09-15,closed,improved
+IV00023,22CIV20108,Prof. M. Iyer,chronic_low_attendance,Weekly attendance contract,1,2025-11-03,2025-11-24,closed,improved
+IV00024,23EEE0047,Prof. M. Iyer,assessment_decline,Subject remedial slot,1,2025-11-24,2025-12-15,closed,improved
+IV00025,22CSE20120,Dr. K. Fernandes,sudden_disengagement,15-minute check-in call,1,2025-11-24,2025-12-15,closed,unchanged
+IV00026,21MET0081,Dr. S. Rao,chronic_low_attendance,Weekly attendance contract,1,2025-10-06,2025-10-27,closed,unreachable
+IV00027,22MET0079,Dr. K. Fernandes,chronic_low_attendance,Weekly attendance contract,1,2025-08-25,2025-09-15,closed,worsened
+IV00028,23ECE0100,Dr. S. Rao,assessment_decline,Subject remedial slot,1,2025-08-11,2025-09-01,closed,improved
+IV00029,22ECE0072,Prof. M. Iyer,assessment_decline,Subject remedial slot,1,2025-11-24,2025-12-15,closed,unreachable
+IV00030,23AER0081,Prof. M. Iyer,sudden_disengagement,15-minute check-in call,1,2025-11-17,2025-12-08,closed,improved
+IV00031,23CHE0007,Prof. A. Bose,low_submission,Assignment catch-up plan,1,2025-08-11,2025-09-01,closed,worsened
+IV00032,22BIO0029,Prof. M. Iyer,assessment_decline,Subject remedial slot,1,2025-10-06,2025-10-27,closed,unchanged
+IV00033,22EEE0004,Prof. M. Iyer,low_submission,Assignment catch-up plan,1,2025-08-11,2025-09-01,closed,improved
+IV00034,23CIV0026,Prof. M. Iyer,low_submission,Assignment catch-up plan,1,2025-09-22,2025-10-13,closed,unchanged
+IV00035,21CSE0018,Dr. K. Fernandes,low_submission,Assignment catch-up plan,1,2025-11-24,2025-12-15,closed,unchanged
+IV00036,23MEC0107,Dr. S. Rao,fee_pressure,Scholarship / instalment referral,1,2025-11-10,2025-12-01,closed,improved
+IV00037,23CSE20061,Prof. A. Bose,sudden_disengagement,15-minute check-in call,1,2025-11-10,2025-12-01,closed,improved
+IV00038,21CIV0012,Prof. A. Bose,assessment_decline,Subject remedial slot,1,2025-11-10,2025-12-01,closed,improved
+IV00039,22BIO0114,Dr. S. Rao,chronic_low_attendance,Weekly attendance contract,1,2025-09-22,2025-10-13,closed,worsened
+IV00040,23CSE20112,Dr. K. Fernandes,assessment_decline,Subject remedial slot,1,2025-11-17,2025-12-08,closed,improved
+IV00041,21CHE0038,Prof. M. Iyer,assessment_decline,Subject remedial slot,1,2025-10-06,2025-10-27,closed,unreachable
+IV00042,21MET0120,Prof. A. Bose,fee_pressure,Scholarship / instalment referral,1,2025-08-11,2025-09-01,closed,unchanged
+IV00043,23AER0003,Dr. K. Fernandes,chronic_low_attendance,Weekly attendance contract,1,2025-10-20,2025-11-10,closed,improved
+IV00044,23AER0040,Dr. K. Fernandes,low_submission,Assignment catch-up plan,1,2025-10-13,2025-11-03,closed,worsened
+IV00045,23CIV20080,Dr. S. Rao,assessment_decline,Subject remedial slot,1,2025-08-04,2025-08-25,closed,improved
+IV00046,22EEE0047,Dr. S. Rao,assessment_decline,Subject remedial slot,1,2025-09-08,2025-09-29,closed,improved
+IV00047,21CHE0089,Prof. M. Iyer,fee_pressure,Scholarship / instalment referral,1,2025-09-29,2025-10-20,closed,improved
+IV00048,21AER0095,Prof. A. Bose,backlog_burden,Backlog clearing plan + peer mentor,1,2025-09-22,2025-10-13,closed,unchanged
+IV00049,21IT0089,Dr. K. Fernandes,backlog_burden,Backlog clearing plan + peer mentor,1,2025-09-22,2025-10-13,closed,worsened
+IV00050,21CSE0100,Prof. A. Bose,low_submission,Assignment catch-up plan,1,2025-10-20,2025-11-10,closed,improved
+IV00051,23MEC20059,Dr. K. Fernandes,backlog_burden,Backlog clearing plan + peer mentor,1,2025-10-20,2025-11-10,closed,unreachable
+IV00052,22CSE0078,Dr. S. Rao,assessment_decline,Subject remedial slot,1,2025-08-25,2025-09-15,closed,improved
+IV00053,23CSE0021,Dr. K. Fernandes,fee_pressure,Scholarship / instalment referral,1,2025-09-15,2025-10-06,closed,improved
+IV00054,23CSE0085,Prof. M. Iyer,chronic_low_attendance,Weekly attendance contract,1,2025-09-01,2025-09-22,closed,improved
+IV00055,22ECE20056,Prof. A. Bose,backlog_burden,Backlog clearing plan + peer mentor,1,2025-09-08,2025-09-29,closed,improved
+IV00056,23CIV20023,Prof. M. Iyer,backlog_burden,Backlog clearing plan + peer mentor,1,2025-10-13,2025-11-03,closed,unreachable
+IV00057,23CIV0076,Prof. A. Bose,low_submission,Assignment catch-up plan,1,2025-08-04,2025-08-25,closed,worsened
+IV00058,21ECE20040,Dr. S. Rao,assessment_decline,Subject remedial slot,1,2025-09-08,2025-09-29,closed,unchanged
+IV00059,21MEC20088,Prof. A. Bose,low_submission,Assignment catch-up plan,1,2025-08-18,2025-09-08,closed,improved
+IV00060,22CIV0023,Prof. A. Bose,assessment_decline,Subject remedial slot,1,2025-10-27,2025-11-17,closed,improved
+IV00061,21MEC20098,Dr. K. Fernandes,assessment_decline,Subject remedial slot,1,2025-10-06,2025-10-27,closed,improved
+IV00062,21CIV0061,Prof. A. Bose,assessment_decline,Subject remedial slot,1,2025-11-10,2025-12-01,closed,unreachable
+IV00063,23ECE0005,Prof. M. Iyer,fee_pressure,Scholarship / instalment referral,1,2025-11-24,2025-12-15,closed,unreachable
+IV00064,22ECE0054,Prof. A. Bose,sudden_disengagement,15-minute check-in call,1,2025-09-29,2025-10-20,closed,improved
+IV00065,23ECE0083,Prof. A. Bose,sudden_disengagement,15-minute check-in call,1,2025-10-27,2025-11-17,closed,improved
+IV00066,21BIO0030,Dr. S. Rao,sudden_disengagement,15-minute check-in call,1,2025-08-25,2025-09-15,closed,unreachable
+IV00067,21MET0073,Prof. A. Bose,sudden_disengagement,15-minute check-in call,1,2025-10-06,2025-10-27,closed,improved
+IV00068,23CSE20066,Dr. K. Fernandes,backlog_burden,Backlog clearing plan + peer mentor,1,2025-09-15,2025-10-06,closed,improved
+IV00069,21CIV0054,Prof. A. Bose,chronic_low_attendance,Weekly attendance contract,1,2025-10-06,2025-10-27,closed,improved
+IV00070,21BIO0089,Prof. M. Iyer,backlog_burden,Backlog clearing plan + peer mentor,1,2025-08-25,2025-09-15,closed,improved
+IV00071,21CIV20032,Prof. A. Bose,low_submission,Assignment catch-up plan,1,2025-10-27,2025-11-17,closed,unchanged
+IV00072,22CSE20052,Dr. K. Fernandes,assessment_decline,Subject remedial slot,1,2025-11-03,2025-11-24,closed,improved
+IV00073,21ECE0001,Prof. M. Iyer,sudden_disengagement,15-minute check-in call,1,2025-09-08,2025-09-29,closed,improved
+IV00074,22ECE0043,Prof. A. Bose,low_submission,Assignment catch-up plan,1,2025-09-01,2025-09-22,closed,unreachable
+IV00075,23CSE20097,Dr. K. Fernandes,chronic_low_attendance,Weekly attendance contract,1,2025-11-03,2025-11-24,closed,improved
+IV00076,23MEC20073,Dr. K. Fernandes,sudden_disengagement,15-minute check-in call,1,2025-08-04,2025-08-25,closed,unchanged
+IV00077,22BIO0080,Dr. S. Rao,backlog_burden,Backlog clearing plan + peer mentor,1,2025-11-03,2025-11-24,closed,improved
+IV00078,21CIV20077,Prof. M. Iyer,low_submission,Assignment catch-up plan,1,2025-10-20,2025-11-10,closed,unreachable
+IV00079,21CSE0120,Prof. A. Bose,backlog_burden,Backlog clearing plan + peer mentor,1,2025-11-10,2025-12-01,closed,unchanged
+IV00080,21MET0062,Dr. S. Rao,fee_pressure,Scholarship / instalment referral,1,2025-11-24,2025-12-15,closed,improved
+IV00081,21MEC20009,Prof. M. Iyer,low_submission,Assignment catch-up plan,1,2025-09-08,2025-09-29,closed,unchanged
+IV00082,22CSE0089,Dr. K. Fernandes,low_submission,Assignment catch-up plan,1,2025-11-17,2025-12-08,closed,unchanged
+IV00083,23CIV0029,Dr. S. Rao,sudden_disengagement,15-minute check-in call,1,2025-08-25,2025-09-15,closed,worsened
+IV00084,23AER0057,Prof. M. Iyer,low_submission,Assignment catch-up plan,1,2025-09-22,2025-10-13,closed,improved
+IV00085,21MEC20045,Dr. K. Fernandes,low_submission,Assignment catch-up plan,1,2025-09-22,2025-10-13,closed,improved
+IV00086,22ECE0037,Prof. A. Bose,backlog_burden,Backlog clearing plan + peer mentor,1,2025-09-15,2025-10-06,closed,improved
+IV00087,21ECE0045,Dr. K. Fernandes,chronic_low_attendance,Weekly attendance contract,1,2025-09-29,2025-10-20,closed,improved
+IV00088,22CIV0082,Prof. M. Iyer,fee_pressure,Scholarship / instalment referral,1,2025-11-03,2025-11-24,closed,unchanged
+IV00089,21CSE20071,Prof. A. Bose,sudden_disengagement,15-minute check-in call,1,2025-08-04,2025-08-25,closed,improved
+IV00090,21CHE0098,Dr. S. Rao,assessment_decline,Subject remedial slot,1,2025-10-06,2025-10-27,closed,improved
+IV00091,21CIV0043,Prof. A. Bose,sudden_disengagement,15-minute check-in call,1,2025-09-29,2025-10-20,closed,worsened
+IV00092,21CSE0119,Dr. K. Fernandes,assessment_decline,Subject remedial slot,1,2025-08-11,2025-09-01,closed,worsened
+IV00093,21EEE0054,Prof. M. Iyer,fee_pressure,Scholarship / instalment referral,1,2025-11-10,2025-12-01,closed,improved
+IV00094,22IT0099,Dr. K. Fernandes,fee_pressure,Scholarship / instalment referral,1,2025-09-22,2025-10-13,closed,improved
+IV00095,21CHE0066,Prof. M. Iyer,fee_pressure,Scholarship / instalment referral,1,2025-10-13,2025-11-03,closed,improved
+IV00096,21BIO0097,Prof. M. Iyer,low_submission,Assignment catch-up plan,1,2025-10-27,2025-11-17,closed,unreachable
+IV00097,23ECE0048,Prof. M. Iyer,backlog_burden,Backlog clearing plan + peer mentor,1,2025-08-04,2025-08-25,closed,worsened
+IV00098,22IT0071,Prof. M. Iyer,sudden_disengagement,15-minute check-in call,1,2025-11-24,2025-12-15,closed,worsened
+IV00099,23MEC0015,Prof. M. Iyer,low_submission,Assignment catch-up plan,1,2025-11-24,2025-12-15,closed,improved
+IV00100,21ECE0018,Prof. M. Iyer,low_submission,Assignment catch-up plan,1,2025-11-10,2025-12-01,closed,unreachable
+IV00101,23CHE0113,Dr. K. Fernandes,low_submission,Assignment catch-up plan,1,2025-11-10,2025-12-01,closed,improved
+IV00102,23IT0107,Prof. M. Iyer,backlog_burden,Backlog clearing plan + peer mentor,1,2025-11-10,2025-12-01,closed,worsened
+IV00103,22EEE0086,Prof. M. Iyer,low_submission,Assignment catch-up plan,1,2025-11-03,2025-11-24,closed,improved
+IV00104,21ECE0056,Dr. K. Fernandes,sudden_disengagement,15-minute check-in call,1,2025-10-13,2025-11-03,closed,improved
+IV00105,23EEE0042,Dr. S. Rao,low_submission,Assignment catch-up plan,1,2025-10-27,2025-11-17,closed,improved
+IV00106,22MEC20055,Prof. M. Iyer,sudden_disengagement,15-minute check-in call,1,2025-11-17,2025-12-08,closed,unchanged
+IV00107,23ECE0060,Dr. K. Fernandes,assessment_decline,Subject remedial slot,1,2025-11-10,2025-12-01,closed,improved
+IV00108,23CIV20119,Dr. K. Fernandes,fee_pressure,Scholarship / instalment referral,1,2025-11-17,2025-12-08,closed,improved
+IV00109,21AER0044,Dr. K. Fernandes,fee_pressure,Scholarship / instalment referral,1,2025-08-18,2025-09-08,closed,improved
+IV00110,23ECE0085,Dr. S. Rao,sudden_disengagement,15-minute check-in call,1,2025-09-29,2025-10-20,closed,worsened
+IV00111,23CSE20117,Dr. K. Fernandes,sudden_disengagement,15-minute check-in call,1,2025-09-08,2025-09-29,closed,unreachable
+IV00112,23EEE0087,Prof. M. Iyer,low_submission,Assignment catch-up plan,1,2025-10-13,2025-11-03,closed,improved
+IV00113,23MEC20038,Prof. M. Iyer,sudden_disengagement,15-minute check-in call,1,2025-10-06,2025-10-27,closed,unchanged
+IV00114,23CIV20013,Dr. K. Fernandes,sudden_disengagement,15-minute check-in call,1,2025-10-20,2025-11-10,closed,unreachable
+IV00115,23IT0088,Dr. K. Fernandes,fee_pressure,Scholarship / instalment referral,1,2025-10-13,2025-11-03,closed,improved
+IV00116,21EEE0073,Dr. S. Rao,low_submission,Assignment catch-up plan,1,2025-10-27,2025-11-17,closed,improved
+IV00117,21BIO0004,Dr. S. Rao,sudden_disengagement,15-minute check-in call,1,2025-11-10,2025-12-01,closed,unreachable
+IV00118,22MEC20114,Prof. A. Bose,backlog_burden,Backlog clearing plan + peer mentor,1,2025-11-24,2025-12-15,closed,improved
+IV00119,23AER0102,Prof. M. Iyer,backlog_burden,Backlog clearing plan + peer mentor,1,2025-10-13,2025-11-03,closed,improved
+IV00120,22CSE20060,Prof. A. Bose,fee_pressure,Scholarship / instalment referral,1,2025-09-22,2025-10-13,closed,unreachable
+IV00121,22AER0006,Prof. M. Iyer,sudden_disengagement,15-minute check-in call,1,2025-11-10,2025-12-01,closed,unreachable
+IV00122,22AER0013,Dr. S. Rao,fee_pressure,Scholarship / instalment referral,1,2025-08-25,2025-09-15,closed,improved
+IV00123,22ECE0066,Prof. M. Iyer,chronic_low_attendance,Weekly attendance contract,1,2025-11-17,2025-12-08,closed,improved
+IV00124,22CSE20035,Dr. S. Rao,sudden_disengagement,15-minute check-in call,1,2025-09-08,2025-09-29,closed,improved
+IV00125,22EEE0089,Prof. A. Bose,sudden_disengagement,15-minute check-in call,1,2025-08-04,2025-08-25,closed,unchanged
+IV00126,21BIO0108,Prof. A. Bose,backlog_burden,Backlog clearing plan + peer mentor,1,2025-10-13,2025-11-03,closed,unreachable
+IV00127,23EEE0076,Prof. A. Bose,fee_pressure,Scholarship / instalment referral,1,2025-11-24,2025-12-15,closed,improved
+IV00128,23CSE0071,Dr. S. Rao,backlog_burden,Backlog clearing plan + peer mentor,1,2025-09-01,2025-09-22,closed,improved
+IV00129,22CSE20043,Prof. A. Bose,low_submission,Assignment catch-up plan,1,2025-10-06,2025-10-27,closed,unchanged
+IV00130,23EEE0110,Dr. K. Fernandes,sudden_disengagement,15-minute check-in call,1,2025-10-06,2025-10-27,closed,improved
+IV00131,22ECE20041,Prof. A. Bose,fee_pressure,Scholarship / instalment referral,1,2025-11-17,2025-12-08,closed,unchanged
+IV00132,22ECE20060,Prof. M. Iyer,backlog_burden,Backlog clearing plan + peer mentor,1,2025-08-25,2025-09-15,closed,unchanged
+IV00133,23CIV0049,Dr. S. Rao,backlog_burden,Backlog clearing plan + peer mentor,1,2025-09-08,2025-09-29,closed,improved
+IV00134,21EEE0071,Dr. S. Rao,low_submission,Assignment catch-up plan,1,2025-10-13,2025-11-03,closed,unchanged
+IV00135,21CIV0007,Prof. M. Iyer,backlog_burden,Backlog clearing plan + peer mentor,1,2025-08-04,2025-08-25,closed,worsened
+IV00136,21MEC20095,Prof. M. Iyer,sudden_disengagement,15-minute check-in call,1,2025-09-01,2025-09-22,closed,worsened
+IV00137,22BIO0024,Dr. K. Fernandes,sudden_disengagement,15-minute check-in call,1,2025-09-22,2025-10-13,closed,improved
+IV00138,22CHE0057,Dr. K. Fernandes,fee_pressure,Scholarship / instalment referral,1,2025-08-11,2025-09-01,closed,improved
+IV00139,23EEE0089,Prof. A. Bose,chronic_low_attendance,Weekly attendance contract,1,2025-09-29,2025-10-20,closed,improved
+IV00140,21BIO0067,Prof. M. Iyer,fee_pressure,Scholarship / instalment referral,1,2025-09-08,2025-09-29,closed,improved
+IV00141,22IT0017,Prof. M. Iyer,sudden_disengagement,15-minute check-in call,1,2025-08-18,2025-09-08,closed,improved
+IV00142,22ECE0053,Prof. M. Iyer,fee_pressure,Scholarship / instalment referral,1,2025-10-20,2025-11-10,closed,improved
+IV00143,21EEE0115,Prof. A. Bose,sudden_disengagement,15-minute check-in call,1,2025-08-25,2025-09-15,closed,improved
+IV00144,23BIO0043,Prof. A. Bose,fee_pressure,Scholarship / instalment referral,1,2025-11-24,2025-12-15,closed,improved
+IV00145,21MEC20061,Prof. A. Bose,low_submission,Assignment catch-up plan,1,2025-10-06,2025-10-27,closed,improved
+IV00146,23CHE0067,Prof. M. Iyer,chronic_low_attendance,Weekly attendance contract,1,2025-10-27,2025-11-17,closed,improved
+IV00147,21CSE0116,Dr. S. Rao,chronic_low_attendance,Weekly attendance contract,1,2025-08-11,2025-09-01,closed,improved
+IV00148,21CSE20047,Dr. S. Rao,assessment_decline,Subject remedial slot,1,2025-08-11,2025-09-01,closed,worsened
+IV00149,21MEC0073,Prof. M. Iyer,sudden_disengagement,15-minute check-in call,1,2025-09-01,2025-09-22,closed,improved
+IV00150,21CSE0017,Prof. A. Bose,assessment_decline,Subject remedial slot,1,2025-08-11,2025-09-01,closed,unchanged
+IV00151,21CHE0048,Dr. K. Fernandes,low_submission,Assignment catch-up plan,1,2025-10-06,2025-10-27,closed,unchanged
+IV00152,23CHE0040,Prof. M. Iyer,chronic_low_attendance,Weekly attendance contract,1,2025-09-22,2025-10-13,closed,worsened
+IV00153,23CIV20073,Prof. A. Bose,chronic_low_attendance,Weekly attendance contract,1,2025-10-06,2025-10-27,closed,improved
+IV00154,22MET0062,Dr. S. Rao,fee_pressure,Scholarship / instalment referral,1,2025-09-22,2025-10-13,closed,worsened
+IV00155,22MET0026,Dr. S. Rao,sudden_disengagement,15-minute check-in call,1,2025-09-29,2025-10-20,closed,unreachable
+IV00156,23CIV20005,Prof. M. Iyer,chronic_low_attendance,Weekly attendance contract,1,2025-09-22,2025-10-13,closed,unreachable
+IV00157,23CSE0063,Dr. S. Rao,fee_pressure,Scholarship / instalment referral,1,2025-10-06,2025-10-27,closed,improved
+IV00158,23ECE0001,Dr. S. Rao,backlog_burden,Backlog clearing plan + peer mentor,1,2025-11-03,2025-11-24,closed,improved
+IV00159,22BIO0055,Prof. M. Iyer,fee_pressure,Scholarship / instalment referral,1,2025-11-10,2025-12-01,closed,unreachable
+IV00160,23EEE0072,Dr. S. Rao,sudden_disengagement,15-minute check-in call,1,2025-11-24,2025-12-15,closed,improved
+IV00161,21CIV0072,Dr. S. Rao,sudden_disengagement,15-minute check-in call,1,2025-10-06,2025-10-27,closed,improved
+IV00162,22MEC20025,Dr. K. Fernandes,sudden_disengagement,15-minute check-in call,1,2025-08-11,2025-09-01,closed,improved
+IV00163,21CIV20002,Dr. K. Fernandes,sudden_disengagement,15-minute check-in call,1,2025-10-06,2025-10-27,closed,improved
+IV00164,21BIO0041,Dr. S. Rao,low_submission,Assignment catch-up plan,1,2025-08-18,2025-09-08,closed,unreachable
+IV00165,23IT0013,Dr. K. Fernandes,low_submission,Assignment catch-up plan,1,2025-10-13,2025-11-03,closed,unchanged
+IV00166,23CHE0110,Dr. K. Fernandes,backlog_burden,Backlog clearing plan + peer mentor,1,2025-11-17,2025-12-08,closed,improved
+IV00167,23AER0100,Prof. M. Iyer,assessment_decline,Subject remedial slot,1,2025-09-08,2025-09-29,closed,improved
+IV00168,23MEC20092,Dr. K. Fernandes,chronic_low_attendance,Weekly attendance contract,1,2025-10-20,2025-11-10,closed,worsened
+IV00169,22CSE20004,Dr. S. Rao,assessment_decline,Subject remedial slot,1,2025-09-29,2025-10-20,closed,unchanged
+IV00170,21ECE0068,Prof. A. Bose,fee_pressure,Scholarship / instalment referral,1,2025-09-08,2025-09-29,closed,improved
+IV00171,23BIO0023,Dr. K. Fernandes,chronic_low_attendance,Weekly attendance contract,1,2025-08-04,2025-08-25,closed,unchanged
+IV00172,22MEC0106,Dr. S. Rao,low_submission,Assignment catch-up plan,1,2025-08-11,2025-09-01,closed,unchanged
+IV00173,22ECE0048,Dr. K. Fernandes,assessment_decline,Subject remedial slot,1,2025-09-15,2025-10-06,closed,improved
+IV00174,21CHE0102,Prof. M. Iyer,assessment_decline,Subject remedial slot,1,2025-09-22,2025-10-13,closed,improved
+IV00175,22CHE0047,Prof. M. Iyer,assessment_decline,Subject remedial slot,1,2025-10-06,2025-10-27,closed,improved
+IV00176,22ECE20054,Dr. S. Rao,sudden_disengagement,15-minute check-in call,1,2025-11-24,2025-12-15,closed,worsened
+IV00177,21ECE0104,Dr. K. Fernandes,fee_pressure,Scholarship / instalment referral,1,2025-08-25,2025-09-15,closed,worsened
+IV00178,22MEC20070,Dr. S. Rao,fee_pressure,Scholarship / instalment referral,1,2025-10-20,2025-11-10,closed,improved
+IV00179,21CHE0052,Dr. S. Rao,low_submission,Assignment catch-up plan,1,2025-10-06,2025-10-27,closed,unreachable
+IV00180,23MEC0007,Dr. S. Rao,assessment_decline,Subject remedial slot,1,2025-08-18,2025-09-08,closed,unchanged
+IV00181,23MEC20003,Prof. M. Iyer,assessment_decline,Subject remedial slot,1,2025-11-10,2025-12-01,closed,improved
+IV00182,21MET0004,Dr. S. Rao,assessment_decline,Subject remedial slot,1,2025-09-08,2025-09-29,closed,worsened
+IV00183,21CSE20073,Prof. M. Iyer,sudden_disengagement,15-minute check-in call,1,2025-08-04,2025-08-25,closed,improved
+IV00184,23CSE0096,Prof. A. Bose,fee_pressure,Scholarship / instalment referral,1,2025-11-03,2025-11-24,closed,improved
+IV00185,23ECE0038,Dr. S. Rao,sudden_disengagement,15-minute check-in call,1,2025-09-01,2025-09-22,closed,improved
+IV00186,23EEE0025,Dr. S. Rao,backlog_burden,Backlog clearing plan + peer mentor,1,2025-11-10,2025-12-01,closed,improved
+IV00187,22ECE0007,Dr. K. Fernandes,backlog_burden,Backlog clearing plan + peer mentor,1,2025-10-27,2025-11-17,closed,unchanged
+IV00188,23EEE0020,Dr. K. Fernandes,sudden_disengagement,15-minute check-in call,1,2025-10-27,2025-11-17,closed,worsened
+IV00189,21MEC20002,Prof. M. Iyer,chronic_low_attendance,Weekly attendance contract,1,2025-08-11,2025-09-01,closed,improved
+IV00190,22EEE0078,Dr. K. Fernandes,backlog_burden,Backlog clearing plan + peer mentor,1,2025-11-24,2025-12-15,closed,improved
+IV00191,22IT0055,Prof. A. Bose,backlog_burden,Backlog clearing plan + peer mentor,1,2025-08-25,2025-09-15,closed,improved
+IV00192,21MET0084,Prof. A. Bose,fee_pressure,Scholarship / instalment referral,1,2025-10-13,2025-11-03,closed,unchanged
+IV00193,23MET0057,Prof. A. Bose,assessment_decline,Subject remedial slot,1,2025-10-06,2025-10-27,closed,unreachable
+IV00194,22CSE20089,Prof. M. Iyer,chronic_low_attendance,Weekly attendance contract,1,2025-10-20,2025-11-10,closed,improved
+IV00195,22MEC0066,Dr. S. Rao,backlog_burden,Backlog clearing plan + peer mentor,1,2025-10-20,2025-11-10,closed,improved
+IV00196,23BIO0003,Prof. A. Bose,fee_pressure,Scholarship / instalment referral,1,2025-10-06,2025-10-27,closed,improved
+IV00197,22CIV0102,Prof. M. Iyer,backlog_burden,Backlog clearing plan + peer mentor,1,2025-11-17,2025-12-08,closed,improved
+IV00198,21CSE20023,Prof. A. Bose,low_submission,Assignment catch-up plan,1,2025-11-24,2025-12-15,closed,improved
+IV00199,22CSE20013,Dr. S. Rao,assessment_decline,Subject remedial slot,1,2025-10-13,2025-11-03,closed,unreachable
+IV00200,21MEC20070,Dr. K. Fernandes,low_submission,Assignment catch-up plan,1,2025-11-03,2025-11-24,closed,unchanged
+IV00201,21CSE0069,Dr. K. Fernandes,backlog_burden,Backlog clearing plan + peer mentor,1,2025-09-01,2025-09-22,closed,unreachable
+IV00202,23CSE20113,Prof. A. Bose,sudden_disengagement,15-minute check-in call,1,2025-10-27,2025-11-17,closed,improved
+IV00203,21MEC20054,Dr. S. Rao,fee_pressure,Scholarship / instalment referral,1,2025-10-06,2025-10-27,closed,improved
+IV00204,21CIV0033,Dr. S. Rao,low_submission,Assignment catch-up plan,1,2025-08-04,2025-08-25,closed,worsened
+IV00205,22CSE20014,Dr. S. Rao,backlog_burden,Backlog clearing plan + peer mentor,1,2025-08-18,2025-09-08,closed,improved
+IV00206,21IT0025,Dr. K. Fernandes,chronic_low_attendance,Weekly attendance contract,1,2025-10-13,2025-11-03,closed,improved
+IV00207,23AER0015,Prof. A. Bose,fee_pressure,Scholarship / instalment referral,1,2025-10-20,2025-11-10,closed,improved
+IV00208,21CSE20041,Dr. S. Rao,assessment_decline,Subject remedial slot,1,2025-08-18,2025-09-08,closed,improved
+IV00209,22CSE20066,Prof. A. Bose,assessment_decline,Subject remedial slot,1,2025-09-01,2025-09-22,closed,worsened
+IV00210,21CIV0041,Dr. S. Rao,fee_pressure,Scholarship / instalment referral,1,2025-10-27,2025-11-17,closed,unreachable
+IV00211,21MEC20065,Dr. S. Rao,assessment_decline,Subject remedial slot,1,2025-08-04,2025-08-25,closed,worsened
+IV00212,21CHE0085,Dr. K. Fernandes,backlog_burden,Backlog clearing plan + peer mentor,1,2025-08-04,2025-08-25,closed,improved
+IV00213,21ECE20039,Prof. A. Bose,sudden_disengagement,15-minute check-in call,1,2025-08-18,2025-09-08,closed,improved
+IV00214,22EEE0042,Prof. M. Iyer,low_submission,Assignment catch-up plan,1,2025-11-24,2025-12-15,closed,unchanged
+IV00215,23EEE0034,Dr. K. Fernandes,fee_pressure,Scholarship / instalment referral,1,2025-08-04,2025-08-25,closed,unchanged
+IV00216,22ECE20019,Prof. M. Iyer,chronic_low_attendance,Weekly attendance contract,1,2025-09-29,2025-10-20,closed,unchanged
+IV00217,21ECE20112,Prof. M. Iyer,assessment_decline,Subject remedial slot,1,2025-11-24,2025-12-15,closed,improved
+IV00218,21CIV0034,Prof. M. Iyer,backlog_burden,Backlog clearing plan + peer mentor,1,2025-09-29,2025-10-20,closed,improved
+IV00219,21CSE20062,Dr. S. Rao,low_submission,Assignment catch-up plan,1,2025-09-01,2025-09-22,closed,improved
+IV00220,22EEE0070,Dr. K. Fernandes,fee_pressure,Scholarship / instalment referral,1,2025-09-29,2025-10-20,closed,improved
+IV00221,22BIO0009,Dr. K. Fernandes,chronic_low_attendance,Weekly attendance contract,1,2025-08-25,2025-09-15,closed,unreachable
+IV00222,23CSE0025,Dr. K. Fernandes,low_submission,Assignment catch-up plan,1,2025-09-08,2025-09-29,closed,improved
+IV00223,23CSE0066,Prof. M. Iyer,backlog_burden,Backlog clearing plan + peer mentor,1,2025-10-13,2025-11-03,closed,unchanged
+IV00224,21ECE0117,Prof. A. Bose,low_submission,Assignment catch-up plan,1,2025-10-27,2025-11-17,closed,unchanged
+IV00225,21CSE0044,Dr. S. Rao,fee_pressure,Scholarship / instalment referral,1,2025-11-03,2025-11-24,closed,improved
+IV00226,22CIV0017,Prof. M. Iyer,sudden_disengagement,15-minute check-in call,1,2025-10-27,2025-11-17,closed,improved
+IV00227,23IT0002,Dr. S. Rao,low_submission,Assignment catch-up plan,1,2025-08-04,2025-08-25,closed,unchanged
+IV00228,22CHE0048,Dr. K. Fernandes,fee_pressure,Scholarship / instalment referral,1,2025-10-13,2025-11-03,closed,improved
+IV00229,22BIO0034,Prof. M. Iyer,chronic_low_attendance,Weekly attendance contract,1,2025-08-18,2025-09-08,closed,improved
+IV00230,22CIV20068,Prof. M. Iyer,low_submission,Assignment catch-up plan,1,2025-09-01,2025-09-22,closed,unchanged
+IV00231,21CSE20072,Dr. S. Rao,low_submission,Assignment catch-up plan,1,2025-08-11,2025-09-01,closed,unreachable
+IV00232,22IT0057,Dr. K. Fernandes,chronic_low_attendance,Weekly attendance contract,1,2025-10-06,2025-10-27,closed,improved
+IV00233,21AER0007,Dr. K. Fernandes,fee_pressure,Scholarship / instalment referral,1,2025-09-22,2025-10-13,closed,unchanged
+IV00234,23ECE0030,Prof. M. Iyer,assessment_decline,Subject remedial slot,1,2025-11-03,2025-11-24,closed,improved
+IV00235,22EEE0079,Dr. K. Fernandes,sudden_disengagement,15-minute check-in call,1,2025-10-20,2025-11-10,closed,improved
+IV00236,23ECE0012,Dr. K. Fernandes,backlog_burden,Backlog clearing plan + peer mentor,1,2025-11-24,2025-12-15,closed,unchanged
+IV00237,23EEE0004,Prof. A. Bose,chronic_low_attendance,Weekly attendance contract,1,2025-10-20,2025-11-10,closed,improved
+IV00238,23MET0100,Dr. K. Fernandes,low_submission,Assignment catch-up plan,1,2025-10-27,2025-11-17,closed,improved
+IV00239,21MEC0011,Dr. S. Rao,sudden_disengagement,15-minute check-in call,1,2025-11-17,2025-12-08,closed,improved
+IV00240,21MET0093,Prof. A. Bose,sudden_disengagement,15-minute check-in call,1,2025-08-04,2025-08-25,closed,unreachable
+IV00241,23MEC20034,Dr. K. Fernandes,chronic_low_attendance,Weekly attendance contract,1,2025-08-25,2025-09-15,closed,unreachable
+IV00242,21ECE0046,Prof. A. Bose,assessment_decline,Subject remedial slot,1,2025-11-10,2025-12-01,closed,improved
+IV00243,23CSE0060,Prof. A. Bose,backlog_burden,Backlog clearing plan + peer mentor,1,2025-09-01,2025-09-22,closed,improved
+IV00244,22MEC0018,Prof. A. Bose,backlog_burden,Backlog clearing plan + peer mentor,1,2025-08-25,2025-09-15,closed,worsened
+IV00245,21IT0080,Dr. S. Rao,chronic_low_attendance,Weekly attendance contract,1,2025-09-01,2025-09-22,closed,improved
+IV00246,21ECE20066,Dr. K. Fernandes,backlog_burden,Backlog clearing plan + peer mentor,1,2025-08-04,2025-08-25,closed,unreachable
+IV00247,21EEE0099,Prof. A. Bose,fee_pressure,Scholarship / instalment referral,1,2025-10-20,2025-11-10,closed,improved
+IV00248,23AER0111,Prof. M. Iyer,low_submission,Assignment catch-up plan,1,2025-08-25,2025-09-15,closed,worsened
+IV00249,22MEC20079,Dr. S. Rao,low_submission,Assignment catch-up plan,1,2025-08-25,2025-09-15,closed,worsened
+IV00250,21IT0005,Dr. S. Rao,backlog_burden,Backlog clearing plan + peer mentor,1,2025-11-03,2025-11-24,closed,unchanged
+IV00251,22BIO0001,Dr. K. Fernandes,fee_pressure,Scholarship / instalment referral,1,2025-10-13,2025-11-03,closed,improved
+IV00252,22ECE20079,Dr. K. Fernandes,chronic_low_attendance,Weekly attendance contract,1,2025-10-06,2025-10-27,closed,worsened
+IV00253,22CHE0061,Dr. K. Fernandes,chronic_low_attendance,Weekly attendance contract,1,2025-09-15,2025-10-06,closed,unchanged
+IV00254,23CSE0083,Prof. M. Iyer,sudden_disengagement,15-minute check-in call,1,2025-10-20,2025-11-10,closed,unreachable
+IV00255,22IT0095,Prof. M. Iyer,backlog_burden,Backlog clearing plan + peer mentor,1,2025-11-24,2025-12-15,closed,improved
+IV00256,21MEC20119,Dr. K. Fernandes,assessment_decline,Subject remedial slot,1,2025-11-10,2025-12-01,closed,unreachable
+IV00257,21AER0033,Prof. M. Iyer,chronic_low_attendance,Weekly attendance contract,1,2025-11-17,2025-12-08,closed,improved
+IV00258,23IT0096,Dr. K. Fernandes,low_submission,Assignment catch-up plan,1,2025-11-10,2025-12-01,closed,unchanged
+IV00259,21EEE0082,Prof. M. Iyer,chronic_low_attendance,Weekly attendance contract,1,2025-08-18,2025-09-08,closed,improved
+IV00260,22EEE0025,Dr. S. Rao,assessment_decline,Subject remedial slot,1,2025-11-10,2025-12-01,closed,improved
+IV00261,23AER0069,Prof. A. Bose,fee_pressure,Scholarship / instalment referral,1,2025-09-08,2025-09-29,closed,unchanged
+IV00262,22CIV0105,Prof. M. Iyer,fee_pressure,Scholarship / instalment referral,1,2025-08-11,2025-09-01,closed,worsened
+IV00263,23ECE20062,Dr. K. Fernandes,sudden_disengagement,15-minute check-in call,1,2025-08-25,2025-09-15,closed,improved
+IV00264,23CIV0102,Dr. K. Fernandes,assessment_decline,Subject remedial slot,1,2025-10-27,2025-11-17,closed,improved
+IV00265,23EEE0083,Dr. K. Fernandes,low_submission,Assignment catch-up plan,1,2025-10-06,2025-10-27,closed,improved
+IV00266,23ECE0051,Dr. K. Fernandes,sudden_disengagement,15-minute check-in call,1,2025-08-25,2025-09-15,closed,improved
+IV00267,22BIO0112,Prof. A. Bose,fee_pressure,Scholarship / instalment referral,1,2025-08-04,2025-08-25,closed,improved
+IV00268,22MEC0036,Dr. K. Fernandes,chronic_low_attendance,Weekly attendance contract,1,2025-09-22,2025-10-13,closed,worsened
+IV00269,21MET0036,Prof. A. Bose,assessment_decline,Subject remedial slot,1,2025-10-27,2025-11-17,closed,improved
+IV00270,22MEC0059,Dr. S. Rao,backlog_burden,Backlog clearing plan + peer mentor,1,2025-08-11,2025-09-01,closed,improved
+IV00271,21CSE0020,Dr. K. Fernandes,backlog_burden,Backlog clearing plan + peer mentor,1,2025-11-24,2025-12-15,closed,improved
+IV00272,22ECE20108,Prof. M. Iyer,chronic_low_attendance,Weekly attendance contract,1,2025-10-06,2025-10-27,closed,improved
+IV00273,21MEC0115,Dr. S. Rao,fee_pressure,Scholarship / instalment referral,1,2025-10-27,2025-11-17,closed,unreachable
+IV00274,21MEC0114,Prof. A. Bose,chronic_low_attendance,Weekly attendance contract,1,2025-08-11,2025-09-01,closed,worsened
+IV00275,22CSE0111,Dr. S. Rao,sudden_disengagement,15-minute check-in call,1,2025-09-15,2025-10-06,closed,improved
+IV00276,23MEC0086,Prof. A. Bose,backlog_burden,Backlog clearing plan + peer mentor,1,2025-10-20,2025-11-10,closed,unreachable
+IV00277,22IT0081,Prof. A. Bose,low_submission,Assignment catch-up plan,1,2025-09-15,2025-10-06,closed,worsened
+IV00278,21MET0074,Dr. K. Fernandes,assessment_decline,Subject remedial slot,1,2025-09-15,2025-10-06,closed,improved
+IV00279,21EEE0069,Dr. S. Rao,low_submission,Assignment catch-up plan,1,2025-11-24,2025-12-15,closed,unchanged
+IV00280,21MEC20081,Dr. S. Rao,fee_pressure,Scholarship / instalment referral,1,2025-11-10,2025-12-01,closed,improved
+IV00281,23MEC20004,Dr. S. Rao,fee_pressure,Scholarship / instalment referral,1,2025-09-08,2025-09-29,closed,improved
+IV00282,23AER0092,Prof. M. Iyer,chronic_low_attendance,Weekly attendance contract,1,2025-08-18,2025-09-08,closed,improved
+IV00283,23CIV0071,Prof. A. Bose,fee_pressure,Scholarship / instalment referral,1,2025-10-13,2025-11-03,closed,unchanged
+IV00284,22CHE0056,Dr. K. Fernandes,assessment_decline,Subject remedial slot,1,2025-10-27,2025-11-17,closed,unchanged
+IV00285,21CSE20090,Dr. S. Rao,fee_pressure,Scholarship / instalment referral,1,2025-08-18,2025-09-08,closed,improved
+IV00286,22CIV20073,Dr. S. Rao,low_submission,Assignment catch-up plan,1,2025-08-25,2025-09-15,closed,improved
+IV00287,23CSE20029,Dr. S. Rao,chronic_low_attendance,Weekly attendance contract,1,2025-09-22,2025-10-13,closed,worsened
+IV00288,21CHE0057,Dr. S. Rao,assessment_decline,Subject remedial slot,1,2025-09-29,2025-10-20,closed,improved
+IV00289,22CIV20117,Dr. K. Fernandes,assessment_decline,Subject remedial slot,1,2025-11-17,2025-12-08,closed,improved
+IV00290,22MEC20002,Prof. M. Iyer,assessment_decline,Subject remedial slot,1,2025-09-08,2025-09-29,closed,unchanged
+IV00291,21CSE20003,Dr. K. Fernandes,assessment_decline,Subject remedial slot,1,2025-09-22,2025-10-13,closed,unchanged
+IV00292,23ECE20058,Prof. M. Iyer,sudden_disengagement,15-minute check-in call,1,2025-09-22,2025-10-13,closed,improved
+IV00293,23CIV0035,Dr. K. Fernandes,sudden_disengagement,15-minute check-in call,1,2025-11-03,2025-11-24,closed,improved
+IV00294,22ECE0042,Prof. A. Bose,low_submission,Assignment catch-up plan,1,2025-09-01,2025-09-22,closed,improved
+IV00295,23CSE20034,Prof. M. Iyer,low_submission,Assignment catch-up plan,1,2025-10-27,2025-11-17,closed,improved
+IV00296,21MEC0051,Dr. K. Fernandes,fee_pressure,Scholarship / instalment referral,1,2025-09-29,2025-10-20,closed,improved
+IV00297,22CSE0049,Dr. K. Fernandes,backlog_burden,Backlog clearing plan + peer mentor,1,2025-09-15,2025-10-06,closed,unchanged
+IV00298,23EEE0026,Dr. K. Fernandes,fee_pressure,Scholarship / instalment referral,1,2025-10-20,2025-11-10,closed,unreachable
+IV00299,22CSE0099,Dr. S. Rao,assessment_decline,Subject remedial slot,1,2025-09-08,2025-09-29,closed,improved
+IV00300,23EEE0052,Dr. S. Rao,fee_pressure,Scholarship / instalment referral,1,2025-09-01,2025-09-22,closed,unreachable
+IV00301,21EEE0106,Dr. K. Fernandes,backlog_burden,Backlog clearing plan + peer mentor,1,2025-08-04,2025-08-25,closed,unchanged
+IV00302,23AER0067,Prof. A. Bose,low_submission,Assignment catch-up plan,1,2025-11-03,2025-11-24,closed,unchanged
+IV00303,23CIV20093,Dr. S. Rao,low_submission,Assignment catch-up plan,1,2025-08-18,2025-09-08,closed,unchanged
+IV00304,21IT0104,Dr. K. Fernandes,chronic_low_attendance,Weekly attendance contract,1,2025-11-17,2025-12-08,closed,unreachable
+IV00305,21EEE0055,Dr. S. Rao,low_submission,Assignment catch-up plan,1,2025-08-11,2025-09-01,closed,unreachable
+IV00306,23CIV20072,Prof. M. Iyer,low_submission,Assignment catch-up plan,1,2025-09-22,2025-10-13,closed,unreachable
+IV00307,23BIO0060,Prof. A. Bose,fee_pressure,Scholarship / instalment referral,1,2025-08-25,2025-09-15,closed,improved
+IV00308,23MEC20022,Prof. A. Bose,assessment_decline,Subject remedial slot,1,2025-10-20,2025-11-10,closed,improved
+IV00309,23BIO0067,Prof. A. Bose,fee_pressure,Scholarship / instalment referral,1,2025-10-13,2025-11-03,closed,unchanged
+IV00310,22MET0059,Dr. S. Rao,sudden_disengagement,15-minute check-in call,1,2025-11-24,2025-12-15,closed,improved
+IV00311,21CSE20039,Dr. S. Rao,backlog_burden,Backlog clearing plan + peer mentor,1,2025-09-15,2025-10-06,closed,improved
+IV00312,23ECE0118,Dr. K. Fernandes,low_submission,Assignment catch-up plan,1,2025-09-29,2025-10-20,closed,improved
+IV00313,21CHE0054,Dr. S. Rao,chronic_low_attendance,Weekly attendance contract,1,2025-09-08,2025-09-29,closed,unchanged
+IV00314,21CIV20062,Dr. S. Rao,assessment_decline,Subject remedial slot,1,2025-09-15,2025-10-06,closed,improved
+IV00315,23CSE0031,Prof. A. Bose,chronic_low_attendance,Weekly attendance contract,1,2025-09-22,2025-10-13,closed,improved
+IV00316,23MET0062,Dr. K. Fernandes,fee_pressure,Scholarship / instalment referral,1,2025-09-29,2025-10-20,closed,improved
+IV00317,21CIV20022,Prof. M. Iyer,fee_pressure,Scholarship / instalment referral,1,2025-11-17,2025-12-08,closed,improved
+IV00318,23CHE0043,Dr. K. Fernandes,assessment_decline,Subject remedial slot,1,2025-09-15,2025-10-06,closed,improved
+IV00319,22MEC20088,Dr. K. Fernandes,low_submission,Assignment catch-up plan,1,2025-11-24,2025-12-15,closed,improved
+IV00320,21CIV20074,Dr. S. Rao,fee_pressure,Scholarship / instalment referral,1,2025-09-15,2025-10-06,closed,improved
+IV00321,22ECE0060,Dr. K. Fernandes,fee_pressure,Scholarship / instalment referral,1,2025-08-18,2025-09-08,closed,worsened
+IV00322,21ECE20051,Prof. A. Bose,chronic_low_attendance,Weekly attendance contract,1,2025-08-04,2025-08-25,closed,worsened
+IV00323,23ECE20050,Dr. S. Rao,chronic_low_attendance,Weekly attendance contract,1,2025-11-03,2025-11-24,closed,improved
+IV00324,23MET0058,Prof. M. Iyer,assessment_decline,Subject remedial slot,1,2025-10-27,2025-11-17,closed,improved
+IV00325,23CIV20103,Prof. M. Iyer,low_submission,Assignment catch-up plan,1,2025-08-25,2025-09-15,closed,unreachable
+IV00326,23IT0020,Prof. A. Bose,chronic_low_attendance,Weekly attendance contract,1,2025-10-06,2025-10-27,closed,improved
+IV00327,21MEC20008,Prof. M. Iyer,sudden_disengagement,15-minute check-in call,1,2025-10-27,2025-11-17,closed,improved
+IV00328,21EEE0104,Dr. K. Fernandes,backlog_burden,Backlog clearing plan + peer mentor,1,2025-10-20,2025-11-10,closed,unchanged
+IV00329,21CIV0020,Dr. K. Fernandes,assessment_decline,Subject remedial slot,1,2025-09-15,2025-10-06,closed,improved
+IV00330,22ECE0058,Prof. A. Bose,chronic_low_attendance,Weekly attendance contract,1,2025-10-13,2025-11-03,closed,improved
+IV00331,23MEC0065,Prof. A. Bose,sudden_disengagement,15-minute check-in call,1,2025-10-13,2025-11-03,closed,improved
+IV00332,23CHE0027,Prof. M. Iyer,chronic_low_attendance,Weekly attendance contract,1,2025-08-25,2025-09-15,closed,unreachable
+IV00333,22BIO0091,Dr. K. Fernandes,fee_pressure,Scholarship / instalment referral,1,2025-11-24,2025-12-15,closed,improved
+IV00334,21CSE20044,Prof. A. Bose,backlog_burden,Backlog clearing plan + peer mentor,1,2025-11-17,2025-12-08,closed,improved
+IV00335,23ECE20063,Dr. S. Rao,backlog_burden,Backlog clearing plan + peer mentor,1,2025-08-25,2025-09-15,closed,unchanged
+IV00336,21BIO0068,Prof. M. Iyer,chronic_low_attendance,Weekly attendance contract,1,2025-08-25,2025-09-15,closed,improved
+IV00337,21ECE20111,Prof. A. Bose,sudden_disengagement,15-minute check-in call,1,2025-11-24,2025-12-15,closed,unchanged
+IV00338,21MEC0086,Prof. A. Bose,chronic_low_attendance,Weekly attendance contract,1,2025-09-22,2025-10-13,closed,unchanged
+IV00339,21CIV20040,Dr. S. Rao,fee_pressure,Scholarship / instalment referral,1,2025-10-20,2025-11-10,closed,improved
+IV00340,22AER0105,Prof. M. Iyer,assessment_decline,Subject remedial slot,1,2025-09-22,2025-10-13,closed,improved
+IV00341,22ECE20118,Dr. S. Rao,low_submission,Assignment catch-up plan,1,2025-10-27,2025-11-17,closed,improved
+IV00342,22CSE20011,Prof. A. Bose,backlog_burden,Backlog clearing plan + peer mentor,1,2025-09-15,2025-10-06,closed,improved
+IV00343,23MET0103,Prof. A. Bose,chronic_low_attendance,Weekly attendance contract,1,2025-09-15,2025-10-06,closed,improved
+IV00344,23MEC20010,Dr. K. Fernandes,sudden_disengagement,15-minute check-in call,1,2025-11-17,2025-12-08,closed,worsened
+IV00345,21MEC20059,Prof. A. Bose,fee_pressure,Scholarship / instalment referral,1,2025-09-22,2025-10-13,closed,improved
+IV00346,23ECE20116,Prof. M. Iyer,chronic_low_attendance,Weekly attendance contract,1,2025-09-01,2025-09-22,closed,improved
+IV00347,23CIV0044,Prof. M. Iyer,backlog_burden,Backlog clearing plan + peer mentor,1,2025-11-10,2025-12-01,closed,unchanged
+IV00348,23ECE20109,Dr. K. Fernandes,low_submission,Assignment catch-up plan,1,2025-10-20,2025-11-10,closed,improved
+IV00349,22MEC20087,Prof. M. Iyer,backlog_burden,Backlog clearing plan + peer mentor,1,2025-08-25,2025-09-15,closed,unchanged
+IV00350,22MEC0078,Dr. K. Fernandes,chronic_low_attendance,Weekly attendance contract,1,2025-08-04,2025-08-25,closed,unchanged
+IV00351,23BIO0112,Dr. K. Fernandes,assessment_decline,Subject remedial slot,1,2025-09-29,2025-10-20,closed,improved
+IV00352,21IT0060,Dr. K. Fernandes,backlog_burden,Backlog clearing plan + peer mentor,1,2025-10-13,2025-11-03,closed,unreachable
+IV00353,21ECE0060,Prof. M. Iyer,backlog_burden,Backlog clearing plan + peer mentor,1,2025-09-15,2025-10-06,closed,unreachable
+IV00354,23CIV20059,Prof. A. Bose,backlog_burden,Backlog clearing plan + peer mentor,1,2025-09-08,2025-09-29,closed,improved
+IV00355,22EEE0031,Dr. K. Fernandes,chronic_low_attendance,Weekly attendance contract,1,2025-10-06,2025-10-27,closed,unreachable
+IV00356,23CHE0082,Dr. S. Rao,backlog_burden,Backlog clearing plan + peer mentor,1,2025-09-08,2025-09-29,closed,improved
+IV00357,21IT0079,Prof. M. Iyer,fee_pressure,Scholarship / instalment referral,1,2025-11-10,2025-12-01,closed,improved
+IV00358,23CIV20062,Dr. S. Rao,low_submission,Assignment catch-up plan,1,2025-10-06,2025-10-27,closed,improved
+IV00359,23MEC0026,Prof. M. Iyer,assessment_decline,Subject remedial slot,1,2025-10-06,2025-10-27,closed,improved
+IV00360,22CSE20029,Dr. S. Rao,assessment_decline,Subject remedial slot,1,2025-09-08,2025-09-29,closed,improved
+IV00361,21MET0060,Dr. S. Rao,chronic_low_attendance,Weekly attendance contract,1,2025-11-24,2025-12-15,closed,improved
+IV00362,22ECE20110,Dr. S. Rao,sudden_disengagement,15-minute check-in call,1,2025-11-10,2025-12-01,closed,improved
+IV00363,23CIV20096,Prof. A. Bose,chronic_low_attendance,Weekly attendance contract,1,2025-11-24,2025-12-15,closed,worsened
+IV00364,23CSE20045,Prof. A. Bose,fee_pressure,Scholarship / instalment referral,1,2025-08-25,2025-09-15,closed,improved
+IV00365,22ECE20071,Dr. S. Rao,sudden_disengagement,15-minute check-in call,1,2025-09-29,2025-10-20,closed,improved
+IV00366,22MET0029,Prof. A. Bose,assessment_decline,Subject remedial slot,1,2025-10-13,2025-11-03,closed,improved
+IV00367,22AER0104,Dr. S. Rao,chronic_low_attendance,Weekly attendance contract,1,2025-08-04,2025-08-25,closed,improved
+IV00368,21ECE0032,Dr. K. Fernandes,low_submission,Assignment catch-up plan,1,2025-09-01,2025-09-22,closed,worsened
+IV00369,22MEC0031,Prof. M. Iyer,low_submission,Assignment catch-up plan,1,2025-09-15,2025-10-06,closed,improved
+IV00370,21MEC20038,Prof. M. Iyer,chronic_low_attendance,Weekly attendance contract,1,2025-09-22,2025-10-13,closed,worsened
+IV00371,22CIV0012,Prof. A. Bose,fee_pressure,Scholarship / instalment referral,1,2025-11-10,2025-12-01,closed,improved
+IV00372,21EEE0103,Dr. K. Fernandes,low_submission,Assignment catch-up plan,1,2025-11-10,2025-12-01,closed,unchanged
+IV00373,21CSE0014,Dr. S. Rao,chronic_low_attendance,Weekly attendance contract,1,2025-11-03,2025-11-24,closed,unreachable
+IV00374,21MEC0103,Prof. M. Iyer,sudden_disengagement,15-minute check-in call,1,2025-08-04,2025-08-25,closed,improved
+IV00375,21MEC0012,Dr. K. Fernandes,backlog_burden,Backlog clearing plan + peer mentor,1,2025-09-01,2025-09-22,closed,unchanged
+IV00376,23CIV0106,Prof. A. Bose,assessment_decline,Subject remedial slot,1,2025-10-27,2025-11-17,closed,unchanged
+IV00377,23CSE0058,Prof. A. Bose,assessment_decline,Subject remedial slot,1,2025-09-22,2025-10-13,closed,improved
+IV00378,22CIV20118,Prof. A. Bose,sudden_disengagement,15-minute check-in call,1,2025-10-27,2025-11-17,closed,unreachable
+IV00379,21CHE0030,Dr. K. Fernandes,chronic_low_attendance,Weekly attendance contract,1,2025-11-24,2025-12-15,closed,unchanged
+IV00380,21MEC0101,Prof. M. Iyer,backlog_burden,Backlog clearing plan + peer mentor,1,2025-08-18,2025-09-08,closed,improved
+IV00381,23MEC20077,Dr. S. Rao,backlog_burden,Backlog clearing plan + peer mentor,1,2025-09-29,2025-10-20,closed,unreachable
+IV00382,21CSE20059,Dr. S. Rao,low_submission,Assignment catch-up plan,1,2025-08-25,2025-09-15,closed,improved
+IV00383,23CHE0028,Dr. S. Rao,sudden_disengagement,15-minute check-in call,1,2025-08-04,2025-08-25,closed,unchanged
+IV00384,23MET0069,Dr. S. Rao,low_submission,Assignment catch-up plan,1,2025-09-01,2025-09-22,closed,unchanged
+IV00385,22BIO0054,Dr. S. Rao,sudden_disengagement,15-minute check-in call,1,2025-09-29,2025-10-20,closed,improved
+IV00386,21CSE0021,Prof. M. Iyer,low_submission,Assignment catch-up plan,1,2025-11-24,2025-12-15,closed,worsened
+IV00387,22CIV0055,Dr. K. Fernandes,sudden_disengagement,15-minute check-in call,1,2025-11-24,2025-12-15,closed,improved
+IV00388,21MET0102,Dr. K. Fernandes,fee_pressure,Scholarship / instalment referral,1,2025-09-08,2025-09-29,closed,improved
+IV00389,23MEC0081,Prof. M. Iyer,assessment_decline,Subject remedial slot,1,2025-09-08,2025-09-29,closed,worsened
+IV00390,21BIO0015,Dr. S. Rao,sudden_disengagement,15-minute check-in call,1,2025-09-08,2025-09-29,closed,unreachable
+IV00391,23AER0114,Dr. K. Fernandes,sudden_disengagement,15-minute check-in call,1,2025-10-06,2025-10-27,closed,improved
+IV00392,23MEC0068,Prof. M. Iyer,backlog_burden,Backlog clearing plan + peer mentor,1,2025-10-06,2025-10-27,closed,improved
+IV00393,22MEC0099,Dr. S. Rao,low_submission,Assignment catch-up plan,1,2025-09-29,2025-10-20,closed,improved
+IV00394,23CIV20040,Dr. K. Fernandes,assessment_decline,Subject remedial slot,1,2025-10-13,2025-11-03,closed,worsened
+IV00395,23BIO0001,Prof. M. Iyer,chronic_low_attendance,Weekly attendance contract,1,2025-09-22,2025-10-13,closed,improved
+IV00396,23CHE0013,Dr. K. Fernandes,low_submission,Assignment catch-up plan,1,2025-10-13,2025-11-03,closed,improved
+IV00397,22CSE20092,Prof. M. Iyer,fee_pressure,Scholarship / instalment referral,1,2025-10-20,2025-11-10,closed,worsened
+IV00398,23MET0112,Dr. K. Fernandes,backlog_burden,Backlog clearing plan + peer mentor,1,2025-09-15,2025-10-06,closed,worsened
+IV00399,23ECE20059,Prof. A. Bose,assessment_decline,Subject remedial slot,1,2025-11-17,2025-12-08,closed,improved
+IV00400,23CHE0048,Prof. M. Iyer,assessment_decline,Subject remedial slot,1,2025-10-20,2025-11-10,closed,improved
+IV00401,23AER0071,Prof. A. Bose,assessment_decline,Subject remedial slot,1,2025-10-06,2025-10-27,closed,improved
+IV00402,21MEC20025,Dr. S. Rao,backlog_burden,Backlog clearing plan + peer mentor,1,2025-09-01,2025-09-22,closed,improved
+IV00403,22IT0108,Dr. K. Fernandes,fee_pressure,Scholarship / instalment referral,1,2025-09-08,2025-09-29,closed,improved
+IV00404,23CIV20076,Dr. K. Fernandes,backlog_burden,Backlog clearing plan + peer mentor,1,2025-11-24,2025-12-15,closed,improved
+IV00405,22CHE0081,Prof. A. Bose,low_submission,Assignment catch-up plan,1,2025-08-18,2025-09-08,closed,improved
+IV00406,22MEC0110,Dr. S. Rao,assessment_decline,Subject remedial slot,1,2025-08-04,2025-08-25,closed,unchanged
+IV00407,23CSE20109,Dr. S. Rao,sudden_disengagement,15-minute check-in call,1,2025-09-29,2025-10-20,closed,unchanged
+IV00408,23MEC20101,Prof. A. Bose,low_submission,Assignment catch-up plan,1,2025-11-10,2025-12-01,closed,worsened
+IV00409,22ECE20028,Dr. K. Fernandes,low_submission,Assignment catch-up plan,1,2025-11-10,2025-12-01,closed,improved
+IV00410,22CIV0096,Dr. K. Fernandes,sudden_disengagement,15-minute check-in call,1,2025-10-13,2025-11-03,closed,improved
+IV00411,21CSE20093,Prof. A. Bose,backlog_burden,Backlog clearing plan + peer mentor,1,2025-08-18,2025-09-08,closed,worsened
+IV00412,23CIV0073,Dr. S. Rao,low_submission,Assignment catch-up plan,1,2025-09-15,2025-10-06,closed,unreachable
+IV00413,22MET0033,Dr. K. Fernandes,chronic_low_attendance,Weekly attendance contract,1,2025-10-06,2025-10-27,closed,worsened
+IV00414,22BIO0072,Dr. K. Fernandes,low_submission,Assignment catch-up plan,1,2025-09-08,2025-09-29,closed,improved
+IV00415,22ECE0021,Dr. K. Fernandes,backlog_burden,Backlog clearing plan + peer mentor,1,2025-09-15,2025-10-06,closed,unchanged
+IV00416,23MEC0082,Dr. K. Fernandes,fee_pressure,Scholarship / instalment referral,1,2025-10-20,2025-11-10,closed,improved
+IV00417,22CIV0112,Prof. A. Bose,assessment_decline,Subject remedial slot,1,2025-09-29,2025-10-20,closed,improved
+IV00418,22IT0060,Prof. A. Bose,chronic_low_attendance,Weekly attendance contract,1,2025-10-20,2025-11-10,closed,improved
+IV00419,21ECE20005,Dr. K. Fernandes,chronic_low_attendance,Weekly attendance contract,1,2025-09-15,2025-10-06,closed,improved
+IV00420,22EEE0115,Dr. S. Rao,sudden_disengagement,15-minute check-in call,1,2025-09-29,2025-10-20,closed,improved
+IV00421,22ECE20065,Dr. S. Rao,assessment_decline,Subject remedial slot,1,2025-10-27,2025-11-17,closed,improved
+IV00422,22MEC0062,Dr. S. Rao,low_submission,Assignment catch-up plan,1,2025-11-03,2025-11-24,closed,improved
+IV00423,22CIV0077,Dr. K. Fernandes,chronic_low_attendance,Weekly attendance contract,1,2025-08-25,2025-09-15,closed,improved
+IV00424,23IT0081,Prof. A. Bose,backlog_burden,Backlog clearing plan + peer mentor,1,2025-11-03,2025-11-24,closed,unchanged
+IV00425,21CHE0088,Dr. S. Rao,low_submission,Assignment catch-up plan,1,2025-09-22,2025-10-13,closed,improved
+IV00426,23MET0118,Dr. S. Rao,assessment_decline,Subject remedial slot,1,2025-10-06,2025-10-27,closed,improved
+IV00427,22MET0116,Prof. A. Bose,sudden_disengagement,15-minute check-in call,1,2025-10-06,2025-10-27,closed,unreachable
+IV00428,23ECE20106,Dr. K. Fernandes,assessment_decline,Subject remedial slot,1,2025-09-22,2025-10-13,closed,improved
+IV00429,23AER0089,Prof. A. Bose,chronic_low_attendance,Weekly attendance contract,1,2025-09-22,2025-10-13,closed,unreachable
+IV00430,21CHE0005,Prof. M. Iyer,sudden_disengagement,15-minute check-in call,1,2025-09-15,2025-10-06,closed,improved
+IV00431,21CSE0023,Prof. M. Iyer,fee_pressure,Scholarship / instalment referral,1,2025-09-15,2025-10-06,closed,improved
+IV00432,23ECE20029,Dr. K. Fernandes,fee_pressure,Scholarship / instalment referral,1,2025-10-20,2025-11-10,closed,improved
+IV00433,22MET0094,Dr. S. Rao,assessment_decline,Subject remedial slot,1,2025-08-11,2025-09-01,closed,improved
+IV00434,23CSE20065,Prof. M. Iyer,low_submission,Assignment catch-up plan,1,2025-08-25,2025-09-15,closed,unchanged
+IV00435,21MET0078,Dr. S. Rao,assessment_decline,Subject remedial slot,1,2025-08-04,2025-08-25,closed,worsened
+IV00436,22ECE20097,Dr. K. Fernandes,chronic_low_attendance,Weekly attendance contract,1,2025-09-29,2025-10-20,closed,improved
+IV00437,23MEC0120,Dr. K. Fernandes,low_submission,Assignment catch-up plan,1,2025-08-11,2025-09-01,closed,improved
+IV00438,21MET0115,Dr. S. Rao,chronic_low_attendance,Weekly attendance contract,1,2025-11-03,2025-11-24,closed,improved
+IV00439,23BIO0119,Prof. A. Bose,assessment_decline,Subject remedial slot,1,2025-08-18,2025-09-08,closed,improved
+IV00440,22MEC20042,Prof. M. Iyer,chronic_low_attendance,Weekly attendance contract,1,2025-11-03,2025-11-24,closed,improved
+IV00441,22CIV20016,Dr. S. Rao,low_submission,Assignment catch-up plan,1,2025-10-13,2025-11-03,closed,worsened
+IV00442,21CIV0089,Dr. S. Rao,fee_pressure,Scholarship / instalment referral,1,2025-09-01,2025-09-22,closed,improved
+IV00443,22AER0009,Dr. S. Rao,backlog_burden,Backlog clearing plan + peer mentor,1,2025-11-03,2025-11-24,closed,improved
+IV00444,23IT0056,Prof. M. Iyer,backlog_burden,Backlog clearing plan + peer mentor,1,2025-08-04,2025-08-25,closed,unchanged
+IV00445,22CSE20100,Dr. S. Rao,fee_pressure,Scholarship / instalment referral,1,2025-10-13,2025-11-03,closed,worsened
+IV00446,21EEE0049,Prof. M. Iyer,chronic_low_attendance,Weekly attendance contract,1,2025-10-13,2025-11-03,closed,improved
+IV00447,23AER0025,Prof. A. Bose,backlog_burden,Backlog clearing plan + peer mentor,1,2025-08-18,2025-09-08,closed,worsened
+IV00448,22MEC0089,Prof. M. Iyer,chronic_low_attendance,Weekly attendance contract,1,2025-09-15,2025-10-06,closed,unchanged
+IV00449,23MEC20115,Dr. K. Fernandes,assessment_decline,Subject remedial slot,1,2025-08-18,2025-09-08,closed,improved
+IV00450,22IT0006,Dr. K. Fernandes,sudden_disengagement,15-minute check-in call,1,2025-08-04,2025-08-25,closed,unreachable
+IV00451,23ECE0103,Dr. K. Fernandes,assessment_decline,Subject remedial slot,1,2025-09-22,2025-10-13,closed,unchanged
+IV00452,21ECE20068,Prof. A. Bose,chronic_low_attendance,Weekly attendance contract,1,2025-11-17,2025-12-08,closed,unreachable
+IV00453,23CIV0094,Dr. K. Fernandes,fee_pressure,Scholarship / instalment referral,1,2025-08-25,2025-09-15,closed,improved
+IV00454,21AER0100,Prof. A. Bose,assessment_decline,Subject remedial slot,1,2025-10-20,2025-11-10,closed,unchanged
+IV00455,22MEC20065,Dr. K. Fernandes,sudden_disengagement,15-minute check-in call,1,2025-08-18,2025-09-08,closed,improved
+IV00456,21ECE0081,Prof. A. Bose,sudden_disengagement,15-minute check-in call,1,2025-09-29,2025-10-20,closed,improved
+IV00457,22CSE0109,Dr. K. Fernandes,backlog_burden,Backlog clearing plan + peer mentor,1,2025-11-10,2025-12-01,closed,improved
+IV00458,22EEE0034,Prof. M. Iyer,backlog_burden,Backlog clearing plan + peer mentor,1,2025-08-25,2025-09-15,closed,worsened
+IV00459,21AER0080,Prof. A. Bose,sudden_disengagement,15-minute check-in call,1,2025-08-25,2025-09-15,closed,unreachable
+IV00460,21CIV0093,Dr. K. Fernandes,fee_pressure,Scholarship / instalment referral,1,2025-08-18,2025-09-08,closed,unchanged
+IV00461,21BIO0066,Dr. K. Fernandes,low_submission,Assignment catch-up plan,1,2025-08-11,2025-09-01,closed,improved
+IV00462,21EEE0061,Dr. K. Fernandes,chronic_low_attendance,Weekly attendance contract,1,2025-11-17,2025-12-08,closed,unchanged
+IV00463,23BIO0095,Dr. K. Fernandes,backlog_burden,Backlog clearing plan + peer mentor,1,2025-08-04,2025-08-25,closed,unchanged
+IV00464,23EEE0118,Dr. S. Rao,low_submission,Assignment catch-up plan,1,2025-09-01,2025-09-22,closed,improved
+IV00465,21IT0083,Prof. A. Bose,fee_pressure,Scholarship / instalment referral,1,2025-10-13,2025-11-03,closed,improved
+IV00466,22MEC20041,Dr. K. Fernandes,sudden_disengagement,15-minute check-in call,1,2025-08-18,2025-09-08,closed,improved
+IV00467,21CSE0087,Prof. A. Bose,backlog_burden,Backlog clearing plan + peer mentor,1,2025-09-08,2025-09-29,closed,unchanged
+IV00468,22CSE20111,Dr. S. Rao,backlog_burden,Backlog clearing plan + peer mentor,1,2025-08-18,2025-09-08,closed,unchanged
+IV00469,22AER0039,Prof. A. Bose,backlog_burden,Backlog clearing plan + peer mentor,1,2025-10-27,2025-11-17,closed,unchanged
+IV00470,23CIV0037,Prof. A. Bose,low_submission,Assignment catch-up plan,1,2025-11-03,2025-11-24,closed,improved
+IV00471,23BIO0049,Dr. S. Rao,sudden_disengagement,15-minute check-in call,1,2025-10-27,2025-11-17,closed,unchanged
+IV00472,21BIO0058,Prof. M. Iyer,backlog_burden,Backlog clearing plan + peer mentor,1,2025-10-27,2025-11-17,closed,improved
+IV00473,22EEE0048,Prof. A. Bose,sudden_disengagement,15-minute check-in call,1,2025-10-27,2025-11-17,closed,improved
+IV00474,22CIV0011,Dr. K. Fernandes,sudden_disengagement,15-minute check-in call,1,2025-10-13,2025-11-03,closed,unreachable
+IV00475,21IT0087,Prof. M. Iyer,fee_pressure,Scholarship / instalment referral,1,2025-09-01,2025-09-22,closed,improved
+IV00476,22MEC20004,Prof. A. Bose,backlog_burden,Backlog clearing plan + peer mentor,1,2025-10-20,2025-11-10,closed,unreachable
+IV00477,22ECE20046,Prof. M. Iyer,backlog_burden,Backlog clearing plan + peer mentor,1,2025-09-22,2025-10-13,closed,worsened
+IV00478,21ECE0082,Prof. M. Iyer,assessment_decline,Subject remedial slot,1,2025-08-18,2025-09-08,closed,improved
+IV00479,21CHE0094,Prof. M. Iyer,low_submission,Assignment catch-up plan,1,2025-10-20,2025-11-10,closed,improved
+IV00480,22CHE0032,Prof. M. Iyer,low_submission,Assignment catch-up plan,1,2025-09-15,2025-10-06,closed,worsened
+IV00481,22IT0028,Dr. S. Rao,fee_pressure,Scholarship / instalment referral,1,2025-08-25,2025-09-15,closed,improved
+IV00482,23MEC0070,Prof. A. Bose,assessment_decline,Subject remedial slot,1,2025-09-29,2025-10-20,closed,worsened
+IV00483,22MEC20008,Dr. K. Fernandes,assessment_decline,Subject remedial slot,1,2025-09-08,2025-09-29,closed,improved
+IV00484,21MEC0068,Dr. S. Rao,chronic_low_attendance,Weekly attendance contract,1,2025-10-13,2025-11-03,closed,improved
+IV00485,21CIV0028,Prof. A. Bose,fee_pressure,Scholarship / instalment referral,1,2025-08-04,2025-08-25,closed,improved
+IV00486,22MEC20098,Dr. K. Fernandes,chronic_low_attendance,Weekly attendance contract,1,2025-11-17,2025-12-08,closed,improved
+IV00487,21AER0006,Dr. S. Rao,chronic_low_attendance,Weekly attendance contract,1,2025-09-01,2025-09-22,closed,improved
+IV00488,21CIV0040,Dr. S. Rao,sudden_disengagement,15-minute check-in call,1,2025-08-18,2025-09-08,closed,improved
+IV00489,23IT0074,Dr. K. Fernandes,low_submission,Assignment catch-up plan,1,2025-09-08,2025-09-29,closed,unchanged
+IV00490,21CIV0018,Dr. S. Rao,assessment_decline,Subject remedial slot,1,2025-10-20,2025-11-10,closed,improved
+IV00491,22MEC20001,Dr. S. Rao,chronic_low_attendance,Weekly attendance contract,1,2025-08-25,2025-09-15,closed,improved
+IV00492,21IT0091,Prof. M. Iyer,sudden_disengagement,15-minute check-in call,1,2025-11-17,2025-12-08,closed,unchanged
+IV00493,23CSE0005,Prof. A. Bose,low_submission,Assignment catch-up plan,1,2025-08-25,2025-09-15,closed,improved
+IV00494,23EEE0101,Prof. M. Iyer,low_submission,Assignment catch-up plan,1,2025-09-08,2025-09-29,closed,improved
+IV00495,22CHE0059,Prof. M. Iyer,low_submission,Assignment catch-up plan,1,2025-09-08,2025-09-29,closed,unreachable
+IV00496,23BIO0015,Dr. K. Fernandes,low_submission,Assignment catch-up plan,1,2025-11-10,2025-12-01,closed,unreachable
+IV00497,22CHE0007,Dr. S. Rao,backlog_burden,Backlog clearing plan + peer mentor,1,2025-10-06,2025-10-27,closed,improved
+IV00498,22MEC20091,Prof. M. Iyer,backlog_burden,Backlog clearing plan + peer mentor,1,2025-09-01,2025-09-22,closed,unreachable
+IV00499,22AER0113,Prof. A. Bose,chronic_low_attendance,Weekly attendance contract,1,2025-11-10,2025-12-01,closed,improved
+IV00500,22CIV20021,Dr. S. Rao,fee_pressure,Scholarship / instalment referral,1,2025-10-13,2025-11-03,closed,unreachable
+IV00501,22MEC0075,Dr. S. Rao,sudden_disengagement,15-minute check-in call,1,2025-10-13,2025-11-03,closed,unreachable
+IV00502,23AER0013,Dr. S. Rao,low_submission,Assignment catch-up plan,1,2025-10-20,2025-11-10,closed,unreachable
+IV00503,21BIO0090,Dr. K. Fernandes,sudden_disengagement,15-minute check-in call,1,2025-09-15,2025-10-06,closed,improved
+IV00504,22CIV0019,Dr. S. Rao,backlog_burden,Backlog clearing plan + peer mentor,1,2025-10-13,2025-11-03,closed,unchanged
+IV00505,21CIV20052,Prof. M. Iyer,fee_pressure,Scholarship / instalment referral,1,2025-09-08,2025-09-29,closed,improved
+IV00506,21ECE20034,Prof. A. Bose,low_submission,Assignment catch-up plan,1,2025-11-10,2025-12-01,closed,improved
+IV00507,21CSE0115,Dr. K. Fernandes,backlog_burden,Backlog clearing plan + peer mentor,1,2025-11-10,2025-12-01,closed,unchanged
+IV00508,22ECE20036,Dr. K. Fernandes,chronic_low_attendance,Weekly attendance contract,1,2025-09-01,2025-09-22,closed,unchanged
+IV00509,21CSE20042,Dr. S. Rao,chronic_low_attendance,Weekly attendance contract,1,2025-08-25,2025-09-15,closed,worsened
+IV00510,23MEC20119,Dr. K. Fernandes,chronic_low_attendance,Weekly attendance contract,1,2025-11-24,2025-12-15,closed,improved
+IV00511,21MET0058,Prof. A. Bose,low_submission,Assignment catch-up plan,1,2025-11-24,2025-12-15,closed,unchanged
+IV00512,21CHE0100,Prof. A. Bose,low_submission,Assignment catch-up plan,1,2025-10-20,2025-11-10,closed,improved
+IV00513,21CSE0094,Prof. M. Iyer,assessment_decline,Subject remedial slot,1,2025-08-18,2025-09-08,closed,improved
+IV00514,23ECE0098,Prof. A. Bose,sudden_disengagement,15-minute check-in call,1,2025-11-24,2025-12-15,closed,improved
+IV00515,23MEC0058,Dr. S. Rao,low_submission,Assignment catch-up plan,1,2025-10-20,2025-11-10,closed,improved
+IV00516,23BIO0054,Dr. S. Rao,assessment_decline,Subject remedial slot,1,2025-08-25,2025-09-15,closed,improved
+IV00517,22MET0100,Dr. S. Rao,assessment_decline,Subject remedial slot,1,2025-10-06,2025-10-27,closed,improved
+IV00518,22AER0007,Prof. M. Iyer,backlog_burden,Backlog clearing plan + peer mentor,1,2025-11-17,2025-12-08,closed,worsened
+IV00519,21BIO0055,Prof. M. Iyer,chronic_low_attendance,Weekly attendance contract,1,2025-10-06,2025-10-27,closed,unreachable
+IV00520,21MEC20113,Prof. M. Iyer,backlog_burden,Backlog clearing plan + peer mentor,1,2025-08-11,2025-09-01,closed,unchanged
+IV00521,22ECE0104,Dr. S. Rao,sudden_disengagement,15-minute check-in call,1,2025-11-17,2025-12-08,closed,improved
+IV00522,23ECE20082,Dr. S. Rao,backlog_burden,Backlog clearing plan + peer mentor,1,2025-09-22,2025-10-13,closed,unreachable
+IV00523,23CIV20006,Prof. A. Bose,low_submission,Assignment catch-up plan,1,2025-08-18,2025-09-08,closed,improved
+IV00524,21EEE0038,Prof. M. Iyer,backlog_burden,Backlog clearing plan + peer mentor,1,2025-09-15,2025-10-06,closed,improved
+IV00525,21MET0025,Dr. S. Rao,backlog_burden,Backlog clearing plan + peer mentor,1,2025-08-11,2025-09-01,closed,improved
+IV00526,23CSE0103,Dr. K. Fernandes,low_submission,Assignment catch-up plan,1,2025-11-10,2025-12-01,closed,improved
+IV00527,21CHE0008,Prof. M. Iyer,chronic_low_attendance,Weekly attendance contract,1,2025-11-10,2025-12-01,closed,unreachable
+IV00528,23CSE20057,Prof. M. Iyer,backlog_burden,Backlog clearing plan + peer mentor,1,2025-09-29,2025-10-20,closed,unchanged
+IV00529,22ECE0082,Dr. K. Fernandes,fee_pressure,Scholarship / instalment referral,1,2025-09-15,2025-10-06,closed,improved
+IV00530,23CHE0119,Prof. A. Bose,fee_pressure,Scholarship / instalment referral,1,2025-10-13,2025-11-03,closed,improved
+IV00531,21EEE0020,Prof. A. Bose,low_submission,Assignment catch-up plan,1,2025-09-08,2025-09-29,closed,worsened
+IV00532,23CSE0014,Dr. S. Rao,chronic_low_attendance,Weekly attendance contract,1,2025-11-24,2025-12-15,closed,unchanged
+IV00533,23CIV0062,Dr. K. Fernandes,chronic_low_attendance,Weekly attendance contract,1,2025-11-10,2025-12-01,closed,unreachable
+IV00534,21CSE20056,Dr. K. Fernandes,backlog_burden,Backlog clearing plan + peer mentor,1,2025-09-01,2025-09-22,closed,improved
+IV00535,22CSE20015,Prof. M. Iyer,fee_pressure,Scholarship / instalment referral,1,2025-08-04,2025-08-25,closed,improved
+IV00536,22BIO0063,Dr. K. Fernandes,sudden_disengagement,15-minute check-in call,1,2025-09-15,2025-10-06,closed,improved
+IV00537,21MET0098,Dr. S. Rao,chronic_low_attendance,Weekly attendance contract,1,2025-09-22,2025-10-13,closed,worsened
+IV00538,23IT0038,Dr. S. Rao,assessment_decline,Subject remedial slot,1,2025-11-17,2025-12-08,closed,improved
+IV00539,22MEC0105,Prof. M. Iyer,chronic_low_attendance,Weekly attendance contract,1,2025-10-13,2025-11-03,closed,improved
+IV00540,23CIV0046,Dr. K. Fernandes,sudden_disengagement,15-minute check-in call,1,2025-08-25,2025-09-15,closed,improved
+IV00541,22EEE0029,Dr. K. Fernandes,fee_pressure,Scholarship / instalment referral,1,2025-08-04,2025-08-25,closed,unreachable
+IV00542,23ECE0018,Prof. M. Iyer,backlog_burden,Backlog clearing plan + peer mentor,1,2025-08-25,2025-09-15,closed,worsened
+IV00543,22CSE20017,Prof. A. Bose,chronic_low_attendance,Weekly attendance contract,1,2025-11-17,2025-12-08,closed,unchanged
+IV00544,22CSE20077,Dr. S. Rao,fee_pressure,Scholarship / instalment referral,1,2025-08-25,2025-09-15,closed,improved
+IV00545,23EEE0071,Dr. K. Fernandes,low_submission,Assignment catch-up plan,1,2025-08-11,2025-09-01,closed,unchanged
+IV00546,21IT0085,Dr. S. Rao,assessment_decline,Subject remedial slot,1,2025-08-18,2025-09-08,closed,unreachable
+IV00547,22CSE0077,Dr. K. Fernandes,low_submission,Assignment catch-up plan,1,2025-08-04,2025-08-25,closed,worsened
+IV00548,23CSE20108,Prof. M. Iyer,assessment_decline,Subject remedial slot,1,2025-11-03,2025-11-24,closed,improved
+IV00549,21AER0084,Dr. S. Rao,chronic_low_attendance,Weekly attendance contract,1,2025-11-17,2025-12-08,closed,improved
+IV00550,21EEE0089,Prof. A. Bose,chronic_low_attendance,Weekly attendance contract,1,2025-11-10,2025-12-01,closed,improved
+IV00551,23CIV20032,Dr. S. Rao,backlog_burden,Backlog clearing plan + peer mentor,1,2025-10-27,2025-11-17,closed,improved
+IV00552,23CIV20035,Prof. A. Bose,sudden_disengagement,15-minute check-in call,1,2025-08-11,2025-09-01,closed,improved
+IV00553,22MEC20089,Dr. K. Fernandes,chronic_low_attendance,Weekly attendance contract,1,2025-09-15,2025-10-06,closed,improved
+IV00554,23AER0019,Prof. A. Bose,fee_pressure,Scholarship / instalment referral,1,2025-08-04,2025-08-25,closed,unchanged
+IV00555,21AER0068,Prof. A. Bose,sudden_disengagement,15-minute check-in call,1,2025-10-06,2025-10-27,closed,improved
+IV00556,22CIV0088,Dr. S. Rao,low_submission,Assignment catch-up plan,1,2025-08-11,2025-09-01,closed,unreachable
+IV00557,21CSE20051,Dr. K. Fernandes,low_submission,Assignment catch-up plan,1,2025-10-06,2025-10-27,closed,improved
+IV00558,21AER0120,Prof. M. Iyer,backlog_burden,Backlog clearing plan + peer mentor,1,2025-10-06,2025-10-27,closed,improved
+IV00559,23CIV0011,Dr. K. Fernandes,low_submission,Assignment catch-up plan,1,2025-09-29,2025-10-20,closed,improved
+IV00560,21CIV0069,Prof. M. Iyer,assessment_decline,Subject remedial slot,1,2025-10-13,2025-11-03,closed,improved
+IV00561,21CIV0060,Dr. K. Fernandes,backlog_burden,Backlog clearing plan + peer mentor,1,2025-08-11,2025-09-01,closed,improved
+IV00562,23CSE0068,Dr. K. Fernandes,assessment_decline,Subject remedial slot,1,2025-11-24,2025-12-15,closed,improved
+IV00563,22MET0091,Prof. M. Iyer,low_submission,Assignment catch-up plan,1,2025-10-20,2025-11-10,closed,unreachable
+IV00564,21BIO0060,Prof. M. Iyer,backlog_burden,Backlog clearing plan + peer mentor,1,2025-11-17,2025-12-08,closed,improved
+IV00565,21CIV20034,Dr. K. Fernandes,chronic_low_attendance,Weekly attendance contract,1,2025-09-29,2025-10-20,closed,improved
+IV00566,23CIV0042,Prof. M. Iyer,backlog_burden,Backlog clearing plan + peer mentor,1,2025-08-25,2025-09-15,closed,improved
+IV00567,21BIO0046,Prof. M. Iyer,sudden_disengagement,15-minute check-in call,1,2025-09-22,2025-10-13,closed,unchanged
+IV00568,21CHE0077,Prof. M. Iyer,chronic_low_attendance,Weekly attendance contract,1,2025-10-20,2025-11-10,closed,unchanged
+IV00569,21CHE0082,Prof. A. Bose,low_submission,Assignment catch-up plan,1,2025-11-03,2025-11-24,closed,unreachable
+IV00570,23BIO0097,Dr. K. Fernandes,sudden_disengagement,15-minute check-in call,1,2025-11-17,2025-12-08,closed,unchanged
+IV00571,23BIO0047,Prof. M. Iyer,sudden_disengagement,15-minute check-in call,1,2025-09-15,2025-10-06,closed,improved
+IV00572,23BIO0110,Dr. S. Rao,fee_pressure,Scholarship / instalment referral,1,2025-10-27,2025-11-17,closed,improved
+IV00573,22MEC20075,Dr. K. Fernandes,low_submission,Assignment catch-up plan,1,2025-09-29,2025-10-20,closed,unreachable
+IV00574,22EEE0026,Prof. A. Bose,chronic_low_attendance,Weekly attendance contract,1,2025-08-18,2025-09-08,closed,improved
+IV00575,21AER0119,Prof. A. Bose,chronic_low_attendance,Weekly attendance contract,1,2025-08-25,2025-09-15,closed,improved
+IV00576,23CSE20094,Dr. K. Fernandes,backlog_burden,Backlog clearing plan + peer mentor,1,2025-09-22,2025-10-13,closed,improved
+IV00577,22BIO0062,Prof. A. Bose,backlog_burden,Backlog clearing plan + peer mentor,1,2025-08-25,2025-09-15,closed,improved
+IV00578,21BIO0032,Dr. K. Fernandes,low_submission,Assignment catch-up plan,1,2025-09-29,2025-10-20,closed,unreachable
+IV00579,21EEE0024,Prof. A. Bose,chronic_low_attendance,Weekly attendance contract,1,2025-08-04,2025-08-25,closed,worsened
+IV00580,22CIV20067,Prof. A. Bose,chronic_low_attendance,Weekly attendance contract,1,2025-09-29,2025-10-20,closed,improved
+IV00581,22ECE0012,Dr. S. Rao,backlog_burden,Backlog clearing plan + peer mentor,1,2025-10-13,2025-11-03,closed,improved
+IV00582,21ECE0023,Prof. M. Iyer,assessment_decline,Subject remedial slot,1,2025-10-20,2025-11-10,closed,unchanged
+IV00583,23EEE0066,Dr. K. Fernandes,sudden_disengagement,15-minute check-in call,1,2025-08-04,2025-08-25,closed,improved
+IV00584,23ECE0013,Prof. A. Bose,chronic_low_attendance,Weekly attendance contract,1,2025-11-24,2025-12-15,closed,unreachable
+IV00585,23CSE20033,Prof. M. Iyer,sudden_disengagement,15-minute check-in call,1,2025-08-25,2025-09-15,closed,improved
+IV00586,22ECE20001,Prof. A. Bose,backlog_burden,Backlog clearing plan + peer mentor,1,2025-09-01,2025-09-22,closed,improved
+IV00587,22CSE20084,Dr. S. Rao,fee_pressure,Scholarship / instalment referral,1,2025-11-17,2025-12-08,closed,unchanged
+IV00588,22CIV20088,Dr. S. Rao,low_submission,Assignment catch-up plan,1,2025-08-25,2025-09-15,closed,improved
+IV00589,22BIO0040,Dr. S. Rao,fee_pressure,Scholarship / instalment referral,1,2025-11-17,2025-12-08,closed,improved
+IV00590,21AER0014,Dr. S. Rao,assessment_decline,Subject remedial slot,1,2025-10-20,2025-11-10,closed,improved
+IV00591,21MEC20007,Dr. S. Rao,assessment_decline,Subject remedial slot,1,2025-09-08,2025-09-29,closed,improved
+IV00592,21CSE0027,Prof. M. Iyer,chronic_low_attendance,Weekly attendance contract,1,2025-11-17,2025-12-08,closed,improved
+IV00593,21BIO0028,Dr. K. Fernandes,low_submission,Assignment catch-up plan,1,2025-10-27,2025-11-17,closed,improved
+IV00594,22MEC0092,Dr. S. Rao,fee_pressure,Scholarship / instalment referral,1,2025-09-01,2025-09-22,closed,unchanged
+IV00595,22IT0094,Prof. M. Iyer,sudden_disengagement,15-minute check-in call,1,2025-09-29,2025-10-20,closed,unchanged
+IV00596,23BIO0083,Prof. M. Iyer,low_submission,Assignment catch-up plan,1,2025-08-18,2025-09-08,closed,worsened
+IV00597,21MET0083,Prof. A. Bose,low_submission,Assignment catch-up plan,1,2025-09-08,2025-09-29,closed,improved
+IV00598,23BIO0069,Dr. K. Fernandes,fee_pressure,Scholarship / instalment referral,1,2025-09-15,2025-10-06,closed,improved
+IV00599,22IT0083,Dr. S. Rao,backlog_burden,Backlog clearing plan + peer mentor,1,2025-10-13,2025-11-03,closed,improved
+IV00600,22CIV0073,Dr. K. Fernandes,backlog_burden,Backlog clearing plan + peer mentor,1,2025-08-11,2025-09-01,closed,improved
+IV00601,22ECE0117,Dr. K. Fernandes,low_submission,Assignment catch-up plan,1,2025-08-18,2025-09-08,closed,improved
+IV00602,22CSE20045,Dr. S. Rao,assessment_decline,Subject remedial slot,1,2025-09-22,2025-10-13,closed,improved
+IV00603,21BIO0010,Dr. K. Fernandes,low_submission,Assignment catch-up plan,1,2025-08-11,2025-09-01,closed,improved
+IV00604,21AER0102,Prof. A. Bose,assessment_decline,Subject remedial slot,1,2025-09-15,2025-10-06,closed,unreachable
+IV00605,22EEE0054,Prof. M. Iyer,backlog_burden,Backlog clearing plan + peer mentor,1,2025-08-11,2025-09-01,closed,unchanged
+IV00606,21CHE0113,Prof. M. Iyer,sudden_disengagement,15-minute check-in call,1,2025-08-25,2025-09-15,closed,improved
+IV00607,23CIV0066,Dr. S. Rao,low_submission,Assignment catch-up plan,1,2025-09-29,2025-10-20,closed,improved
+IV00608,21CIV0081,Dr. K. Fernandes,fee_pressure,Scholarship / instalment referral,1,2025-10-06,2025-10-27,closed,improved
+IV00609,21CHE0025,Prof. M. Iyer,sudden_disengagement,15-minute check-in call,1,2025-11-03,2025-11-24,closed,improved
+IV00610,22ECE20117,Prof. A. Bose,chronic_low_attendance,Weekly attendance contract,1,2025-09-01,2025-09-22,closed,unchanged
+IV00611,21CSE20106,Prof. M. Iyer,sudden_disengagement,15-minute check-in call,1,2025-08-18,2025-09-08,closed,unreachable
+IV00612,22IT0087,Dr. K. Fernandes,chronic_low_attendance,Weekly attendance contract,1,2025-10-20,2025-11-10,closed,improved
+IV00613,22CHE0055,Prof. M. Iyer,backlog_burden,Backlog clearing plan + peer mentor,1,2025-09-08,2025-09-29,closed,improved
+IV00614,22CIV0058,Dr. K. Fernandes,fee_pressure,Scholarship / instalment referral,1,2025-10-06,2025-10-27,closed,improved
+IV00615,21ECE20045,Dr. S. Rao,sudden_disengagement,15-minute check-in call,1,2025-09-29,2025-10-20,closed,improved
+IV00616,21ECE20104,Prof. M. Iyer,backlog_burden,Backlog clearing plan + peer mentor,1,2025-08-25,2025-09-15,closed,unchanged
+IV00617,23CIV0087,Prof. M. Iyer,sudden_disengagement,15-minute check-in call,1,2025-10-13,2025-11-03,closed,improved
+IV00618,21ECE0093,Dr. S. Rao,fee_pressure,Scholarship / instalment referral,1,2025-08-18,2025-09-08,closed,improved
+IV00619,23MET0053,Prof. A. Bose,low_submission,Assignment catch-up plan,1,2025-09-15,2025-10-06,closed,improved
+IV00620,21CHE0092,Dr. K. Fernandes,assessment_decline,Subject remedial slot,1,2025-09-01,2025-09-22,closed,unreachable
+IV00621,23ECE20090,Prof. A. Bose,sudden_disengagement,15-minute check-in call,1,2025-10-06,2025-10-27,closed,unchanged
+IV00622,23CIV0010,Prof. M. Iyer,sudden_disengagement,15-minute check-in call,1,2025-11-24,2025-12-15,closed,improved
+IV00623,21AER0086,Prof. M. Iyer,low_submission,Assignment catch-up plan,1,2025-09-29,2025-10-20,closed,unchanged
+IV00624,22MET0102,Prof. A. Bose,sudden_disengagement,15-minute check-in call,1,2025-09-15,2025-10-06,closed,improved
+IV00625,21ECE20059,Dr. S. Rao,assessment_decline,Subject remedial slot,1,2025-09-15,2025-10-06,closed,worsened
+IV00626,23CIV20066,Prof. A. Bose,chronic_low_attendance,Weekly attendance contract,1,2025-09-15,2025-10-06,closed,improved
+IV00627,21CHE0067,Prof. A. Bose,low_submission,Assignment catch-up plan,1,2025-10-20,2025-11-10,closed,improved
+IV00628,23ECE20020,Dr. S. Rao,sudden_disengagement,15-minute check-in call,1,2025-11-24,2025-12-15,closed,improved
+IV00629,23EEE0114,Dr. K. Fernandes,chronic_low_attendance,Weekly attendance contract,1,2025-10-06,2025-10-27,closed,improved
+IV00630,21ECE20071,Dr. K. Fernandes,fee_pressure,Scholarship / instalment referral,1,2025-11-17,2025-12-08,closed,improved
+IV00631,23MET0068,Dr. K. Fernandes,backlog_burden,Backlog clearing plan + peer mentor,1,2025-11-24,2025-12-15,closed,improved
+IV00632,21EEE0030,Dr. S. Rao,fee_pressure,Scholarship / instalment referral,1,2025-10-13,2025-11-03,closed,worsened
+IV00633,22BIO0039,Dr. K. Fernandes,backlog_burden,Backlog clearing plan + peer mentor,1,2025-08-04,2025-08-25,closed,unchanged
+IV00634,23MEC0030,Prof. A. Bose,backlog_burden,Backlog clearing plan + peer mentor,1,2025-10-20,2025-11-10,closed,improved
+IV00635,21EEE0077,Prof. M. Iyer,sudden_disengagement,15-minute check-in call,1,2025-10-20,2025-11-10,closed,improved
+IV00636,23CIV0019,Prof. A. Bose,backlog_burden,Backlog clearing plan + peer mentor,1,2025-11-17,2025-12-08,closed,improved
+IV00637,22CIV0074,Prof. A. Bose,assessment_decline,Subject remedial slot,1,2025-10-06,2025-10-27,closed,unchanged
+IV00638,21IT0058,Dr. K. Fernandes,backlog_burden,Backlog clearing plan + peer mentor,1,2025-11-24,2025-12-15,closed,improved
+IV00639,22CSE20071,Dr. K. Fernandes,low_submission,Assignment catch-up plan,1,2025-09-08,2025-09-29,closed,improved
+IV00640,22ECE20113,Prof. M. Iyer,assessment_decline,Subject remedial slot,1,2025-10-06,2025-10-27,closed,improved
+IV00641,23CSE20063,Prof. A. Bose,chronic_low_attendance,Weekly attendance contract,1,2025-11-10,2025-12-01,closed,improved
+IV00642,23CHE0079,Prof. A. Bose,fee_pressure,Scholarship / instalment referral,1,2025-09-29,2025-10-20,closed,improved
+IV00643,21CIV0106,Prof. M. Iyer,fee_pressure,Scholarship / instalment referral,1,2025-11-03,2025-11-24,closed,improved
+IV00644,23ECE20076,Prof. A. Bose,fee_pressure,Scholarship / instalment referral,1,2025-11-10,2025-12-01,closed,improved
+IV00645,21MET0059,Prof. M. Iyer,backlog_burden,Backlog clearing plan + peer mentor,1,2025-08-11,2025-09-01,closed,improved
+IV00646,23CIV20104,Prof. M. Iyer,low_submission,Assignment catch-up plan,1,2025-08-25,2025-09-15,closed,improved
+IV00647,22CIV20070,Prof. M. Iyer,backlog_burden,Backlog clearing plan + peer mentor,1,2025-09-08,2025-09-29,closed,improved
+IV00648,22CHE0044,Dr. K. Fernandes,backlog_burden,Backlog clearing plan + peer mentor,1,2025-11-17,2025-12-08,closed,improved
+IV00649,22ECE0074,Prof. A. Bose,assessment_decline,Subject remedial slot,1,2025-09-22,2025-10-13,closed,improved
+IV00650,21CIV20070,Dr. K. Fernandes,backlog_burden,Backlog clearing plan + peer mentor,1,2025-09-22,2025-10-13,closed,unreachable
+IV00651,23MEC0046,Prof. M. Iyer,chronic_low_attendance,Weekly attendance contract,1,2025-11-03,2025-11-24,closed,unchanged
+IV00652,22ECE0079,Dr. S. Rao,backlog_burden,Backlog clearing plan + peer mentor,1,2025-08-18,2025-09-08,closed,improved
+IV00653,23AER0064,Dr. K. Fernandes,backlog_burden,Backlog clearing plan + peer mentor,1,2025-10-27,2025-11-17,closed,worsened
+IV00654,23MEC0076,Prof. M. Iyer,fee_pressure,Scholarship / instalment referral,1,2025-10-13,2025-11-03,closed,improved
+IV00655,21IT0092,Prof. A. Bose,assessment_decline,Subject remedial slot,1,2025-10-06,2025-10-27,closed,improved
+IV00656,21MEC20016,Prof. M. Iyer,assessment_decline,Subject remedial slot,1,2025-10-06,2025-10-27,closed,unreachable
+IV00657,21EEE0001,Dr. K. Fernandes,low_submission,Assignment catch-up plan,1,2025-09-29,2025-10-20,closed,improved
+IV00658,23CIV0038,Dr. K. Fernandes,backlog_burden,Backlog clearing plan + peer mentor,1,2025-10-13,2025-11-03,closed,improved
+IV00659,21CIV0017,Prof. A. Bose,sudden_disengagement,15-minute check-in call,1,2025-08-25,2025-09-15,closed,worsened
+IV00660,21BIO0044,Dr. S. Rao,low_submission,Assignment catch-up plan,1,2025-08-18,2025-09-08,closed,improved
+IV00661,22MEC0114,Dr. K. Fernandes,low_submission,Assignment catch-up plan,1,2025-09-08,2025-09-29,closed,improved
+IV00662,21ECE0058,Prof. M. Iyer,fee_pressure,Scholarship / instalment referral,1,2025-09-08,2025-09-29,closed,improved
+IV00663,22EEE0120,Dr. K. Fernandes,sudden_disengagement,15-minute check-in call,1,2025-11-10,2025-12-01,closed,unreachable
+IV00664,23CSE20041,Prof. A. Bose,fee_pressure,Scholarship / instalment referral,1,2025-10-06,2025-10-27,closed,improved
+IV00665,23EEE0097,Dr. K. Fernandes,sudden_disengagement,15-minute check-in call,1,2025-09-08,2025-09-29,closed,unchanged
+IV00666,22CSE20008,Dr. S. Rao,sudden_disengagement,15-minute check-in call,1,2025-10-06,2025-10-27,closed,improved
+IV00667,22MEC0096,Prof. M. Iyer,assessment_decline,Subject remedial slot,1,2025-08-11,2025-09-01,closed,improved
+IV00668,21CIV20009,Prof. A. Bose,low_submission,Assignment catch-up plan,1,2025-10-27,2025-11-17,closed,improved
+IV00669,23MEC20028,Prof. M. Iyer,sudden_disengagement,15-minute check-in call,1,2025-11-10,2025-12-01,closed,worsened
+IV00670,23CSE0106,Prof. A. Bose,fee_pressure,Scholarship / instalment referral,1,2025-09-08,2025-09-29,closed,improved
+IV00671,23ECE0021,Prof. A. Bose,chronic_low_attendance,Weekly attendance contract,1,2025-10-06,2025-10-27,closed,worsened
+IV00672,23AER0055,Dr. K. Fernandes,fee_pressure,Scholarship / instalment referral,1,2025-10-06,2025-10-27,closed,improved
+IV00673,21ECE20021,Dr. S. Rao,sudden_disengagement,15-minute check-in call,1,2025-09-29,2025-10-20,closed,improved
+IV00674,23CIV0033,Prof. M. Iyer,assessment_decline,Subject remedial slot,1,2025-10-27,2025-11-17,closed,improved
+IV00675,23ECE20074,Prof. M. Iyer,low_submission,Assignment catch-up plan,1,2025-09-08,2025-09-29,closed,unchanged
+IV00676,22CSE20067,Prof. M. Iyer,low_submission,Assignment catch-up plan,1,2025-11-03,2025-11-24,closed,unchanged
+IV00677,23BIO0019,Dr. K. Fernandes,sudden_disengagement,15-minute check-in call,1,2025-11-17,2025-12-08,closed,improved
+IV00678,22MEC20076,Dr. S. Rao,sudden_disengagement,15-minute check-in call,1,2025-09-08,2025-09-29,closed,improved
+IV00679,23MEC20086,Dr. S. Rao,sudden_disengagement,15-minute check-in call,1,2025-11-03,2025-11-24,closed,improved
+IV00680,23MET0085,Dr. S. Rao,low_submission,Assignment catch-up plan,1,2025-11-10,2025-12-01,closed,improved
+IV00681,23MEC20116,Dr. K. Fernandes,backlog_burden,Backlog clearing plan + peer mentor,1,2025-11-03,2025-11-24,closed,unreachable
+IV00682,23MET0049,Dr. S. Rao,sudden_disengagement,15-minute check-in call,1,2025-10-06,2025-10-27,closed,unchanged
+IV00683,21AER0091,Dr. S. Rao,chronic_low_attendance,Weekly attendance contract,1,2025-09-22,2025-10-13,closed,unchanged
+IV00684,23CSE20074,Dr. S. Rao,assessment_decline,Subject remedial slot,1,2025-09-08,2025-09-29,closed,worsened
+IV00685,23CSE20102,Dr. S. Rao,assessment_decline,Subject remedial slot,1,2025-11-10,2025-12-01,closed,improved
+IV00686,23BIO0002,Prof. M. Iyer,fee_pressure,Scholarship / instalment referral,1,2025-08-18,2025-09-08,closed,improved
+IV00687,23MEC20081,Prof. M. Iyer,assessment_decline,Subject remedial slot,1,2025-10-27,2025-11-17,closed,improved
+IV00688,22IT0115,Prof. M. Iyer,chronic_low_attendance,Weekly attendance contract,1,2025-08-18,2025-09-08,closed,improved
+IV00689,22CHE0080,Dr. K. Fernandes,low_submission,Assignment catch-up plan,1,2025-08-11,2025-09-01,closed,improved
+IV00690,22CSE0119,Prof. A. Bose,sudden_disengagement,15-minute check-in call,1,2025-09-01,2025-09-22,closed,unreachable
+IV00691,22BIO0094,Prof. M. Iyer,chronic_low_attendance,Weekly attendance contract,1,2025-08-04,2025-08-25,closed,improved
+IV00692,21CHE0028,Dr. K. Fernandes,chronic_low_attendance,Weekly attendance contract,1,2025-11-24,2025-12-15,closed,worsened
+IV00693,23CIV0075,Dr. S. Rao,fee_pressure,Scholarship / instalment referral,1,2025-10-27,2025-11-17,closed,unreachable
+IV00694,22CIV20101,Prof. A. Bose,fee_pressure,Scholarship / instalment referral,1,2025-09-08,2025-09-29,closed,improved
+IV00695,22MET0098,Dr. S. Rao,chronic_low_attendance,Weekly attendance contract,1,2025-11-10,2025-12-01,closed,unchanged
+IV00696,21CSE20005,Dr. K. Fernandes,chronic_low_attendance,Weekly attendance contract,1,2025-10-13,2025-11-03,closed,unreachable
+IV00697,22CIV20014,Prof. A. Bose,backlog_burden,Backlog clearing plan + peer mentor,1,2025-09-08,2025-09-29,closed,improved
+IV00698,22CIV0013,Dr. S. Rao,sudden_disengagement,15-minute check-in call,1,2025-11-17,2025-12-08,closed,unchanged
+IV00699,21AER0072,Prof. A. Bose,assessment_decline,Subject remedial slot,1,2025-08-25,2025-09-15,closed,improved
+IV00700,22EEE0091,Dr. S. Rao,fee_pressure,Scholarship / instalment referral,1,2025-09-01,2025-09-22,closed,worsened
+IV00701,23ECE20094,Prof. A. Bose,chronic_low_attendance,Weekly attendance contract,1,2025-10-20,2025-11-10,closed,improved
+IV00702,21ECE20002,Dr. S. Rao,sudden_disengagement,15-minute check-in call,1,2025-08-11,2025-09-01,closed,unreachable
+IV00703,23AER0054,Prof. A. Bose,assessment_decline,Subject remedial slot,1,2025-09-01,2025-09-22,closed,improved
+IV00704,21AER0082,Dr. K. Fernandes,sudden_disengagement,15-minute check-in call,1,2025-11-10,2025-12-01,closed,unreachable
+IV00705,23MEC0089,Dr. K. Fernandes,assessment_decline,Subject remedial slot,1,2025-11-10,2025-12-01,closed,unreachable
+IV00706,22MET0074,Dr. K. Fernandes,low_submission,Assignment catch-up plan,1,2025-11-24,2025-12-15,closed,improved
+IV00707,22CHE0082,Prof. A. Bose,sudden_disengagement,15-minute check-in call,1,2025-11-10,2025-12-01,closed,improved
+IV00708,22AER0103,Dr. K. Fernandes,fee_pressure,Scholarship / instalment referral,1,2025-10-20,2025-11-10,closed,unchanged
+IV00709,22CSE0050,Dr. S. Rao,chronic_low_attendance,Weekly attendance contract,1,2025-11-24,2025-12-15,closed,unreachable
+IV00710,23ECE20096,Prof. A. Bose,fee_pressure,Scholarship / instalment referral,1,2025-09-22,2025-10-13,closed,unreachable
+IV00711,22CSE20065,Dr. S. Rao,chronic_low_attendance,Weekly attendance contract,1,2025-10-20,2025-11-10,closed,improved
+IV00712,22MET0058,Prof. M. Iyer,chronic_low_attendance,Weekly attendance contract,1,2025-08-25,2025-09-15,closed,improved
+IV00713,22EEE0003,Dr. K. Fernandes,fee_pressure,Scholarship / instalment referral,1,2025-10-13,2025-11-03,closed,unreachable
+IV00714,22CIV20086,Dr. K. Fernandes,fee_pressure,Scholarship / instalment referral,1,2025-10-27,2025-11-17,closed,improved
+IV00715,22CIV0036,Prof. M. Iyer,low_submission,Assignment catch-up plan,1,2025-09-08,2025-09-29,closed,unchanged
+IV00716,22MEC0020,Prof. A. Bose,fee_pressure,Scholarship / instalment referral,1,2025-08-18,2025-09-08,closed,improved
+IV00717,21CSE20070,Prof. M. Iyer,chronic_low_attendance,Weekly attendance contract,1,2025-09-15,2025-10-06,closed,improved
+IV00718,22ECE20024,Prof. A. Bose,low_submission,Assignment catch-up plan,1,2025-11-24,2025-12-15,closed,improved
+IV00719,21AER0053,Prof. M. Iyer,low_submission,Assignment catch-up plan,1,2025-10-06,2025-10-27,closed,unchanged
+IV00720,23MEC20040,Dr. K. Fernandes,sudden_disengagement,15-minute check-in call,1,2025-10-06,2025-10-27,closed,improved
+IV00721,22AER0061,Dr. K. Fernandes,fee_pressure,Scholarship / instalment referral,1,2025-11-10,2025-12-01,closed,improved
+IV00722,23EEE0073,Prof. M. Iyer,backlog_burden,Backlog clearing plan + peer mentor,1,2025-08-18,2025-09-08,closed,unchanged
+IV00723,21CSE0030,Prof. M. Iyer,backlog_burden,Backlog clearing plan + peer mentor,1,2025-11-10,2025-12-01,closed,unchanged
+IV00724,23CIV20016,Prof. A. Bose,sudden_disengagement,15-minute check-in call,1,2025-11-17,2025-12-08,closed,unchanged
+IV00725,22MEC20019,Prof. M. Iyer,assessment_decline,Subject remedial slot,1,2025-08-18,2025-09-08,closed,improved
+IV00726,21CIV0120,Dr. S. Rao,fee_pressure,Scholarship / instalment referral,1,2025-09-29,2025-10-20,closed,unchanged
+IV00727,23MET0044,Prof. M. Iyer,sudden_disengagement,15-minute check-in call,1,2025-08-18,2025-09-08,closed,improved
+IV00728,21CSE20030,Prof. A. Bose,fee_pressure,Scholarship / instalment referral,1,2025-11-24,2025-12-15,closed,unreachable
+IV00729,22ECE0044,Dr. K. Fernandes,sudden_disengagement,15-minute check-in call,1,2025-10-20,2025-11-10,closed,worsened
+IV00730,22IT0111,Prof. M. Iyer,assessment_decline,Subject remedial slot,1,2025-08-04,2025-08-25,closed,unchanged
+IV00731,21MEC0060,Prof. M. Iyer,low_submission,Assignment catch-up plan,1,2025-08-11,2025-09-01,closed,improved
+IV00732,22EEE0011,Dr. K. Fernandes,fee_pressure,Scholarship / instalment referral,1,2025-11-03,2025-11-24,closed,improved
+IV00733,23CSE20051,Dr. K. Fernandes,assessment_decline,Subject remedial slot,1,2025-10-13,2025-11-03,closed,improved
+IV00734,23IT0064,Prof. A. Bose,sudden_disengagement,15-minute check-in call,1,2025-08-04,2025-08-25,closed,unreachable
+IV00735,23BIO0107,Prof. A. Bose,chronic_low_attendance,Weekly attendance contract,1,2025-08-11,2025-09-01,closed,unchanged
+IV00736,21CHE0099,Dr. S. Rao,low_submission,Assignment catch-up plan,1,2025-09-29,2025-10-20,closed,unchanged
+IV00737,23MEC0042,Dr. S. Rao,backlog_burden,Backlog clearing plan + peer mentor,1,2025-08-18,2025-09-08,closed,unchanged
+IV00738,22MEC0003,Dr. K. Fernandes,chronic_low_attendance,Weekly attendance contract,1,2025-11-10,2025-12-01,closed,improved
+IV00739,23CIV20107,Dr. S. Rao,fee_pressure,Scholarship / instalment referral,1,2025-08-25,2025-09-15,closed,unreachable
+IV00740,22ECE20101,Dr. S. Rao,fee_pressure,Scholarship / instalment referral,1,2025-10-27,2025-11-17,closed,improved
+IV00741,23MEC20052,Dr. K. Fernandes,backlog_burden,Backlog clearing plan + peer mentor,1,2025-09-15,2025-10-06,closed,unchanged
+IV00742,21CSE0075,Dr. S. Rao,sudden_disengagement,15-minute check-in call,1,2025-10-06,2025-10-27,closed,improved
+IV00743,22MEC20006,Prof. A. Bose,fee_pressure,Scholarship / instalment referral,1,2025-09-08,2025-09-29,closed,unchanged
+IV00744,23ECE20039,Dr. S. Rao,chronic_low_attendance,Weekly attendance contract,1,2025-09-29,2025-10-20,closed,unreachable
+IV00745,23AER0059,Prof. M. Iyer,low_submission,Assignment catch-up plan,1,2025-09-29,2025-10-20,closed,improved
+IV00746,21IT0032,Dr. S. Rao,backlog_burden,Backlog clearing plan + peer mentor,1,2025-08-18,2025-09-08,closed,improved
+IV00747,23ECE20052,Dr. K. Fernandes,sudden_disengagement,15-minute check-in call,1,2025-11-10,2025-12-01,closed,improved
+IV00748,21MET0103,Dr. K. Fernandes,assessment_decline,Subject remedial slot,1,2025-10-20,2025-11-10,closed,worsened
+IV00749,22CHE0070,Prof. M. Iyer,backlog_burden,Backlog clearing plan + peer mentor,1,2025-08-11,2025-09-01,closed,improved
+IV00750,22EEE0100,Dr. S. Rao,sudden_disengagement,15-minute check-in call,1,2025-08-18,2025-09-08,closed,unreachable
+IV00751,21IT0018,Prof. A. Bose,assessment_decline,Subject remedial slot,1,2025-11-24,2025-12-15,closed,improved
+IV00752,23AER0108,Dr. S. Rao,assessment_decline,Subject remedial slot,1,2025-09-15,2025-10-06,closed,improved
+IV00753,23CHE0031,Prof. A. Bose,chronic_low_attendance,Weekly attendance contract,1,2025-08-04,2025-08-25,closed,improved
+IV00754,22ECE0045,Prof. M. Iyer,low_submission,Assignment catch-up plan,1,2025-09-01,2025-09-22,closed,improved
+IV00755,22EEE0041,Prof. M. Iyer,backlog_burden,Backlog clearing plan + peer mentor,1,2025-09-01,2025-09-22,closed,unreachable
+IV00756,23MET0034,Dr. S. Rao,backlog_burden,Backlog clearing plan + peer mentor,1,2025-10-06,2025-10-27,closed,unreachable
+IV00757,22ECE20114,Dr. K. Fernandes,fee_pressure,Scholarship / instalment referral,1,2025-09-08,2025-09-29,closed,improved
+IV00758,21MEC20117,Dr. K. Fernandes,assessment_decline,Subject remedial slot,1,2025-11-24,2025-12-15,closed,improved
+IV00759,21ECE20082,Dr. S. Rao,assessment_decline,Subject remedial slot,1,2025-08-25,2025-09-15,closed,unchanged
+IV00760,22CIV20004,Dr. K. Fernandes,chronic_low_attendance,Weekly attendance contract,1,2025-08-04,2025-08-25,closed,improved
+IV00761,23CHE0061,Prof. M. Iyer,fee_pressure,Scholarship / instalment referral,1,2025-10-27,2025-11-17,closed,worsened
+IV00762,22CIV20022,Dr. S. Rao,sudden_disengagement,15-minute check-in call,1,2025-10-06,2025-10-27,closed,improved
+IV00763,21MET0064,Prof. A. Bose,assessment_decline,Subject remedial slot,1,2025-11-03,2025-11-24,closed,improved
+IV00764,23EEE0014,Dr. K. Fernandes,sudden_disengagement,15-minute check-in call,1,2025-11-24,2025-12-15,closed,unchanged
+IV00765,23ECE20111,Prof. M. Iyer,low_submission,Assignment catch-up plan,1,2025-08-18,2025-09-08,closed,unchanged
+IV00766,21ECE20047,Prof. A. Bose,sudden_disengagement,15-minute check-in call,1,2025-09-22,2025-10-13,closed,improved
+IV00767,22BIO0023,Prof. M. Iyer,fee_pressure,Scholarship / instalment referral,1,2025-09-29,2025-10-20,closed,improved
+IV00768,22MEC0043,Prof. A. Bose,low_submission,Assignment catch-up plan,1,2025-09-01,2025-09-22,closed,unchanged
+IV00769,23CIV20049,Prof. A. Bose,sudden_disengagement,15-minute check-in call,1,2025-10-27,2025-11-17,closed,unchanged
+IV00770,22MET0092,Dr. S. Rao,chronic_low_attendance,Weekly attendance contract,1,2025-11-17,2025-12-08,closed,improved
+IV00771,22CSE20033,Dr. K. Fernandes,chronic_low_attendance,Weekly attendance contract,1,2025-09-01,2025-09-22,closed,unchanged
+IV00772,23MEC20114,Dr. K. Fernandes,backlog_burden,Backlog clearing plan + peer mentor,1,2025-11-17,2025-12-08,closed,improved
+IV00773,23CHE0046,Dr. K. Fernandes,fee_pressure,Scholarship / instalment referral,1,2025-08-04,2025-08-25,closed,unchanged
+IV00774,22EEE0039,Dr. S. Rao,low_submission,Assignment catch-up plan,1,2025-11-24,2025-12-15,closed,improved
+IV00775,23MEC0066,Dr. S. Rao,assessment_decline,Subject remedial slot,1,2025-09-29,2025-10-20,closed,improved
+IV00776,22AER0089,Dr. S. Rao,backlog_burden,Backlog clearing plan + peer mentor,1,2025-11-17,2025-12-08,closed,improved
+IV00777,22ECE0055,Dr. K. Fernandes,low_submission,Assignment catch-up plan,1,2025-10-20,2025-11-10,closed,unreachable
+IV00778,23MET0005,Dr. S. Rao,fee_pressure,Scholarship / instalment referral,1,2025-08-18,2025-09-08,closed,unreachable
+IV00779,22ECE20085,Prof. A. Bose,low_submission,Assignment catch-up plan,1,2025-11-17,2025-12-08,closed,unchanged
+IV00780,21CSE20011,Dr. S. Rao,fee_pressure,Scholarship / instalment referral,1,2025-09-01,2025-09-22,closed,improved
+IV00781,21MEC20023,Dr. K. Fernandes,low_submission,Assignment catch-up plan,1,2025-11-17,2025-12-08,closed,improved
+IV00782,23MET0070,Dr. S. Rao,assessment_decline,Subject remedial slot,1,2025-11-03,2025-11-24,closed,improved
+IV00783,21ECE0097,Prof. A. Bose,sudden_disengagement,15-minute check-in call,1,2025-09-01,2025-09-22,closed,improved
+IV00784,22AER0066,Dr. K. Fernandes,assessment_decline,Subject remedial slot,1,2025-11-17,2025-12-08,closed,improved
+IV00785,22AER0092,Dr. S. Rao,assessment_decline,Subject remedial slot,1,2025-09-22,2025-10-13,closed,improved
+IV00786,23IT0101,Dr. K. Fernandes,low_submission,Assignment catch-up plan,1,2025-09-01,2025-09-22,closed,unchanged
+IV00787,23CIV20021,Prof. M. Iyer,sudden_disengagement,15-minute check-in call,1,2025-10-06,2025-10-27,closed,improved
+IV00788,22CIV20042,Dr. K. Fernandes,low_submission,Assignment catch-up plan,1,2025-10-13,2025-11-03,closed,unreachable
+IV00789,21CIV0107,Dr. S. Rao,low_submission,Assignment catch-up plan,1,2025-09-22,2025-10-13,closed,improved
+IV00790,21MEC20004,Dr. K. Fernandes,low_submission,Assignment catch-up plan,1,2025-09-01,2025-09-22,closed,improved
+IV00791,23CIV0012,Prof. M. Iyer,assessment_decline,Subject remedial slot,1,2025-10-20,2025-11-10,closed,improved
+IV00792,22CIV20012,Prof. M. Iyer,fee_pressure,Scholarship / instalment referral,1,2025-09-22,2025-10-13,closed,improved
+IV00793,22EEE0101,Dr. K. Fernandes,backlog_burden,Backlog clearing plan + peer mentor,1,2025-09-08,2025-09-29,closed,unreachable
+IV00794,22MEC20035,Dr. K. Fernandes,low_submission,Assignment catch-up plan,1,2025-08-04,2025-08-25,closed,improved
+IV00795,22MET0109,Dr. S. Rao,chronic_low_attendance,Weekly attendance contract,1,2025-10-27,2025-11-17,closed,improved
+IV00796,22AER0038,Dr. S. Rao,low_submission,Assignment catch-up plan,1,2025-08-18,2025-09-08,closed,improved
+IV00797,21EEE0094,Dr. S. Rao,fee_pressure,Scholarship / instalment referral,1,2025-08-11,2025-09-01,closed,improved
+IV00798,22CSE20076,Dr. K. Fernandes,fee_pressure,Scholarship / instalment referral,1,2025-09-01,2025-09-22,closed,improved
+IV00799,22CSE20040,Dr. K. Fernandes,assessment_decline,Subject remedial slot,1,2025-08-25,2025-09-15,closed,improved
+IV00800,22CIV0038,Dr. K. Fernandes,chronic_low_attendance,Weekly attendance contract,1,2025-08-18,2025-09-08,closed,improved
+IV00801,23BIO0080,Prof. M. Iyer,backlog_burden,Backlog clearing plan + peer mentor,1,2025-09-22,2025-10-13,closed,worsened
+IV00802,22IT0012,Prof. M. Iyer,assessment_decline,Subject remedial slot,1,2025-11-24,2025-12-15,closed,improved
+IV00803,21CIV20037,Prof. M. Iyer,low_submission,Assignment catch-up plan,1,2025-10-06,2025-10-27,closed,unchanged
+IV00804,23CSE20004,Dr. K. Fernandes,assessment_decline,Subject remedial slot,1,2025-09-01,2025-09-22,closed,improved
+IV00805,21ECE20098,Prof. M. Iyer,low_submission,Assignment catch-up plan,1,2025-08-04,2025-08-25,closed,unchanged
+IV00806,21MEC0057,Dr. S. Rao,sudden_disengagement,15-minute check-in call,1,2025-08-25,2025-09-15,closed,improved
+IV00807,23BIO0070,Prof. A. Bose,backlog_burden,Backlog clearing plan + peer mentor,1,2025-11-10,2025-12-01,closed,improved
+IV00808,22MEC0056,Prof. M. Iyer,fee_pressure,Scholarship / instalment referral,1,2025-11-24,2025-12-15,closed,improved
+IV00809,23EEE0007,Prof. A. Bose,sudden_disengagement,15-minute check-in call,1,2025-09-01,2025-09-22,closed,worsened
+IV00810,21AER0094,Dr. S. Rao,fee_pressure,Scholarship / instalment referral,1,2025-11-24,2025-12-15,closed,unreachable
+IV00811,22MEC0042,Dr. K. Fernandes,chronic_low_attendance,Weekly attendance contract,1,2025-09-15,2025-10-06,closed,worsened
+IV00812,22EEE0055,Prof. M. Iyer,sudden_disengagement,15-minute check-in call,1,2025-10-20,2025-11-10,closed,improved
+IV00813,21CIV0074,Prof. A. Bose,fee_pressure,Scholarship / instalment referral,1,2025-08-25,2025-09-15,closed,unchanged
+IV00814,22EEE0020,Dr. K. Fernandes,sudden_disengagement,15-minute check-in call,1,2025-08-18,2025-09-08,closed,improved
+IV00815,22BIO0067,Dr. S. Rao,chronic_low_attendance,Weekly attendance contract,1,2025-10-13,2025-11-03,closed,unchanged
+IV00816,21CIV0047,Prof. A. Bose,low_submission,Assignment catch-up plan,1,2025-11-03,2025-11-24,closed,improved
+IV00817,21IT0100,Prof. M. Iyer,chronic_low_attendance,Weekly attendance contract,1,2025-09-22,2025-10-13,closed,unchanged
+IV00818,21IT0006,Prof. A. Bose,low_submission,Assignment catch-up plan,1,2025-08-25,2025-09-15,closed,unchanged
+IV00819,21AER0098,Prof. A. Bose,sudden_disengagement,15-minute check-in call,1,2025-11-03,2025-11-24,closed,improved
+IV00820,22MEC0008,Prof. M. Iyer,assessment_decline,Subject remedial slot,1,2025-11-24,2025-12-15,closed,unchanged
+IV00821,22CIV0094,Prof. M. Iyer,assessment_decline,Subject remedial slot,1,2025-09-22,2025-10-13,closed,worsened
+IV00822,21MEC20080,Prof. M. Iyer,backlog_burden,Backlog clearing plan + peer mentor,1,2025-08-04,2025-08-25,closed,improved
+IV00823,22IT0022,Dr. S. Rao,fee_pressure,Scholarship / instalment referral,1,2025-10-13,2025-11-03,closed,improved
+IV00824,23IT0036,Prof. A. Bose,assessment_decline,Subject remedial slot,1,2025-09-15,2025-10-06,closed,worsened
+IV00825,22EEE0099,Dr. K. Fernandes,fee_pressure,Scholarship / instalment referral,1,2025-10-13,2025-11-03,closed,unchanged
+IV00826,21MET0069,Prof. M. Iyer,fee_pressure,Scholarship / instalment referral,1,2025-08-11,2025-09-01,closed,unchanged
+IV00827,22CSE0004,Dr. S. Rao,fee_pressure,Scholarship / instalment referral,1,2025-09-01,2025-09-22,closed,improved
+IV00828,21MEC0014,Prof. A. Bose,sudden_disengagement,15-minute check-in call,1,2025-08-11,2025-09-01,closed,worsened
+IV00829,23ECE20098,Dr. K. Fernandes,assessment_decline,Subject remedial slot,1,2025-09-08,2025-09-29,closed,improved
+IV00830,23CIV20082,Prof. M. Iyer,assessment_decline,Subject remedial slot,1,2025-10-06,2025-10-27,closed,improved
+IV00831,22MET0108,Prof. A. Bose,sudden_disengagement,15-minute check-in call,1,2025-09-01,2025-09-22,closed,improved
+IV00832,23AER0065,Dr. K. Fernandes,fee_pressure,Scholarship / instalment referral,1,2025-10-27,2025-11-17,closed,improved
+IV00833,21CHE0006,Dr. S. Rao,chronic_low_attendance,Weekly attendance contract,1,2025-10-06,2025-10-27,closed,unchanged
+IV00834,22ECE20105,Dr. S. Rao,low_submission,Assignment catch-up plan,1,2025-11-24,2025-12-15,closed,unreachable
+IV00835,22AER0037,Dr. S. Rao,sudden_disengagement,15-minute check-in call,1,2025-08-25,2025-09-15,closed,improved
+IV00836,23MET0117,Dr. S. Rao,low_submission,Assignment catch-up plan,1,2025-11-24,2025-12-15,closed,improved
+IV00837,21AER0065,Dr. K. Fernandes,backlog_burden,Backlog clearing plan + peer mentor,1,2025-11-17,2025-12-08,closed,unchanged
+IV00838,23MET0104,Dr. S. Rao,sudden_disengagement,15-minute check-in call,1,2025-09-29,2025-10-20,closed,improved
+IV00839,21ECE20060,Prof. M. Iyer,sudden_disengagement,15-minute check-in call,1,2025-08-04,2025-08-25,closed,improved
+IV00840,22ECE0087,Dr. S. Rao,backlog_burden,Backlog clearing plan + peer mentor,1,2025-10-27,2025-11-17,closed,improved
+IV00841,22CHE0065,Prof. M. Iyer,chronic_low_attendance,Weekly attendance contract,1,2025-11-03,2025-11-24,closed,unchanged
+IV00842,22ECE20064,Dr. S. Rao,assessment_decline,Subject remedial slot,1,2025-08-18,2025-09-08,closed,improved
+IV00843,23CHE0074,Prof. M. Iyer,fee_pressure,Scholarship / instalment referral,1,2025-09-01,2025-09-22,closed,improved
+IV00844,22AER0058,Prof. A. Bose,chronic_low_attendance,Weekly attendance contract,1,2025-08-25,2025-09-15,closed,unreachable
+IV00845,22CIV0057,Dr. S. Rao,sudden_disengagement,15-minute check-in call,1,2025-08-25,2025-09-15,closed,unreachable
+IV00846,21ECE20001,Dr. S. Rao,fee_pressure,Scholarship / instalment referral,1,2025-09-15,2025-10-06,closed,unchanged
+IV00847,23ECE0033,Prof. A. Bose,low_submission,Assignment catch-up plan,1,2025-08-11,2025-09-01,closed,unchanged
+IV00848,21CSE0013,Prof. A. Bose,assessment_decline,Subject remedial slot,1,2025-09-15,2025-10-06,closed,improved
+IV00849,22MET0080,Prof. A. Bose,chronic_low_attendance,Weekly attendance contract,1,2025-11-10,2025-12-01,closed,worsened
+IV00850,21CSE0036,Prof. A. Bose,low_submission,Assignment catch-up plan,1,2025-09-15,2025-10-06,closed,improved
+IV00851,22EEE0023,Dr. S. Rao,backlog_burden,Backlog clearing plan + peer mentor,1,2025-11-24,2025-12-15,closed,improved
+IV00852,21BIO0109,Prof. M. Iyer,assessment_decline,Subject remedial slot,1,2025-09-08,2025-09-29,closed,improved
+IV00853,23BIO0116,Prof. A. Bose,backlog_burden,Backlog clearing plan + peer mentor,1,2025-09-22,2025-10-13,closed,unchanged
+IV00854,22MET0096,Prof. A. Bose,chronic_low_attendance,Weekly attendance contract,1,2025-09-29,2025-10-20,closed,improved
+IV00855,23CIV0054,Prof. A. Bose,chronic_low_attendance,Weekly attendance contract,1,2025-08-04,2025-08-25,closed,improved
+IV00856,21ECE0069,Prof. A. Bose,chronic_low_attendance,Weekly attendance contract,1,2025-10-06,2025-10-27,closed,improved
+IV00857,23MEC0008,Dr. K. Fernandes,low_submission,Assignment catch-up plan,1,2025-09-01,2025-09-22,closed,unreachable
+IV00858,22IT0088,Dr. K. Fernandes,assessment_decline,Subject remedial slot,1,2025-10-27,2025-11-17,closed,improved
+IV00859,22CHE0095,Prof. A. Bose,low_submission,Assignment catch-up plan,1,2025-08-18,2025-09-08,closed,improved
+IV00860,23ECE20070,Prof. M. Iyer,sudden_disengagement,15-minute check-in call,1,2025-11-17,2025-12-08,closed,unchanged
+IV00861,23BIO0114,Prof. M. Iyer,sudden_disengagement,15-minute check-in call,1,2025-10-13,2025-11-03,closed,improved
+IV00862,22CIV20018,Dr. S. Rao,chronic_low_attendance,Weekly attendance contract,1,2025-11-24,2025-12-15,closed,unreachable
+IV00863,22MEC20099,Dr. K. Fernandes,assessment_decline,Subject remedial slot,1,2025-08-04,2025-08-25,closed,improved
+IV00864,22MEC0049,Prof. M. Iyer,chronic_low_attendance,Weekly attendance contract,1,2025-09-08,2025-09-29,closed,unchanged
+IV00865,23MEC0006,Prof. A. Bose,low_submission,Assignment catch-up plan,1,2025-11-10,2025-12-01,closed,improved
+IV00866,21ECE20017,Prof. M. Iyer,fee_pressure,Scholarship / instalment referral,1,2025-08-04,2025-08-25,closed,improved
+IV00867,23CSE0100,Prof. M. Iyer,fee_pressure,Scholarship / instalment referral,1,2025-09-15,2025-10-06,closed,improved
+IV00868,21MEC0071,Dr. S. Rao,fee_pressure,Scholarship / instalment referral,1,2025-08-18,2025-09-08,closed,improved
+IV00869,22CSE0037,Dr. K. Fernandes,fee_pressure,Scholarship / instalment referral,1,2025-11-03,2025-11-24,closed,improved
+IV00870,22CSE20042,Dr. S. Rao,assessment_decline,Subject remedial slot,1,2025-11-03,2025-11-24,closed,improved
+IV00871,23CIV0095,Prof. A. Bose,sudden_disengagement,15-minute check-in call,1,2025-08-25,2025-09-15,closed,improved
+IV00872,21IT0101,Prof. A. Bose,low_submission,Assignment catch-up plan,1,2025-09-29,2025-10-20,closed,improved
+IV00873,22ECE20078,Dr. S. Rao,fee_pressure,Scholarship / instalment referral,1,2025-09-29,2025-10-20,closed,worsened
+IV00874,23CSE0095,Dr. S. Rao,assessment_decline,Subject remedial slot,1,2025-08-11,2025-09-01,closed,unreachable
+IV00875,23MEC0114,Dr. S. Rao,assessment_decline,Subject remedial slot,1,2025-11-10,2025-12-01,closed,improved
+IV00876,23ECE20041,Prof. A. Bose,assessment_decline,Subject remedial slot,1,2025-09-01,2025-09-22,closed,improved
+IV00877,22MET0015,Prof. M. Iyer,fee_pressure,Scholarship / instalment referral,1,2025-10-13,2025-11-03,closed,unchanged
+IV00878,22MET0111,Prof. M. Iyer,sudden_disengagement,15-minute check-in call,1,2025-11-17,2025-12-08,closed,improved
+IV00879,21ECE20103,Prof. A. Bose,fee_pressure,Scholarship / instalment referral,1,2025-09-29,2025-10-20,closed,improved
+IV00880,23AER0053,Dr. K. Fernandes,fee_pressure,Scholarship / instalment referral,1,2025-11-24,2025-12-15,closed,improved
+IV00881,22EEE0053,Dr. K. Fernandes,low_submission,Assignment catch-up plan,1,2025-11-10,2025-12-01,closed,unchanged
+IV00882,22CIV0053,Prof. M. Iyer,backlog_burden,Backlog clearing plan + peer mentor,1,2025-08-25,2025-09-15,closed,worsened
+IV00883,21IT0062,Prof. A. Bose,fee_pressure,Scholarship / instalment referral,1,2025-08-04,2025-08-25,closed,unreachable
+IV00884,21CSE0093,Prof. M. Iyer,fee_pressure,Scholarship / instalment referral,1,2025-08-04,2025-08-25,closed,unreachable
+IV00885,23AER0047,Dr. S. Rao,fee_pressure,Scholarship / instalment referral,1,2025-10-20,2025-11-10,closed,improved
+IV00886,23EEE0035,Dr. S. Rao,low_submission,Assignment catch-up plan,1,2025-09-15,2025-10-06,closed,improved
+IV00887,21MEC0116,Dr. K. Fernandes,chronic_low_attendance,Weekly attendance contract,1,2025-09-29,2025-10-20,closed,worsened
+IV00888,22ECE20096,Dr. S. Rao,assessment_decline,Subject remedial slot,1,2025-08-25,2025-09-15,closed,improved
+IV00889,21ECE20088,Dr. K. Fernandes,low_submission,Assignment catch-up plan,1,2025-09-15,2025-10-06,closed,unchanged
+IV00890,23MEC20025,Prof. M. Iyer,sudden_disengagement,15-minute check-in call,1,2025-11-03,2025-11-24,closed,improved
+IV00891,23CSE20007,Prof. M. Iyer,chronic_low_attendance,Weekly attendance contract,1,2025-09-15,2025-10-06,closed,unchanged
+IV00892,23MEC20058,Dr. K. Fernandes,sudden_disengagement,15-minute check-in call,1,2025-11-24,2025-12-15,closed,unchanged
+IV00893,21CSE0028,Prof. A. Bose,chronic_low_attendance,Weekly attendance contract,1,2025-11-17,2025-12-08,closed,improved
+IV00894,22EEE0090,Prof. A. Bose,assessment_decline,Subject remedial slot,1,2025-10-27,2025-11-17,closed,improved
+IV00895,22MEC0041,Dr. K. Fernandes,sudden_disengagement,15-minute check-in call,1,2025-11-03,2025-11-24,closed,improved
+IV00896,23CSE0079,Dr. S. Rao,low_submission,Assignment catch-up plan,1,2025-08-11,2025-09-01,closed,worsened
+IV00897,21MEC20064,Prof. M. Iyer,backlog_burden,Backlog clearing plan + peer mentor,1,2025-09-29,2025-10-20,closed,improved
+IV00898,21CSE20048,Dr. S. Rao,assessment_decline,Subject remedial slot,1,2025-09-22,2025-10-13,closed,improved
+IV00899,21AER0031,Prof. A. Bose,low_submission,Assignment catch-up plan,1,2025-10-06,2025-10-27,closed,improved
+IV00900,21MEC20030,Dr. K. Fernandes,backlog_burden,Backlog clearing plan + peer mentor,1,2025-09-08,2025-09-29,closed,improved

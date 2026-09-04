@@ -1,0 +1,13 @@
+{
+  "effects_in_attendance_points": {
+    "15-minute check-in call": 9.0,
+    "Weekly attendance contract": 3.5,
+    "Subject remedial slot": 6.0,
+    "Scholarship / instalment referral": 12.0,
+    "Backlog clearing plan + peer mentor": 4.5,
+    "Assignment catch-up plan": 2.0
+  },
+  "reach_rate": 0.88,
+  "decay_per_week": 0.9,
+  "note": "Planted on purpose. outcomes.matched_effect() must recover these without being told."
+}
