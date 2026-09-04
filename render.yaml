@@ -1,0 +1,6 @@
+services:
+  - type: web
+    name: sahay-api
+    env: docker
+    plan: free
+    healthCheckPath: /api/docs
