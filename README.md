@@ -44,12 +44,19 @@ function bundle.
 
 | Piece | Where | Config |
 |---|---|---|
-| React frontend | Vercel (Hobby) | `vercel.json`; set `VITE_API_BASE` |
+| React frontend | Vercel (Hobby) | Root Directory `frontend`; set `VITE_API_BASE` |
 | FastAPI backend | Render (free web service) | `render.yaml` + `Dockerfile`; set `SUPABASE_DATABASE_URL` and `CORS_ORIGINS` |
 | Postgres | Supabase (free) | — |
 
 Render's free tier spins down after ~15 minutes idle, so the first request
 after a quiet spell takes around 50 seconds.
+
+There is deliberately no `vercel.json`. The Vercel project's Root Directory is
+set to `frontend`, so Vercel's zero-config detection already does the right
+thing: `npm install`, `npm run build`, serve `dist/`. A repo-root `vercel.json`
+with a `cd frontend` build command fails, because the build already starts
+inside `frontend/`. There is no client-side router either, so no SPA rewrite is
+needed.
 
 ## Files
 
