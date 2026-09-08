@@ -96,26 +96,45 @@ async def lifespan(app: FastAPI):
     All of this used to run at import time, which meant a database outage
     presented as a process that refused to start rather than an API returning
     an error, and the full DDL script re-ran on every connect().
+
+    A database failure here is logged and swallowed rather than raised. If it
+    propagated, the process would exit, and on a host that restarts crashed
+    services that is a crash loop -- with the real reason scrolling past in
+    between restarts. Starting anyway means /docs answers the health check,
+    the logs hold one clear message, and the routes return the standard
+    database_error envelope until the database comes back. Nothing here is
+    required for the process to serve a request: init_schema is idempotent and
+    the pool opens connections per request regardless.
     """
-    con = database.checkout()
+    service.get_model()          # local file, no database involved
     try:
-        service.init_schema(con)
-        auth.ensure_auth_schema(con)
-        auth.seed_users(con, service.MENTORS)
-        service.get_model()      # load once at boot, not on the first request
-        if service.db_is_empty(con):
-            # Deliberately do NOT seed the demo data here. Against a local
-            # SQLite file that was cheap. Against a remote Postgres it is a
-            # 5,000-student write that takes minutes, holds the port closed,
-            # and would time out a platform health check before the process
-            # ever became reachable. Seeding is an explicit operation:
-            #   python service.py     (or POST /api/demo/reset, authenticated)
-            print("WARNING: no students in the database. The API will serve "
-                  "empty results until you seed it with:  python service.py")
-        elif service.snapshots_stale(con):
-            service.refresh_scores(con)
-    finally:
-        con.release()
+        con = database.checkout()
+    except Exception as e:
+        print(f"WARNING: no database at startup ({type(e).__name__}: {e}). "
+              f"Serving anyway; API routes will error until it is reachable. "
+              f"Check SUPABASE_DATABASE_URL.")
+    else:
+        try:
+            service.init_schema(con)
+            auth.ensure_auth_schema(con)
+            auth.seed_users(con, service.MENTORS)
+            if service.db_is_empty(con):
+                # Deliberately do NOT seed the demo data here. Against a local
+                # SQLite file that was cheap. Against a remote Postgres it is a
+                # 5,000-student write that takes minutes, holds the port
+                # closed, and would time out a platform health check before the
+                # process ever became reachable. Seeding is explicit:
+                #   python service.py   (or POST /api/demo/reset, authenticated)
+                print("WARNING: no students in the database. The API will "
+                      "serve empty results until you seed it with:  "
+                      "python service.py")
+            elif service.snapshots_stale(con):
+                service.refresh_scores(con)
+        except Exception as e:
+            print(f"WARNING: startup database work failed "
+                  f"({type(e).__name__}: {e}). Serving anyway.")
+        finally:
+            con.release()
 
     yield
 
