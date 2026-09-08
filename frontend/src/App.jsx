@@ -5,6 +5,57 @@ import {
 } from 'recharts';
 import './index.css';
 
+// ─── API helpers ──────────────────────────────────────────────────────────────
+// Where the backend lives.
+//
+// Empty in development: vite.config.js proxies /api to 127.0.0.1:8000, so a
+// relative URL is correct and there is no CORS involved. In production the
+// frontend and the API are deployed separately (the API needs scikit-learn and
+// xgboost, which do not fit in a serverless bundle), so set VITE_API_BASE to
+// the API's origin at build time -- e.g. https://sahay-api.onrender.com --
+// and add that frontend origin to CORS_ORIGINS on the API side.
+const API_BASE = (import.meta.env.VITE_API_BASE || '').replace(/\/$/, '');
+const apiUrl = path => `${API_BASE}${path}`;
+
+// One place that turns any response into either parsed data or a thrown Error
+// with a message worth showing.
+//
+// This logic used to exist only inside login(), and every other call site did
+// some weaker version of it or none at all -- five of them never checked
+// res.ok, so an error body parsed cleanly, the expected key came back
+// undefined, and the dashboard cheerfully rendered "0 students flagged for
+// attention this week". A backend failure was being presented as good news.
+async function readResponse(res) {
+  // Read the body once: when the API is down the dev proxy answers with an
+  // HTML error page and res.json() fails with "Unexpected token '<'", which
+  // tells the user nothing.
+  const text = await res.text();
+  let data = null;
+  if (text) {
+    try { data = JSON.parse(text); } catch { /* not JSON */ }
+  }
+
+  if (!res.ok) {
+    // The API returns {"error": {code, message, hint, fields}}. `detail` is
+    // accepted too so an older deployment still produces a real message.
+    const err = data?.error;
+    const msg = err?.message
+      || (typeof data?.detail === 'string' ? data.detail : null)
+      || `Request failed (HTTP ${res.status}).`;
+    const e = new Error(err?.hint ? `${msg} ${err.hint}` : msg);
+    e.status = res.status;
+    e.code = err?.code;
+    e.fields = err?.fields;
+    throw e;
+  }
+
+  if (data === null) {
+    throw new Error('The server sent an unreadable response. '
+      + 'Check that the backend is running.');
+  }
+  return data;
+}
+
 // ─── Auth Context ─────────────────────────────────────────────────────────────
 const AuthCtx = createContext(null);
 const useAuth = () => useContext(AuthCtx);
@@ -16,16 +67,22 @@ function AuthProvider({ children }) {
 
   useEffect(() => {
     if (!token) { setChecking(false); return; }
-    fetch('/api/auth/me', { headers: { Authorization: `Bearer ${token}` } })
-      .then(r => r.ok ? r.json() : null)
-      .then(u => { setUser(u); setChecking(false); })
+    fetch(apiUrl('/api/auth/me'), { headers: { Authorization: `Bearer ${token}` } })
+      .then(r => (r.ok ? r.json() : null))
+      .then(u => {
+        // A dead or expired token must be cleared, or the app retries with it
+        // on every render and never offers the sign-in screen.
+        if (!u) localStorage.removeItem('sahay_token');
+        setUser(u);
+        setChecking(false);
+      })
       .catch(() => setChecking(false));
   }, [token]);
 
   const login = useCallback(async (userId, password) => {
     let r;
     try {
-      r = await fetch('/api/auth/login', {
+      r = await fetch(apiUrl('/api/auth/login'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ user_id: userId, password }),
@@ -36,22 +93,14 @@ function AuthProvider({ children }) {
     // When the API is down the dev proxy answers with an HTML error page, and
     // r.json() then fails with "Unexpected token '<'" -- which tells the user
     // nothing. Read the body once and decide what it actually is.
-    const body = await r.text();
-    let d = null;
-    try { d = JSON.parse(body); } catch (e) { /* not JSON */ }
-    if (!d) {
-      throw new Error(r.ok
-        ? 'The server sent an unreadable response. Check that the backend is running.'
-        : `Cannot reach the server (HTTP ${r.status}). Is the backend running on port 8000?`);
-    }
-    if (!r.ok) throw new Error(d.detail || 'Login failed');
+    const d = await readResponse(r);
     localStorage.setItem('sahay_token', d.token);
     setToken(d.token);
     setUser(d.user);
   }, []);
 
   const logout = useCallback(async () => {
-    await fetch('/api/auth/logout', {
+    await fetch(apiUrl('/api/auth/logout'), {
       method: 'POST',
       headers: { Authorization: `Bearer ${token}` },
     }).catch(() => {});
@@ -60,11 +109,26 @@ function AuthProvider({ children }) {
     setUser(null);
   }, [token]);
 
-  const apiFetch = useCallback((url, opts = {}) => {
-    return fetch(url, {
-      ...opts,
-      headers: { ...(opts.headers || {}), Authorization: `Bearer ${token}` },
-    });
+  // Returns parsed JSON, or throws an Error carrying the server's message.
+  // Callers no longer need to remember to check res.ok.
+  const apiFetch = useCallback(async (url, opts = {}) => {
+    let res;
+    try {
+      res = await fetch(apiUrl(url), {
+        ...opts,
+        headers: { ...(opts.headers || {}), Authorization: `Bearer ${token}` },
+      });
+    } catch {
+      throw new Error('Cannot reach the server. Is the backend running?');
+    }
+    if (res.status === 401) {
+      // The session is gone. Clear it so the app shows the sign-in screen
+      // instead of looping on failed requests with a dead token.
+      localStorage.removeItem('sahay_token');
+      setToken('');
+      setUser(null);
+    }
+    return readResponse(res);
   }, [token]);
 
   return (
@@ -222,9 +286,7 @@ function AddStudentModal({ onClose, onSuccess }) {
           cgpa: formData.cgpa === '' ? null : Number(formData.cgpa),
         }),
       });
-      if (!r.ok) { const d = await r.json(); throw new Error(d.detail || 'Failed to add student'); }
-      const d = await r.json();
-      onSuccess(d);
+      onSuccess(r);
     } catch (error) {
       setErr(error.message);
     } finally {
@@ -302,7 +364,6 @@ function RemoveStudentModal({ onClose, onRemoved }) {
 
   useEffect(() => {
     apiFetch('/api/analytics/roster')
-      .then(r => r.json())
       .then(d => setStudents(d.students || []))
       .catch(e => setErr(e.message));
   }, [apiFetch]);
@@ -312,12 +373,7 @@ function RemoveStudentModal({ onClose, onRemoved }) {
   const remove = async () => {
     setBusy(true); setErr('');
     try {
-      const r = await apiFetch(`/api/students/${rollNo}`, { method: 'DELETE' });
-      if (!r.ok) {
-        const d = await r.json().catch(() => ({}));
-        throw new Error(d.detail || `Failed to remove (HTTP ${r.status})`);
-      }
-      onRemoved(await r.json());
+      onRemoved(await apiFetch(`/api/students/${rollNo}`, { method: 'DELETE' }));
     } catch (e) { setErr(e.message); setBusy(false); }
   };
 
@@ -504,11 +560,8 @@ function WorklistPage({ onSelect, onNavigateToRoster }) {
     const url = mentor ? `/api/worklist?mentor=${mentor}` : '/api/worklist';
     const dashUrl = mentor ? `/api/dashboard?mentor=${mentor}` : '/api/dashboard';
     
-    apiFetch(url).then(r => r.json()).then(setData).catch(e => setErr(e.message));
-    apiFetch(dashUrl).then(r => {
-      if (!r.ok) throw new Error('Failed to fetch summary');
-      return r.json();
-    }).then(setDash).catch(console.error);
+    apiFetch(url).then(setData).catch(e => setErr(e.message));
+    apiFetch(dashUrl).then(setDash).catch(e => setErr(e.message));
   }, [apiFetch, user]);
 
   if (err) return <ErrorBox msg={err} />;
@@ -635,7 +688,7 @@ function StudentsPage({ onSelect, defaultRisk = 'all' }) {
     const mentor = user.role === 'mentor' ? user.id : undefined;
     const params = new URLSearchParams({ q, risk, page, page_size: 50 });
     if (mentor) params.set('mentor', mentor);
-    apiFetch(`/api/students?${params}`).then(r => r.json()).then(setData).catch(console.error);
+    apiFetch(`/api/students?${params}`).then(setData).catch(e => setErr(e.message));
   }, [apiFetch, user, q, risk, page]);
 
   useEffect(() => { load(); }, [load]);
@@ -704,8 +757,8 @@ function AnalyticsPage() {
   const [err, setErr] = useState('');
 
   useEffect(() => {
-    apiFetch('/api/summary').then(r => r.json()).then(setSummary).catch(e => setErr(e.message));
-    apiFetch('/api/analytics/roster').then(r => r.json()).then(setRoster).catch(console.error);
+    apiFetch('/api/summary').then(setSummary).catch(e => setErr(e.message));
+    apiFetch('/api/analytics/roster').then(setRoster).catch(e => setErr(e.message));
   }, [apiFetch]);
 
   if (err) return <ErrorBox msg={err} />;
@@ -816,7 +869,6 @@ function ModelPage() {
 
   useEffect(() => {
     apiFetch('/api/model')
-      .then(r => { if (!r.ok) throw new Error(`HTTP ${r.status}`); return r.json(); })
       .then(setInfo)
       .catch(e => setErr(e.message));
   }, [apiFetch]);
@@ -935,7 +987,6 @@ function StudentDetailPage({ rollNo, onBack }) {
 
   const reload = useCallback(() => {
     apiFetch(`/api/student/${rollNo}`)
-      .then(r => { if (!r.ok) throw new Error(`HTTP ${r.status}`); return r.json(); })
       .then(setData)
       .catch(e => setErr(e.message));
   }, [apiFetch, rollNo]);
@@ -1170,7 +1221,7 @@ function ActionPanel({ rollNo, playbook, interventions, mentorId, onChanged }) {
     if (!playbook) return;
     setBusy(true); setError('');
     try {
-      const r = await apiFetch('/api/interventions', {
+      await apiFetch('/api/interventions', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -1179,7 +1230,6 @@ function ActionPanel({ rollNo, playbook, interventions, mentorId, onChanged }) {
           followup_days: playbook.followup_days ?? 21,
         }),
       });
-      if (!r.ok) throw new Error(`HTTP ${r.status}`);
       onChanged();
     } catch (e) { setError(e.message); }
     finally { setBusy(false); }
@@ -1188,12 +1238,11 @@ function ActionPanel({ rollNo, playbook, interventions, mentorId, onChanged }) {
   const close = async (id, outcome) => {
     setBusy(true); setError('');
     try {
-      const r = await apiFetch(`/api/interventions/${id}/outcome`, {
+      await apiFetch(`/api/interventions/${id}/outcome`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ outcome, mentor: mentorId }),
       });
-      if (!r.ok) throw new Error(`HTTP ${r.status}`);
       onChanged();
     } catch (e) { setError(e.message); }
     finally { setBusy(false); }

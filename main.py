@@ -16,45 +16,228 @@ the logic belongs in service.py instead.
 
 import io
 import os
+from contextlib import asynccontextmanager
 
-from fastapi import FastAPI, File, HTTPException, Query, Request, UploadFile
+import psycopg2
+from fastapi import (Depends, FastAPI, File, HTTPException, Query, Request,
+                     UploadFile)
+from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
-from typing import List, Optional
+from starlette.exceptions import HTTPException as StarletteHTTPException
+from typing import Annotated, List, Optional
 
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 import auth
+import database
+import jsonsafe
 import service
+
+
+class SafeJSONResponse(JSONResponse):
+    """The single place every response body is serialised.
+
+    Starlette's JSONResponse renders with allow_nan=False, so one NaN anywhere
+    in a payload is a ValueError and the client gets an unexplained HTTP 500 --
+    on an endpoint that worked until someone uploaded a spreadsheet. The
+    individual NaN sources are fixed at their sources (see risk_engine._finite
+    and ingest.parse_marks), but this is the net under all of them: a value that
+    cannot be represented becomes null rather than an outage.
+    """
+
+    def render(self, content) -> bytes:
+        return jsonsafe.dumps(content, ensure_ascii=False,
+                              separators=(",", ":")).encode("utf-8")
+
+
+def error_body(code: str, message: str, hint: str = None, fields=None):
+    """The one error shape this API returns.
+
+    There were five: HTTPException's {"detail": "..."}, request validation's
+    {"detail": [{...}]} -- same key, incompatible type -- the hand-rolled
+    {"error": ..., "hint": ...} on /api/upload, a bare 500, and per-row
+    {"errors": [...]} at status 200. A client could not tell them apart, and
+    the frontend's `throw new Error(d.detail)` rendered "[object Object]"
+    whenever validation failed. `fields` carries the per-field detail that used
+    to overload `detail`.
+    """
+    err = {"code": code, "message": message}
+    if hint:
+        err["hint"] = hint
+    if fields:
+        err["fields"] = fields
+    return {"error": err}
 
 
 def _fields(m):
     """pydantic v2 uses model_dump, v1 uses dict. Support both."""
     return m.model_dump() if hasattr(m, "model_dump") else m.dict()
 
+
+# Every inbound float must be finite.
+#
+# json.loads accepts the bare NaN and Infinity literals, and pydantic's float
+# has allow_inf_nan=True by default, so {"cgpa": NaN} was a perfectly valid
+# request body. The value was then stored, or handed to the response encoder --
+# where Starlette's json.dumps(..., allow_nan=False) raised and the client got
+# an opaque 500, sometimes permanently, because the NaN had been committed.
+# Refusing it at the edge turns that into a 422 that names the field.
+FiniteFloat = Annotated[float, Field(allow_inf_nan=False)]
+
 BASE = os.path.dirname(os.path.abspath(__file__))
 STATIC = os.path.join(BASE, "static")
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    """Schema, model and seed data -- once at startup, not per request.
+
+    All of this used to run at import time, which meant a database outage
+    presented as a process that refused to start rather than an API returning
+    an error, and the full DDL script re-ran on every connect().
+    """
+    con = database.checkout()
+    try:
+        service.init_schema(con)
+        auth.ensure_auth_schema(con)
+        auth.seed_users(con, service.MENTORS)
+        service.get_model()      # load once at boot, not on the first request
+        if service.db_is_empty(con):
+            # Deliberately do NOT seed the demo data here. Against a local
+            # SQLite file that was cheap. Against a remote Postgres it is a
+            # 5,000-student write that takes minutes, holds the port closed,
+            # and would time out a platform health check before the process
+            # ever became reachable. Seeding is an explicit operation:
+            #   python service.py     (or POST /api/demo/reset, authenticated)
+            print("WARNING: no students in the database. The API will serve "
+                  "empty results until you seed it with:  python service.py")
+        elif service.snapshots_stale(con):
+            service.refresh_scores(con)
+    finally:
+        con.release()
+
+    yield
+
+    database.close_pool()
+
 
 app = FastAPI(title="Sahay - Student Early Warning & Support",
               description="Rules Mode. Transparent additive risk ledger. "
                           "Human approval required for every intervention.",
-              version="0.1.0")
+              version="0.1.0",
+              default_response_class=SafeJSONResponse,
+              lifespan=lifespan)
 
-if not os.path.exists(service.DB_PATH):
-    service.reset_db()
-con = service.connect()
-service.get_model()          # load once at boot, not on the first request
-if service.snapshots_stale(con):
-    service.refresh_scores(con)
 
-# Seed auth users for every mentor + staff account
-auth.ensure_auth_schema(con)
-auth.seed_users(con, service.MENTORS)
+# ----------------------------------------------------------------------------
+# Error handling. Four handlers, one body shape -- see error_body().
+# ----------------------------------------------------------------------------
+_STATUS_CODES = {
+    400: "bad_request", 401: "unauthenticated", 403: "forbidden",
+    404: "not_found", 409: "conflict", 422: "validation_failed",
+}
+
+
+@app.exception_handler(StarletteHTTPException)
+def handle_http_exception(request: Request, exc: StarletteHTTPException):
+    code = _STATUS_CODES.get(exc.status_code, "error")
+    detail = exc.detail
+    # A handler may pass a dict through HTTPException to add a hint.
+    if isinstance(detail, dict):
+        body = error_body(detail.get("code", code), detail.get("message", ""),
+                          detail.get("hint"), detail.get("fields"))
+    else:
+        body = error_body(code, str(detail))
+    return SafeJSONResponse(body, status_code=exc.status_code,
+                            headers=getattr(exc, "headers", None))
+
+
+@app.exception_handler(RequestValidationError)
+def handle_validation_error(request: Request, exc: RequestValidationError):
+    """Request validation, flattened into `fields`.
+
+    FastAPI's default puts a list of objects under `detail`, the same key that
+    carries a plain string for every other error. That type collision is what
+    made the frontend render "[object Object]", so the per-field detail moves
+    to its own key and `message` stays a string the UI can always display.
+    """
+    fields = [{"field": ".".join(str(p) for p in e.get("loc", ())[1:]) or "body",
+               "message": e.get("msg", "")} for e in exc.errors()]
+    summary = "; ".join(f'{f["field"]}: {f["message"]}' for f in fields[:3])
+    return SafeJSONResponse(
+        error_body("validation_failed", summary or "Request validation failed",
+                   hint="Check the highlighted fields and try again.",
+                   fields=fields),
+        status_code=422)
+
+
+@app.exception_handler(psycopg2.Error)
+def handle_db_error(request: Request, exc: psycopg2.Error):
+    """Database errors, without leaking SQL to the client.
+
+    The message goes to the server log; the client gets a stable code. Note
+    that get_con() has already rolled the transaction back by the time this
+    runs, so the connection is safe to reuse.
+    """
+    print(f"ERROR db {request.method} {request.url.path}: "
+          f"{type(exc).__name__}: {exc}")
+    return SafeJSONResponse(
+        error_body("database_error", "The database rejected this request.",
+                   hint="This is a server-side problem, not your input."),
+        status_code=500)
+
+
+@app.exception_handler(Exception)
+def handle_unexpected(request: Request, exc: Exception):
+    print(f"ERROR {request.method} {request.url.path}: "
+          f"{type(exc).__name__}: {exc}")
+    return SafeJSONResponse(
+        error_body("internal_error", "Something went wrong handling this request."),
+        status_code=500)
+
+# ----------------------------------------------------------------------------
+# Database connections
+# ----------------------------------------------------------------------------
+def get_con():
+    """One pooled connection per request.
+
+    Every route depends on this rather than sharing a module-level connection.
+    The old global broke three ways at once: concurrent requests used it
+    simultaneously from FastAPI's threadpool (psycopg2 connections are not
+    safe for that), a single failed statement left the transaction aborted so
+    every later request returned InFailedSqlTransaction, and when Supabase's
+    pooler dropped the idle connection every route thereafter returned
+    "connection already closed" until the process was restarted.
+
+    The rollback in the finally block is what keeps a failed request from
+    poisoning the next one that picks up the same connection.
+    """
+    con = database.checkout()
+    try:
+        yield con
+    except Exception:
+        con.rollback()
+        raise
+    finally:
+        con.release()
+
+
+# Allowed browser origins. The frontend is deployed separately (Vercel) from
+# the API, so the deployed origin has to be listed or every request from it is
+# blocked -- and it cannot be hardcoded here, because it changes per
+# deployment. Set CORS_ORIGINS to a comma-separated list.
+#
+# The localhost entries cover `npm run dev`: vite.config.js pins port 3000 and
+# proxies /api, and 5173 is Vite's own default.
+_DEV_ORIGINS = ["http://localhost:5173", "http://127.0.0.1:5173",
+                "http://localhost:3000", "http://127.0.0.1:3000"]
+CORS_ORIGINS = [o.strip() for o in os.environ.get("CORS_ORIGINS", "").split(",")
+                if o.strip()] or _DEV_ORIGINS
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:5173", "http://localhost:3000"],
+    allow_origins=CORS_ORIGINS,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -81,36 +264,90 @@ def _token_from_request(request: Request) -> str:
     return ""
 
 
+# ----------------------------------------------------------------------------
+# Authentication dependencies
+#
+# 32 of the 36 routes had no authentication at all -- including PUT /api/config,
+# POST /api/upload and POST /api/demo/reset, which drops every table. These
+# three dependencies are how every route gets a caller, and how `actor` stops
+# being a client-supplied query parameter that anyone could set to "admin".
+# ----------------------------------------------------------------------------
+def require_user(request: Request, con=Depends(get_con)):
+    """Any signed-in account."""
+    user = auth.verify_token(con, _token_from_request(request))
+    if not user:
+        raise HTTPException(401, {
+            "code": "unauthenticated",
+            "message": "Sign in to continue.",
+        })
+    return user
+
+
+def require_active_user(user=Depends(require_user)):
+    """A signed-in account that has finished setting itself up.
+
+    An account seeded with a generated password can do nothing but change that
+    password, which is what makes must_change_password more than a suggestion.
+    """
+    if user.get("must_change_password"):
+        raise HTTPException(403, {
+            "code": "password_change_required",
+            "message": "Set a new password before using the app.",
+            "hint": "POST /api/auth/change-password",
+        })
+    return user
+
+
+def require_mentor(user=Depends(require_active_user)):
+    """Staff-only actions: config, uploads, admissions, deletions, reset."""
+    if user["role"] not in ("mentor", "admin", "staff"):
+        raise HTTPException(403, {
+            "code": "forbidden",
+            "message": "This action is restricted to staff accounts.",
+        })
+    return user
+
+
+def actor_id(user=Depends(require_mentor)) -> str:
+    """Who is performing a write, for the audit trail.
+
+    Every mutating route used to take `actor` as a query parameter defaulting
+    to "admin", so the audit log recorded whatever the caller typed. Injecting
+    it means the recorded actor is the verified session, and `actor` disappears
+    from the public API surface -- while the route bodies, which already refer
+    to a local named `actor`, keep working untouched.
+    """
+    return user["id"]
+
+
 @app.post("/api/auth/login")
-def api_login(body: LoginIn):
+def api_login(body: LoginIn, con=Depends(get_con)):
     try:
         return auth.login(con, body.user_id, body.password)
+    except PermissionError as e:
+        # Rate limited. 429 rather than 401 so a client can tell "wrong
+        # password" from "stop trying for a while".
+        raise HTTPException(429, {"code": "too_many_attempts", "message": str(e)})
     except ValueError as e:
-        raise HTTPException(401, str(e))
+        raise HTTPException(401, {"code": "invalid_credentials", "message": str(e)})
 
 
 @app.post("/api/auth/logout")
-def api_logout(request: Request):
-    token = _token_from_request(request)
-    auth.logout(con, token)
+def api_logout(request: Request, con=Depends(get_con), user=Depends(require_user)):
+    # require_user has already validated it; logout needs the raw value so it
+    # revokes this session specifically.
+    auth.logout(con, _token_from_request(request))
     return {"ok": True}
 
 
 @app.get("/api/auth/me")
-def api_me(request: Request):
-    token = _token_from_request(request)
-    user = auth.verify_token(con, token)
-    if not user:
-        raise HTTPException(401, "Not authenticated")
+def api_me(user=Depends(require_user)):
     return user
 
 
 @app.post("/api/auth/change-password")
-def api_change_password(body: ChangePasswordIn, request: Request):
-    token = _token_from_request(request)
-    user = auth.verify_token(con, token)
-    if not user:
-        raise HTTPException(401, "Not authenticated")
+def api_change_password(body: ChangePasswordIn, con=Depends(get_con),
+                        user=Depends(require_user)):
     try:
         auth.change_password(con, user["id"], body.old_password, body.new_password)
         return {"ok": True}
@@ -119,56 +356,54 @@ def api_change_password(body: ChangePasswordIn, request: Request):
 
 
 @app.get("/api/auth/users")
-def api_users(request: Request):
-    """List all mentor accounts."""
-    token = _token_from_request(request)
-    user = auth.verify_token(con, token)
-    if not user or user["role"] != "mentor":
-        raise HTTPException(403, "Mentors only")
-    return auth.list_users(con)
+def api_users(con=Depends(get_con), user=Depends(require_mentor)):
+    """List all staff accounts."""
+    return {"users": auth.list_users(con)}
 
 
 # ----------------------------------------------------------------------------
 # Read
 # ----------------------------------------------------------------------------
 @app.get("/api/dashboard")
-def dashboard(mentor: Optional[str] = None):
+def dashboard(mentor: Optional[str] = None, con=Depends(get_con), user=Depends(require_active_user)):
     return service.get_dashboard(con, mentor)
 
 
 @app.get("/api/summary")
-def summary(mentor: Optional[str] = None):
+def summary(mentor: Optional[str] = None, con=Depends(get_con), user=Depends(require_active_user)):
     return service.get_summary(con, mentor)
 
 
 @app.get("/api/worklist")
 def worklist(mentor: Optional[str] = None, capacity: int = Query(5, ge=1, le=50),
-             page: int = Query(1, ge=1), page_size: int = Query(50, ge=1, le=200)):
+             page: int = Query(1, ge=1), page_size: int = Query(50, ge=1, le=200), con=Depends(get_con), user=Depends(require_active_user)):
     return service.get_worklist(con, mentor, capacity, page, page_size)
 
 
 @app.get("/api/students")
 def students(mentor: Optional[str] = None, q: str = "", risk: str = "all", page: int = Query(1, ge=1),
-             page_size: int = Query(50, ge=1, le=200)):
+             page_size: int = Query(50, ge=1, le=200), con=Depends(get_con), user=Depends(require_active_user)):
     """Paginated. At 20,000 students the full table is not a response body."""
     return service.list_students(con, mentor, q, risk, page, page_size)
 
 
 @app.get("/api/onboarding")
-def onboarding(limit: int = Query(50, ge=1, le=200)):
+def onboarding(limit: int = Query(50, ge=1, le=200), con=Depends(get_con), user=Depends(require_active_user)):
     """Admitted but not yet scoreable. Visible on purpose."""
-    return service.get_onboarding(con, limit)
+    # Wrapped in an object rather than returned as a bare JSON array, so a
+    # total or a cursor can be added later without changing the response type.
+    return {"students": service.get_onboarding(con, limit)}
 
 
 @app.get("/api/model")
-def model_info():
+def model_info(con=Depends(get_con), user=Depends(require_active_user)):
     """What the model predicts, what it refuses to look at, and how it scored
     against the baselines. Point judges here."""
     return service.model_status(con)
 
 
 @app.get("/api/student/{roll_no}")
-def student(roll_no: str):
+def student(roll_no: str, con=Depends(get_con), user=Depends(require_active_user)):
     d = service.get_student(con, roll_no.upper())
     if not d:
         raise HTTPException(404, "student not found")
@@ -176,7 +411,7 @@ def student(roll_no: str):
 
 
 @app.get("/api/student/{roll_no}/public")
-def student_public(roll_no: str):
+def student_public(roll_no: str, con=Depends(get_con)):
     """What the student sees. No score. No band. No label."""
     d = service.get_student_public_view(con, roll_no.upper())
     if not d:
@@ -185,15 +420,15 @@ def student_public(roll_no: str):
 
 
 class WhatIfIn(BaseModel):
-    attendance_pct: Optional[float] = None
-    latest_ia_pct: Optional[float] = None
-    submission_pct: Optional[float] = None
+    attendance_pct: Optional[FiniteFloat] = None
+    latest_ia_pct: Optional[FiniteFloat] = None
+    submission_pct: Optional[FiniteFloat] = None
     backlogs: Optional[int] = None
     fee_status: Optional[str] = None
 
 
 @app.post("/api/student/{roll_no}/whatif")
-def whatif(roll_no: str, body: WhatIfIn):
+def whatif(roll_no: str, body: WhatIfIn, con=Depends(get_con), user=Depends(require_active_user)):
     """Recompute the ledger under hypothetical values.
 
     Exact, because the score is a sum of fixed rules and this is the same
@@ -207,7 +442,7 @@ def whatif(roll_no: str, body: WhatIfIn):
 
 
 @app.get("/api/student/{roll_no}/whatif")
-def whatif_levers(roll_no: str):
+def whatif_levers(roll_no: str, con=Depends(get_con), user=Depends(require_active_user)):
     """The controls and where they currently sit, with no changes applied."""
     r = service.what_if(con, roll_no.upper(), {})
     if r is None:
@@ -216,42 +451,46 @@ def whatif_levers(roll_no: str):
 
 
 @app.post("/api/measure")
-def measure(actor: str = "admin"):
+def measure(actor: str = Depends(actor_id), con=Depends(get_con)):
     """Work out from attendance data whether past interventions helped."""
     return service.measure_outcomes(con, actor)
 
 
 @app.get("/api/analytics/effectiveness")
-def effectiveness():
+def effectiveness(con=Depends(get_con), user=Depends(require_active_user)):
     return service.get_effectiveness(con)
 
 
 @app.get("/api/analytics/roster")
-def analytics_roster(mentor: Optional[str] = None):
+def analytics_roster(mentor: Optional[str] = None, con=Depends(get_con), user=Depends(require_active_user)):
     return service.get_roster(con, mentor)
 
 
 @app.get("/api/analytics/fairness")
-def fairness():
+def fairness(con=Depends(get_con), user=Depends(require_active_user)):
     return service.get_fairness(con)
 
 
 @app.get("/api/audit")
-def audit(limit: int = Query(100, ge=1, le=1000)):
-    return service.get_audit(con, limit)
+def audit(limit: int = Query(100, ge=1, le=1000), con=Depends(get_con),
+          user=Depends(require_mentor)):
+    return {"entries": service.get_audit(con, limit)}
 
 
 @app.get("/api/config")
-def config():
+def config(con=Depends(get_con), user=Depends(require_active_user)):
     return service.get_config(con)
 
 
 @app.get("/api/mentors")
-def mentors():
+def mentors(con=Depends(get_con), user=Depends(require_active_user)):
     """Section mentors plus the institution-wide roles."""
-    service.load_mentors(con)
+    # Use what load_mentors returns rather than re-reading service.MENTORS:
+    # the global is rebound on every call, so between the call and the read
+    # another request's refresh could swap it underneath this one.
+    roster = service.load_mentors(con)
     return {"default": service.default_mentor(con),
-            "mentors": [{"id": k, **v} for k, v in service.MENTORS.items()]}
+            "mentors": [{"id": k, **v} for k, v in roster.items()]}
 
 
 # ----------------------------------------------------------------------------
@@ -280,14 +519,18 @@ class FeedbackIn(BaseModel):
 
 
 @app.post("/api/interventions")
-def create_intervention(body: InterventionIn):
-    return service.create_intervention(
-        con, body.roll_no.upper(), body.mentor or service.default_mentor(con),
-        body.playbook, body.trigger, body.action_text, body.followup_days)
+def create_intervention(body: InterventionIn, con=Depends(get_con),
+                        user=Depends(require_mentor)):
+    try:
+        return service.create_intervention(
+            con, body.roll_no.upper(), body.mentor or service.default_mentor(con),
+            body.playbook, body.trigger, body.action_text, body.followup_days)
+    except ValueError as e:
+        raise HTTPException(404, str(e))
 
 
 @app.post("/api/interventions/{iv_id}/outcome")
-def close_intervention(iv_id: str, body: OutcomeIn):
+def close_intervention(iv_id: str, body: OutcomeIn, con=Depends(get_con), user=Depends(require_mentor)):
     try:
         return service.close_intervention(
             con, iv_id, body.outcome, body.mentor or service.default_mentor(con),
@@ -297,7 +540,7 @@ def close_intervention(iv_id: str, body: OutcomeIn):
 
 
 @app.post("/api/feedback")
-def feedback(body: FeedbackIn):
+def feedback(body: FeedbackIn, con=Depends(get_con), user=Depends(require_mentor)):
     try:
         return service.record_feedback(
             con, body.roll_no.upper(), body.mentor or service.default_mentor(con),
@@ -307,26 +550,60 @@ def feedback(body: FeedbackIn):
 
 
 @app.put("/api/config")
-def update_config(cfg: dict):
-    return service.set_config(con, cfg)
+def update_config(cfg: dict, con=Depends(get_con), actor: str = Depends(actor_id)):
+    """Update the scoring thresholds.
+
+    This route used to accept a raw dict and write it over the config row
+    wholesale, unauthenticated. Because risk_engine does
+    `cfg = config or DEFAULT_CONFIG`, an empty body was harmless -- but any
+    non-empty object was truthy while missing every expected key, and the
+    engine indexes it directly (cfg["bands"]["high_at"],
+    cfg["attendance_level"]["threshold_pct"]). So a single anonymous
+    PUT {"x": 1} raised KeyError on /api/summary, /api/worklist,
+    /api/student/{roll}, both what-if routes and /api/refresh, and kept doing
+    so until someone put a valid config back.
+
+    Now: staff only, validated, and merged onto the defaults so the result is
+    always a complete config.
+    """
+    try:
+        merged = service.validate_config(cfg)
+    except ValueError as e:
+        raise HTTPException(422, {
+            "code": "invalid_config",
+            "message": str(e),
+            "hint": "Only known keys are accepted, and every value must be a "
+                    "finite number in range.",
+        })
+    return service.set_config(con, merged, actor)
 
 
 @app.post("/api/upload")
-async def upload(file: UploadFile = File(...), commit: bool = False, actor: str = "admin"):
+async def upload(file: UploadFile = File(...), commit: bool = False, actor: str = Depends(actor_id), con=Depends(get_con)):
     """Preview by default. Nothing is written until commit=true, so the mentor
     always sees and confirms the column mapping first."""
     raw = await file.read()
     buf = io.BytesIO(raw)
     buf.name = file.filename
+    # Only the parse is the user's problem. The previous version wrapped this
+    # whole block in `except Exception` and reported everything -- including a
+    # failure of the refresh_scores() call below, which runs *after* the data is
+    # already committed -- as "check the file has a roll-number column". A
+    # genuine server bug was being blamed on the spreadsheet.
     try:
         rep = service.handle_upload(con, buf, actor, commit=commit)
-        if commit:
-            rep["refresh"] = service.refresh_scores(con, actor)
-        return rep
-    except Exception as e:
-        return JSONResponse({"error": f"{type(e).__name__}: {e}",
-                             "hint": "Check the file has a roll-number column."},
-                            status_code=422)
+    except (ValueError, KeyError, TypeError, IndexError) as e:
+        raise HTTPException(422, {
+            "code": "unreadable_upload",
+            "message": f"Could not read that file: {type(e).__name__}: {e}",
+            "hint": "Check the file has a roll-number column.",
+        })
+    if commit:
+        # Deliberately outside the try: if scoring fails the rows are already
+        # committed, so this must surface as a 500 rather than be disguised as
+        # a bad upload.
+        rep["refresh"] = service.refresh_scores(con, actor)
+    return rep
 
 
 class AdmitIn(BaseModel):
@@ -340,7 +617,7 @@ class AdmitIn(BaseModel):
     category: Optional[str] = None
     first_gen: Optional[bool] = None
     hostel: Optional[bool] = None
-    cgpa: Optional[float] = None
+    cgpa: Optional[FiniteFloat] = None
     mentor_id: Optional[str] = None
 
 
@@ -354,7 +631,7 @@ class AttendanceIn(BaseModel):
 class AssessmentIn(BaseModel):
     roll_no: str
     which: str
-    marks: Optional[float] = None
+    marks: Optional[FiniteFloat] = None
     max_marks: int = 30
 
 
@@ -364,7 +641,7 @@ class StatusIn(BaseModel):
 
 
 @app.post("/api/students")
-def admit(body: AdmitIn, actor: str = "admin"):
+def admit(body: AdmitIn, actor: str = Depends(actor_id), con=Depends(get_con)):
     """Register a student on admission day. No academic data needed."""
     try:
         return service.admit_student(con, actor=actor, **_fields(body))
@@ -373,11 +650,9 @@ def admit(body: AdmitIn, actor: str = "admin"):
 
 
 @app.delete("/api/students/{roll_no}")
-def remove_student(roll_no: str, request: Request):
+def remove_student(roll_no: str, con=Depends(get_con),
+                   user=Depends(require_mentor)):
     """Delete a student and their attendance, interventions and score history."""
-    user = auth.verify_token(con, _token_from_request(request))
-    if not user:
-        raise HTTPException(401, "Not authenticated")
     try:
         result = service.remove_student(con, roll_no, actor=user["id"])
     except ValueError as e:
@@ -387,13 +662,13 @@ def remove_student(roll_no: str, request: Request):
 
 
 @app.post("/api/students/bulk")
-def admit_bulk(bodies: List[AdmitIn], actor: str = "admin"):
+def admit_bulk(bodies: List[AdmitIn], actor: str = Depends(actor_id), con=Depends(get_con)):
     """A whole intake. One bad row does not roll back the good ones."""
     return service.admit_students_bulk(con, [_fields(b) for b in bodies], actor)
 
 
 @app.patch("/api/students/{roll_no}/status")
-def student_status(roll_no: str, body: StatusIn, actor: str = "admin"):
+def student_status(roll_no: str, body: StatusIn, actor: str = Depends(actor_id), con=Depends(get_con)):
     try:
         return service.set_student_status(con, roll_no.upper(), body.status,
                                           actor, body.note)
@@ -402,7 +677,7 @@ def student_status(roll_no: str, body: StatusIn, actor: str = "admin"):
 
 
 @app.post("/api/attendance")
-def attendance(body: AttendanceIn, actor: str = "staff"):
+def attendance(body: AttendanceIn, actor: str = Depends(actor_id), con=Depends(get_con)):
     """One week for one student, as attended/held rather than a percentage,
     because that is what a register contains and 34/40 is verifiable."""
     try:
@@ -413,7 +688,7 @@ def attendance(body: AttendanceIn, actor: str = "staff"):
 
 
 @app.post("/api/assessment")
-def assessment(body: AssessmentIn, actor: str = "staff"):
+def assessment(body: AssessmentIn, actor: str = Depends(actor_id), con=Depends(get_con)):
     try:
         return service.add_assessment(con, body.roll_no.upper(), body.which,
                                       body.marks, body.max_marks, actor)
@@ -422,21 +697,25 @@ def assessment(body: AssessmentIn, actor: str = "staff"):
 
 
 @app.post("/api/refresh")
-def refresh(actor: str = "admin"):
+def refresh(actor: str = Depends(actor_id), con=Depends(get_con)):
     """Recompute every score. Runs after ingest and admission; nightly in
     production. Scores change when data changes, not when a page loads."""
     return service.refresh_scores(con, actor)
 
 
 @app.post("/api/demo/reset")
-def demo_reset():
-    """The button that saves your demo when something goes wrong on stage."""
-    global con
-    con.close()
+def demo_reset(con=Depends(get_con), user=Depends(require_mentor)):
+    """The button that saves your demo when something goes wrong on stage.
+
+    The previous version closed the process-wide connection *before* calling
+    reset_db(), so if the rebuild raised, that global stayed closed and every
+    later request failed with "connection already closed" until a restart.
+    With a per-request connection there is nothing to close: reset_db() opens
+    its own, and this one is still valid afterwards.
+    """
     out = service.reset_db()
-    con = service.connect()
     out["refresh"] = service.refresh_scores(con)
-    # Re-seed user accounts after full DB rebuild
+    # Re-seed user accounts after the full rebuild.
     auth.ensure_auth_schema(con)
     auth.seed_users(con, service.MENTORS)
     return out

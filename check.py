@@ -51,11 +51,11 @@ def has(name, obj, *keys):
 
 
 # ---------------------------------------------------------------------------
-if not os.path.exists(service.DB_PATH):
-    print("No database. Run: python generate_demo_data.py && python service.py")
+con = service.connect()
+if service.db_is_empty(con):
+    print("No data. Run: python generate_demo_data.py && python service.py")
     sys.exit(1)
 
-con = service.connect()
 if service.snapshots_stale(con):
     service.refresh_scores(con)
 
@@ -326,17 +326,37 @@ ok("a one-week history does not crash",
 
 
 print("\nSPEED")
-for label, fn, limit in [
-        ("worklist", lambda: service.get_worklist(con, "admin", 5), 0.5),
-        ("summary", lambda: service.get_summary(con, "admin"), 0.5),
-        ("one student", lambda: service.get_student(con, roll), 0.2),
-        ("what-if", lambda: service.what_if(con, roll, {"attendance_pct": 80}), 0.5),
-        ("effectiveness", lambda: service.get_effectiveness(con), 0.5),
-        ("directory", lambda: service.list_students(con, None, "", 1, 50), 0.2)]:
+# The budgets below are compute time plus an allowance of N database round
+# trips. They used to be flat wall-clock limits, which made sense against a
+# local SQLite file where a query cost microseconds. Against a managed Postgres
+# a single round trip can be most of a second, so a flat limit measures the
+# distance to the database rather than anything about this code.
+#
+# Measuring the round trip and budgeting a fixed number of them keeps the check
+# doing its real job: catching a query-per-row regression. An operation that
+# starts issuing one query per student blows its trip budget on any network.
+_probe = []
+for _ in range(5):
+    _t = time.time()
+    con.execute("SELECT 1").fetchone()
+    _probe.append(time.time() - _t)
+RTT = sorted(_probe)[len(_probe) // 2]
+print(f"  (database round trip: {RTT * 1000:.0f} ms; budgets are compute + N trips)")
+
+for label, fn, compute, trips in [
+        ("worklist", lambda: service.get_worklist(con, "admin", 5), 0.5, 8),
+        ("summary", lambda: service.get_summary(con, "admin"), 0.5, 6),
+        ("one student", lambda: service.get_student(con, roll), 0.2, 6),
+        ("what-if", lambda: service.what_if(con, roll, {"attendance_pct": 80}), 0.5, 6),
+        ("effectiveness", lambda: service.get_effectiveness(con), 0.5, 6),
+        ("directory", lambda: service.list_students(con, None, "", 1, 50), 0.2, 4)]:
     t = time.time()
     fn()
     el = time.time() - t
-    ok(f"{label} responds quickly", el < limit, f"{el * 1000:.1f} ms")
+    limit = compute + RTT * trips
+    ok(f"{label} responds quickly", el < limit,
+       f"{el * 1000:.0f} ms  (budget {limit * 1000:.0f} ms = "
+       f"{compute * 1000:.0f} + {trips}x{RTT * 1000:.0f})")
 
 
 # ---------------------------------------------------------------------------

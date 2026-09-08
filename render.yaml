@@ -1,6 +1,22 @@
 services:
   - type: web
     name: sahay-api
-    env: docker
+    runtime: docker
+    dockerfilePath: ./Dockerfile
     plan: free
-    healthCheckPath: /api/docs
+    # /docs, not /api/docs. main.py never sets docs_url, so FastAPI serves the
+    # docs at /docs -- the old path 404'd, Render read that as an unhealthy
+    # service and tore the deploy down.
+    healthCheckPath: /docs
+    envVars:
+      # Set in the Render dashboard, not here: this is the database password.
+      - key: SUPABASE_DATABASE_URL
+        sync: false
+      # The deployed frontend origin(s), comma-separated. Without this the
+      # browser blocks every request from the Vercel app.
+      - key: CORS_ORIGINS
+        sync: false
+      - key: DB_POOL_MAX
+        value: "8"
+      - key: PYTHONUNBUFFERED
+        value: "1"

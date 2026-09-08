@@ -3,25 +3,39 @@
 #
 #   bash run_all.sh          # 5,000 students
 #   bash run_all.sh 20000    # any size
+#
+# Needs SUPABASE_DATABASE_URL set (see .env.example). Step 3 rebuilds the
+# database this points at, dropping every table first -- so do not run it
+# against anything you want to keep.
 set -euo pipefail
 cd "$(dirname "$0")"
 N="${1:-5000}"
 
-echo "1/5  Generating $N students"
-rm -f sahay.db model.joblib model_report.json
-python3 generate_demo_data.py --students "$N" --messy-sample 600
+# `python3` is not on PATH on Windows, where the launcher is `python`.
+PY="${PYTHON:-python3}"
+command -v "$PY" >/dev/null 2>&1 || PY=python
 
-echo; echo "2/5  Training the model"
-python3 ml.py
+echo "1/6  Generating $N students"
+rm -f model.joblib model_report.json
+"$PY" generate_demo_data.py --students "$N" --messy-sample 600
 
-echo; echo "3/5  Building the database"
-python3 service.py > /dev/null && echo "     done"
+echo; echo "2/6  Training the model"
+"$PY" ml.py
 
-echo; echo "4/5  Checking everything"
-python3 check.py
+echo; echo "3/6  Building the database"
+"$PY" service.py > /dev/null && echo "     done"
 
-echo; echo "5/5  The six claims, for the demo"
-python3 verify.py | grep -E "CLAIM|PASS|mean absolute|ALL CHECKS"
+echo; echo "4/6  Checking everything"
+"$PY" check.py
+
+echo; echo "5/6  The six claims, for the demo"
+"$PY" verify.py | grep -E "CLAIM|PASS|mean absolute|ALL CHECKS"
+
+echo; echo "6/6  The JSON and auth contract"
+"$PY" check_json.py | tail -n 20
 
 echo
-echo "Ready. Start it with:  uvicorn main:app --reload"
+echo "Ready. Set a password and start it:"
+echo "  $PY auth.py list"
+echo "  $PY auth.py reset <email> <password>"
+echo "  $PY -m uvicorn main:app --reload"

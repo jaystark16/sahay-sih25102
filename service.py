@@ -7,11 +7,15 @@ you can unit-test it with plain python, and so main.py stays a thin router.
     python service.py     # rebuilds sahay.db from demo_data/ and self-tests
 """
 
+import copy
 import csv
 import json
+import math
 import os
-import sqlite3
 from datetime import date, datetime, timedelta
+
+import database
+import jsonsafe
 
 import auth
 import lifecycle
@@ -26,14 +30,6 @@ from risk_engine import what_if as what_if_engine
 
 BASE = os.path.dirname(os.path.abspath(__file__))
 DEMO = os.path.join(BASE, "demo_data")
-DB_PATH = os.path.join(BASE, "sahay.db")
-
-if os.environ.get("VERCEL"):
-    import shutil
-    tmp_db = "/tmp/sahay.db"
-    if not os.path.exists(tmp_db) and os.path.exists(DB_PATH):
-        shutil.copy2(DB_PATH, tmp_db)
-    DB_PATH = tmp_db
 
 # Only the institution-wide roles are fixed. Section mentors are generated from
 # the data, one per section, because a mentor with 4,883 mentees is not a
@@ -62,8 +58,8 @@ def load_mentors(con):
             m[r["id"]] = {"name": r["name"], "role": r["role"],
                           "scope": (r["dept"], r["year"]),
                           "section": r["section"]}
-    except sqlite3.OperationalError:
-        pass
+    except database.PostgresWrapper.Error:
+        con.rollback()
     MENTORS = m
     return m
 
@@ -113,16 +109,16 @@ CREATE TABLE IF NOT EXISTS interventions (
   measured_change REAL, measured_outcome TEXT, measured_at TEXT
 );
 CREATE TABLE IF NOT EXISTS feedback (
-  id INTEGER PRIMARY KEY AUTOINCREMENT, roll_no TEXT, mentor TEXT,
+  id SERIAL PRIMARY KEY, roll_no TEXT, mentor TEXT,
   verdict TEXT, reason TEXT, created_at TEXT
 );
 CREATE TABLE IF NOT EXISTS audit (
-  id INTEGER PRIMARY KEY AUTOINCREMENT, actor TEXT, action TEXT,
+  id SERIAL PRIMARY KEY, actor TEXT, action TEXT,
   subject TEXT, detail TEXT, at TEXT
 );
 CREATE TABLE IF NOT EXISTS settings (k TEXT PRIMARY KEY, v TEXT);
 CREATE TABLE IF NOT EXISTS uploads (
-  id INTEGER PRIMARY KEY AUTOINCREMENT, filename TEXT, actor TEXT,
+  id SERIAL PRIMARY KEY, filename TEXT, actor TEXT,
   rows_keyed INT, rows_unmatched INT, report TEXT, at TEXT
 );
 CREATE TABLE IF NOT EXISTS risk_snapshots (
@@ -188,12 +184,17 @@ def _migrate(con):
     crash on the first query that names a newer column.
     """
     try:
-        cols = {r["name"] for r in con.execute("PRAGMA table_info(risk_snapshots)")}
-    except sqlite3.Error:
+        # Information schema query for Postgres
+        cols = {r["column_name"] for r in con.execute(
+            "SELECT column_name FROM information_schema.columns WHERE table_name = 'risk_snapshots'")}
+    except database.PostgresWrapper.Error:
+        con.rollback()
         return
     try:
-        scols = {r["name"] for r in con.execute("PRAGMA table_info(students)")}
-    except sqlite3.Error:
+        scols = {r["column_name"] for r in con.execute(
+            "SELECT column_name FROM information_schema.columns WHERE table_name = 'students'")}
+    except database.PostgresWrapper.Error:
+        con.rollback()
         scols = set()
     if scols and "cgpa" not in scols:
         con.execute("ALTER TABLE students ADD COLUMN cgpa REAL")
@@ -212,13 +213,31 @@ def _migrate(con):
         con.commit()
 
 
-def connect():
-    con = sqlite3.connect(DB_PATH, check_same_thread=False)
-    con.row_factory = sqlite3.Row
-    con.execute("PRAGMA foreign_keys=ON")
+def init_schema(con):
+    """Create tables, run migrations, cache the mentor roster.
+
+    Split out of connect() so the web app can do it exactly once at startup.
+    It used to run on every connect(), which was harmless when there was a
+    single process-wide connection but is pure waste -- a full DDL script plus
+    a migration probe plus a roster query -- once a connection is checked out
+    per request.
+    """
+    con.executescript(SCHEMA)
+    con.commit()
     _migrate(con)
     load_mentors(con)
     return con
+
+
+def connect():
+    """A ready-to-use connection, schema included.
+
+    This is the entry point for the CLI scripts (service.py, check.py, ml.py),
+    which each want one connection they own outright. The web app instead
+    initialises the schema once at startup and then checks connections out of
+    a pool per request -- see database.checkout() and main.get_con().
+    """
+    return init_schema(database.connect())
 
 
 def audit(con, actor, action, subject="", detail=""):
@@ -234,10 +253,57 @@ def get_config(con):
     return json.loads(row["v"]) if row else DEFAULT_CONFIG
 
 
+def validate_config(cfg):
+    """Merge a partial config onto the defaults, rejecting anything unknown.
+
+    Returns a complete config. Raises ValueError with a specific message.
+
+    The rules are deliberately strict, because risk_engine indexes this
+    structure directly rather than using .get() -- so a config that is merely
+    incomplete is indistinguishable from a config that is wrong, and both take
+    out every scoring endpoint.
+    """
+    if not isinstance(cfg, dict):
+        raise ValueError("config must be an object")
+
+    merged = copy.deepcopy(DEFAULT_CONFIG)
+    for section, values in cfg.items():
+        if section not in merged:
+            raise ValueError(f"unknown config section: {section!r}")
+        default = merged[section]
+        if not isinstance(default, dict):
+            merged[section] = values
+            continue
+        if not isinstance(values, dict):
+            raise ValueError(f"{section} must be an object")
+        for key, val in values.items():
+            if key not in default:
+                raise ValueError(f"unknown config key: {section}.{key}")
+            ref = default[key]
+            if isinstance(ref, bool):
+                if not isinstance(val, bool):
+                    raise ValueError(f"{section}.{key} must be true or false")
+            elif isinstance(ref, (int, float)):
+                if isinstance(val, bool) or not isinstance(val, (int, float)):
+                    raise ValueError(f"{section}.{key} must be a number")
+                if not math.isfinite(val):
+                    raise ValueError(f"{section}.{key} must be a finite number")
+                if val < 0:
+                    raise ValueError(f"{section}.{key} must not be negative")
+                if key.endswith("_pct") and val > 100:
+                    raise ValueError(f"{section}.{key} must be between 0 and 100")
+            merged[section][key] = val
+
+    b = merged["bands"]
+    if b["medium_at"] >= b["high_at"]:
+        raise ValueError("bands.medium_at must be less than bands.high_at")
+    return merged
+
+
 def set_config(con, cfg, actor="admin"):
     con.execute("INSERT INTO settings (k,v) VALUES ('config',?) "
-                "ON CONFLICT(k) DO UPDATE SET v=excluded.v", (json.dumps(cfg),))
-    audit(con, actor, "config_changed", "config", json.dumps(cfg)[:400])
+                "ON CONFLICT(k) DO UPDATE SET v=excluded.v", (jsonsafe.dumps(cfg),))
+    audit(con, actor, "config_changed", "config", jsonsafe.dumps(cfg)[:400])
     con.commit()
     return cfg
 
@@ -261,25 +327,31 @@ def _cgpa_from_row(r):
 
 def reset_db(actor="admin"):
     """Rebuild everything from demo_data/. This is the Reset Demo button."""
-    if os.path.exists(DB_PATH):
-        os.remove(DB_PATH)
     con = connect()
-    con.executescript(SCHEMA)
+    # Postgres doesn't have executescript by default with ?, but our wrapper supports it.
+    # However we need to drop all tables first to truly reset.
+    con.executescript("""
+        DROP TABLE IF EXISTS students, attendance, interventions, feedback, audit, settings, uploads, risk_snapshots, mentors, effectiveness_cache, cohort_alerts CASCADE;
+    """ + SCHEMA)
 
     weeks = {}
     with open(os.path.join(DEMO, "week_starts.csv"), encoding="utf-8") as f:
         for r in csv.DictReader(f):
             weeks[int(r["week_index"])] = r["week_start"]
 
+    # Every insert below is batched rather than issued row by row. The previous
+    # version ran one round trip per student and per intervention -- around
+    # 5,600 of them, plus 130,000 attendance rows -- inside a single
+    # transaction. On a local SQLite file that was instant. Against a remote
+    # Postgres at even 50ms latency it is well over an hour, which is why the
+    # Reset Demo button appeared to hang and Supabase eventually cancelled the
+    # statement.
     n = 0
+    student_rows, attendance_rows = [], []
     with open(os.path.join(DEMO, "master.csv"), encoding="utf-8") as f:
         for r in csv.DictReader(f):
             year = int(r["year"])
-            con.execute(
-                "INSERT INTO students (roll_no,name,dept,year,section,gender,category,"
-                "first_gen,hostel,ia1,ia2,ia3,backlogs,submission_pct,fee_status,cgpa,"
-                "mentor_id,last_contact_at,status,admitted_on,term_start) "
-                "VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,'active','2025-07-07','2025-07-07')",
+            student_rows.append(
                 (r["roll_no"], r["name"], r["dept"], year, r["section"], r["gender"],
                  r["category"], int(r["first_gen"]), int(r["hostel"]),
                  float(r["ia1"]) if r["ia1"] else None,
@@ -290,23 +362,39 @@ def reset_db(actor="admin"):
                  _assign_mentor(r["dept"], year, r["section"]), None))
             for i in range(26):
                 pct = float(r[f"w{i:02d}"])
-                con.execute("INSERT INTO attendance (roll_no,week_index,week_start,"
-                            "pct,attended,held) VALUES (?,?,?,?,?,?)",
-                            (r["roll_no"], i, weeks[i], pct,
-                             int(round(pct / 100 * 40)), 40))
+                attendance_rows.append(
+                    (r["roll_no"], i, weeks[i], pct, int(round(pct / 100 * 40)), 40))
             n += 1
 
+    con.executebatch(
+        "INSERT INTO students (roll_no,name,dept,year,section,gender,category,"
+        "first_gen,hostel,ia1,ia2,ia3,backlogs,submission_pct,fee_status,cgpa,"
+        "mentor_id,last_contact_at,status,admitted_on,term_start) "
+        "VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,'active','2025-07-07','2025-07-07')",
+        student_rows)
+    con.commit()
+
+    con.executebatch("INSERT INTO attendance (roll_no,week_index,week_start,"
+                     "pct,attended,held) VALUES (?,?,?,?,?,?)", attendance_rows,
+                     page_size=1000)
+    con.commit()
+
     with open(os.path.join(DEMO, "interventions_seed.csv"), encoding="utf-8") as f:
-        for r in csv.DictReader(f):
-            con.execute(
-                "INSERT INTO interventions (id,roll_no,mentor,trigger,playbook,"
-                "action_text,approved_by_mentor,created_at,followup_at,status,outcome)"
-                " VALUES (?,?,?,?,?,?,?,?,?,?,?)",
-                (r["id"], r["roll_no"], r["mentor"], r["trigger"], r["playbook"],
-                 "", 1, r["created_at"], r["followup_at"], r["status"], r["outcome"]))
-            con.execute("UPDATE students SET last_contact_at=? WHERE roll_no=? "
-                        "AND (last_contact_at IS NULL OR last_contact_at < ?)",
-                        (r["created_at"], r["roll_no"], r["created_at"]))
+        iv_rows = [(r["id"], r["roll_no"], r["mentor"], r["trigger"], r["playbook"],
+                    "", 1, r["created_at"], r["followup_at"], r["status"], r["outcome"])
+                   for r in csv.DictReader(f)]
+    con.executebatch(
+        "INSERT INTO interventions (id,roll_no,mentor,trigger,playbook,"
+        "action_text,approved_by_mentor,created_at,followup_at,status,outcome)"
+        " VALUES (?,?,?,?,?,?,?,?,?,?,?)", iv_rows)
+    # One set-based UPDATE instead of one per intervention.
+    con.execute("UPDATE students SET last_contact_at = sub.latest FROM ("
+                "  SELECT roll_no, MAX(created_at) AS latest FROM interventions"
+                "  GROUP BY roll_no) AS sub "
+                "WHERE students.roll_no = sub.roll_no "
+                "AND (students.last_contact_at IS NULL "
+                "     OR students.last_contact_at < sub.latest)")
+    con.commit()
 
     con.execute("UPDATE students SET weeks_of_data = (SELECT COUNT(*) FROM attendance a "
                 "WHERE a.roll_no = students.roll_no)")
@@ -326,7 +414,7 @@ def reset_db(actor="admin"):
     con.execute("UPDATE students SET weeks_of_data = (SELECT COUNT(*) FROM attendance a "
                 "WHERE a.roll_no = students.roll_no)")
     con.commit()
-    return {"students": n, "db": DB_PATH, "outcomes_measured": m["measured"],
+    return {"students": n, "outcomes_measured": m["measured"],
             "outcome_breakdown": m["breakdown"], "recent_admissions": joined,
             "mentors": n_mentors}
 
@@ -356,7 +444,7 @@ def _seed_recent_admissions(con, actor="system"):
             pct = max(35.0, pct - (2.6 if w > 5 else 0.4))
             con.execute("INSERT INTO attendance (roll_no,week_index,week_start,pct,"
                         "attended,held) VALUES (?,?,?,?,?,?) ON CONFLICT"
-                        "(roll_no,week_index) DO UPDATE SET pct=excluded.pct",
+                        "(roll_no,week_index) DO UPDATE SET pct=EXCLUDED.pct",
                         (st["roll_no"], w,
                          (start + timedelta(weeks=w)).isoformat(),
                          round(pct, 1), int(round(pct / 100 * 40)), 40))
@@ -680,19 +768,25 @@ def refresh_scores(con, actor="system"):
                      m.get("percent") if m.get("available") else None,
                      int(bool(m.get("anomaly_unusual"))),
                      (item.get("explained_by_cohort") or {}).get("cohort"),
-                     json.dumps(item.get("guardrails") or []),
+                     jsonsafe.dumps(item.get("guardrails") or []),
                      md.get("dept"), md.get("year"), md.get("section"),
                      md.get("mentor_id"), md.get("name"), now, is_flagged))
 
     con.execute("DELETE FROM risk_snapshots")
-    con.executemany(
+    # Batched: this is one row per student, so at institution size it is the
+    # difference between a few hundred round trips and twenty thousand.
+    con.executebatch(
         "INSERT INTO risk_snapshots (roll_no,score,band,delta,priority,confidence,"
         "headline,primary_driver,stage,model_pct,anomaly,cohort,guardrail,dept,"
         "year,section,mentor_id,name,computed_at,flagged) "
-        "VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)", rows)
+        "VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)", rows, page_size=1000)
     con.execute("DELETE FROM cohort_alerts")
-    con.executemany("INSERT INTO cohort_alerts VALUES (?,?,?)",
-                    [(a["cohort"], json.dumps(a), now) for a in alerts])
+    # Columns named rather than positional, and ON CONFLICT because `cohort` is
+    # the primary key and detect_cohort_anomalies can name one twice in a batch.
+    con.executebatch("INSERT INTO cohort_alerts (cohort,payload,computed_at) "
+                     "VALUES (?,?,?) ON CONFLICT(cohort) DO UPDATE SET "
+                     "payload=EXCLUDED.payload, computed_at=EXCLUDED.computed_at",
+                     [(a["cohort"], jsonsafe.dumps(a), now) for a in alerts])
     flagged_n = sum(f for _, f in buckets)
     audit(con, actor, "scores_refreshed", "cohort",
           f"{len(rows)} scored ({flagged_n} flagged), {len(alerts)} cohort alerts")
@@ -703,6 +797,18 @@ def refresh_scores(con, actor="system"):
 
 def snapshots_stale(con):
     return con.execute("SELECT COUNT(*) c FROM risk_snapshots").fetchone()["c"] == 0
+
+
+def db_is_empty(con):
+    """No students yet, i.e. a database that has never been seeded.
+
+    This replaces the old os.path.exists(DB_PATH) check. That question made
+    sense while the database was a local SQLite file; against a remote Postgres
+    there is no file to stat, and connect() already runs SCHEMA with
+    CREATE TABLE IF NOT EXISTS, so "do the tables exist" is always yes. What the
+    callers actually want to know is whether there is any data in them.
+    """
+    return con.execute("SELECT COUNT(*) c FROM students").fetchone()["c"] == 0
 
 
 def default_mentor(con):
@@ -781,8 +887,11 @@ def list_students(con, mentor_id=None, q="", risk="all", page=1, page_size=50):
         where.append("s.mentor_id=?")
         args.append(mentor_id)
     if q:
-        where.append("(s.roll_no LIKE ? OR s.name LIKE ?)")
-        args += [f"%{q.upper()}%", f"%{q}%"]
+        # ILIKE, not LIKE: SQLite's LIKE is case-insensitive for ASCII but
+        # Postgres' is case-sensitive, so searching "meera" silently stopped
+        # matching "Meera Nair" -- an empty result set rather than an error.
+        where.append("(s.roll_no ILIKE ? OR s.name ILIKE ?)")
+        args += [f"%{q}%", f"%{q}%"]
         
     if risk == "at_risk":
         where.append("r.band IN ('Medium', 'High')")
@@ -808,7 +917,11 @@ def get_summary(con, mentor_id=None):
     bands = {"Low": 0, "Medium": 0, "High": 0}
     for r in con.execute(f"SELECT band, COUNT(*) c FROM risk_snapshots WHERE {scope} "
                          f"GROUP BY band", args):
-        bands[r["band"]] = r["c"]
+        # Guarded the way get_dashboard already guards the identical loop: a
+        # NULL or unexpected band value used to raise KeyError here and 500
+        # /api/summary while /api/dashboard carried on working.
+        if r["band"] in bands:
+            bands[r["band"]] = r["c"]
     total = con.execute(f"SELECT COUNT(*) c FROM students WHERE {scope}", args).fetchone()["c"]
     rising = con.execute(f"SELECT COUNT(*) c FROM risk_snapshots WHERE {scope} "
                          f"AND delta >= 10", args).fetchone()["c"]
@@ -829,12 +942,21 @@ def get_roster(con, mentor_id=None):
     scope, args = "1=1", []
     if MENTORS.get(mentor_id, {}).get("role") == "mentor":
         scope, args = "s.mentor_id=?", [mentor_id]
+    # Two Postgres details in this one query, both of which SQLite tolerated:
+    #   1. attendance.pct is REAL, so AVG() returns double precision, and
+    #      Postgres has no round(double precision, integer) -- only
+    #      round(numeric, integer). Cast to numeric to round, then back to
+    #      float8 so psycopg2 hands back a float rather than a Decimal.
+    #   2. An output alias is only allowed in ORDER BY when it is the entire
+    #      sort key, so "ORDER BY attendance_pct IS NULL" does not resolve.
+    #      NULLS LAST expresses the same intent and does resolve.
     rows = con.execute(
         f"SELECT s.roll_no, s.name, s.gender, s.cgpa, r.band, r.score, "
         f"       ROUND((SELECT AVG(a.pct) FROM attendance a "
-        f"              WHERE a.roll_no = s.roll_no), 1) AS attendance_pct "
+        f"              WHERE a.roll_no = s.roll_no)::numeric, 1)::float8 "
+        f"       AS attendance_pct "
         f"FROM students s LEFT JOIN risk_snapshots r ON r.roll_no = s.roll_no "
-        f"WHERE {scope} ORDER BY attendance_pct IS NULL, attendance_pct ASC", args
+        f"WHERE {scope} ORDER BY attendance_pct ASC NULLS LAST", args
     ).fetchall()
     return {"students": [dict(r) for r in rows], "total": len(rows)}
 
@@ -947,8 +1069,22 @@ def get_student_public_view(con, roll_no):
 def create_intervention(con, roll_no, mentor_id, playbook, trigger, action_text,
                         followup_days=21):
     now = datetime.now()
-    n = con.execute("SELECT COUNT(*) c FROM interventions").fetchone()["c"]
-    iid = f"IV{n + 1:04d}"
+    # Derived from MAX(id), not COUNT(*). remove_student deletes intervention
+    # rows, so the count regressed and the next insert reused a live id --
+    # a primary-key violation which, pre-pooling, also poisoned the shared
+    # transaction and took the rest of the API down with it.
+    last = con.execute("SELECT MAX(id) m FROM interventions WHERE id LIKE 'IV%'"
+                       ).fetchone()["m"]
+    nxt = 1
+    if last and last[2:].isdigit():
+        nxt = int(last[2:]) + 1
+    iid = f"IV{nxt:04d}"
+    if not con.execute("SELECT 1 FROM students WHERE roll_no=?",
+                       (roll_no,)).fetchone():
+        # No foreign keys on the child tables, so without this the insert
+        # succeeded and created an intervention against a student who does
+        # not exist -- returning 200 as though it had worked.
+        raise ValueError(f"{roll_no} not found")
     con.execute("INSERT INTO interventions (id,roll_no,mentor,trigger,playbook,"
                 "action_text,approved_by_mentor,created_at,followup_at,status,outcome)"
                 " VALUES (?,?,?,?,?,?,1,?,?,'open','')",
@@ -1060,7 +1196,7 @@ def get_effectiveness(con, force=False):
     }
     con.execute("DELETE FROM effectiveness_cache")
     con.execute("INSERT INTO effectiveness_cache VALUES (?,?,?)",
-                (stamp, json.dumps(out, default=str),
+                (stamp, jsonsafe.dumps(out),
                  datetime.now().isoformat(timespec="seconds")))
     con.commit()
     return out
@@ -1183,7 +1319,7 @@ def handle_upload(con, path_or_buffer, actor="admin", commit=False):
                 if w["attendance_pct"] is not None:
                     con.execute("INSERT INTO attendance (roll_no,week_index,"
                                 "week_start,pct) VALUES (?,?,?,?) ON CONFLICT"
-                                "(roll_no,week_index) DO UPDATE SET pct=excluded.pct",
+                                "(roll_no,week_index) DO UPDATE SET pct=EXCLUDED.pct",
                                 (rec["roll_no"], i, w["week"], w["attendance_pct"]))
             applied += 1
         con.commit()
@@ -1192,7 +1328,7 @@ def handle_upload(con, path_or_buffer, actor="admin", commit=False):
                 "VALUES (?,?,?,?,?,?)",
                 (str(getattr(path_or_buffer, "name", path_or_buffer))[:200], actor,
                  report["rows_keyed"], report["rows_unmatched"],
-                 json.dumps(report)[:4000], datetime.now().isoformat(timespec="seconds")))
+                 jsonsafe.dumps(report), datetime.now().isoformat(timespec="seconds")))
     audit(con, actor, "upload_committed" if commit else "upload_previewed",
           str(getattr(path_or_buffer, "name", path_or_buffer))[:120],
           f"{report['rows_keyed']} keyed")

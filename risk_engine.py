@@ -11,6 +11,7 @@ no waterfall plots, no "the model says".
 Zero dependencies. Pure stdlib, so you can unit-test it in 5 seconds.
 """
 
+import math
 from copy import deepcopy
 
 # ----------------------------------------------------------------------------
@@ -59,8 +60,27 @@ def _clamp(v, lo, hi):
     return max(lo, min(hi, v))
 
 
+def _finite(v):
+    """True only for a real, usable number.
+
+    NaN needs the same treatment as None here, and it is easy to miss because
+    every comparison against NaN is False. A NaN attendance percentage slides
+    straight past `if current >= threshold` into the scoring branch, where
+    round(nan) raises ValueError -- and because scoring runs over the whole
+    cohort, one bad cell took down the worklist for every mentor. Treating a
+    non-finite value as "no data" is both correct and what the callers already
+    expect from None.
+    """
+    if v is None or isinstance(v, bool):
+        return False
+    try:
+        return math.isfinite(v)
+    except TypeError:
+        return False
+
+
 def _mean(xs):
-    xs = [x for x in xs if x is not None]
+    xs = [x for x in xs if _finite(x)]
     return sum(xs) / len(xs) if xs else None
 
 
@@ -71,7 +91,7 @@ def _c_attendance_level(f, cfg):
     c = cfg["attendance_level"]
     weekly = f.get("weekly_attendance") or []
     current = _mean(weekly[-c_recent(cfg):]) if weekly else f.get("attendance_pct")
-    if current is None:
+    if not _finite(current):
         return None
     if current >= c["threshold_pct"]:
         return (0, f"Attendance is {current:.0f}% (meets the {c['threshold_pct']:.0f}% minimum threshold)",
@@ -99,6 +119,8 @@ def _c_attendance_decline(f, cfg):
         return None
     recent = _mean(weekly[-c["recent_weeks"]:])
     prior = _mean(weekly[-need:-c["recent_weeks"]])
+    if not (_finite(recent) and _finite(prior)):
+        return None
     drop = prior - recent
     if drop < c["min_drop_pct"]:
         verb = "improved" if drop < -c["min_drop_pct"] else "held steady"
@@ -116,7 +138,7 @@ def _ia_percents(f):
     out = []
     for k in ("ia1", "ia2", "ia3"):
         v, mx = f.get(k), f.get(f"{k}_max") or 30
-        if v is not None and mx:
+        if _finite(v) and mx:
             out.append((k, round(v / mx * 100, 1)))
     return out
 
@@ -156,7 +178,7 @@ def _c_assessment_trend(f, cfg):
 def _c_backlogs(f, cfg):
     c = cfg["backlogs"]
     n = f.get("backlogs")
-    if n is None:
+    if not _finite(n):
         return None
     if n == 0:
         return (0, "No backlogs carried", {"backlogs": 0})
@@ -167,7 +189,7 @@ def _c_backlogs(f, cfg):
 def _c_submission(f, cfg):
     c = cfg["submission"]
     v = f.get("submission_pct")
-    if v is None:
+    if not _finite(v):
         return None
     if v >= c["threshold_pct"]:
         return (0, f"Assignment submissions at {v:.0f}%", {"submission_pct": round(v, 1)})
@@ -479,7 +501,12 @@ def detect_cohort_anomalies(students, config=None):
                 "mean_drop_pct": round(mean_drop, 1),
                 "mean_recent_pct": round(_mean([m['recent'] for m in members]), 1),
                 "mean_prior_pct": round(_mean([m['prior'] for m in members]), 1),
-                "route_to": "Department review",
+                # "Head of Department", not "Department review": this is
+                # rendered into the sentence "Send this to the {route_to}."
+                # (static/index.html), which needs a role rather than an
+                # activity, and check.py asserts the same. The three had drifted
+                # apart, so the UI read "Send this to the Department review."
+                "route_to": "Head of Department",
                 "message": (f"Attendance down {mean_drop:.0f} points "
                             f"across {len(affected)} of {len(members)} students. "
                             f"This pattern is section-wide, so treat it as a timetable, "

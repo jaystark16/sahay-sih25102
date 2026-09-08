@@ -159,7 +159,7 @@ def main():
 
     print("\n" + "=" * 78)
     print("CLAIM 6: we measure whether interventions worked, against a control group")
-    import sqlite3, json as _json, service as SVC
+    import json as _json, service as SVC
     con = SVC.connect()
     e = SVC.get_effectiveness(con)
     truth = {}

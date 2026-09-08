@@ -39,7 +39,10 @@ for mod, pipname, fatal in [
         ("openpyxl", "openpyxl", True), ("sklearn", "scikit-learn", True),
         ("joblib", "joblib", True), ("fastapi", "fastapi", True),
         ("uvicorn", "uvicorn[standard]", True),
-        ("multipart", "python-multipart", False)]:
+        ("multipart", "python-multipart", False),
+        ("psycopg2", "psycopg2-binary", True),
+        ("dotenv", "python-dotenv", True),
+        ("bcrypt", "bcrypt", True)]:
     check(f"package {pipname}",
           (lambda m=mod: importlib.import_module(m).__version__
            if hasattr(importlib.import_module(m), "__version__") else True),
@@ -88,8 +91,35 @@ check("model.joblib (optional)",
       lambda: os.path.exists(os.path.join(BASE, "model.joblib")),
       "python ml.py   (without it the app runs in Rules Mode, which is fine)",
       fatal=False)
-check("sahay.db", lambda: os.path.exists(os.path.join(BASE, "sahay.db")),
-      "python service.py")
+# The database is a Postgres server now, not a local file, so the question is
+# whether we can reach it and whether the schema is there -- not whether
+# sahay.db exists (it is a leftover, and checking for it passed even when the
+# real database was unreachable).
+def _dsn_set():
+    import database
+    url = database.dsn()
+    if url == database.DEFAULT_DSN:
+        return False
+    host = url.split("@")[-1].split("/")[0]
+    return f"configured ({host})"
+
+
+check("SUPABASE_DATABASE_URL", _dsn_set,
+      "cp .env.example .env and put your connection string in it")
+
+
+def _db_reachable():
+    import database
+    con = database.connect()
+    try:
+        n = con.execute("SELECT COUNT(*) c FROM students").fetchone()["c"]
+        return f"{n:,} students"
+    finally:
+        con.close()
+
+
+check("database reachable, schema present", _db_reachable,
+      "check SUPABASE_DATABASE_URL, then: python service.py")
 
 
 # ---- the routes actually respond ------------------------------------------

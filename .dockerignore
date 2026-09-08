@@ -1,0 +1,28 @@
+# The Dockerfile does `COPY . .`, so anything not excluded here ends up in the
+# image. Most importantly .env: baking the database password into an image
+# layer leaks it to anyone who can pull the image, and the value is supplied at
+# runtime by the platform anyway.
+.env
+.env.*
+!.env.example
+
+.git
+.gitignore
+__pycache__/
+*.pyc
+.venv/
+venv/
+
+# The old SQLite database: 14MB, unused now, and full of password hashes.
+sahay.db
+sahay-sih-submission.zip
+
+# The frontend is built and served separately, so its source and its
+# dependencies are just image weight here.
+frontend/node_modules/
+frontend/dist/
+
+.playwright-mcp/
+.vscode/
+.idea/
+AUDIT.md

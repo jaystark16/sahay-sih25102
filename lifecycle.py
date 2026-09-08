@@ -21,6 +21,7 @@ The stage is shown to the mentor as a badge. A system that admits what it does
 not know yet is the one a mentor keeps using.
 """
 
+import math
 from datetime import date, datetime, timedelta
 
 ONBOARDING_WEEKS = 4
@@ -115,6 +116,13 @@ def admit(con, *, name, dept, year, section="A", admission_date=None, roll_no=No
 
     if con.execute("SELECT 1 FROM students WHERE roll_no=?", (roll_no,)).fetchone():
         raise ValueError(f"{roll_no} already exists")
+
+    # A non-finite cgpa is worse than a wrong one: AVG(cgpa) propagates NaN,
+    # "cgpa IS NOT NULL" does not exclude it, and round(nan, 2) stays NaN --
+    # so a single bad row permanently 500s /api/dashboard for the whole
+    # institution. Reject it here rather than storing it.
+    if cgpa not in (None, "") and not math.isfinite(float(cgpa)):
+        raise ValueError("cgpa must be a finite number")
 
     mentor_id = mentor_id or _auto_mentor(con, dept, year, section)
     con.execute(
@@ -236,6 +244,11 @@ def record_assessment(con, roll_no, which, marks, max_marks=30, actor="staff",
                       audit_fn=None):
     if which not in ("ia1", "ia2", "ia3"):
         raise ValueError("which must be ia1, ia2 or ia3")
+    # NaN has to be rejected explicitly, before the range check: every
+    # comparison against NaN is False, so "nan < 0 or nan > 30" passes and the
+    # value gets stored. (inf is caught by the range check; NaN never is.)
+    if marks is not None and not math.isfinite(float(marks)):
+        raise ValueError("marks must be a finite number")
     if marks is not None and (float(marks) < 0 or float(marks) > float(max_marks)):
         raise ValueError(f"marks must be between 0 and {max_marks}")
     if not con.execute("SELECT 1 FROM students WHERE roll_no=?", (roll_no,)).fetchone():

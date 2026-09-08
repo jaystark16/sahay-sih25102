@@ -3,17 +3,53 @@ SIH25102 · AI-based drop-out prediction and counseling system
 
 ## Run it
 
+Needs a Postgres database. Supabase's free tier is fine.
+
 ```bash
-pip install fastapi "uvicorn[standard]" python-multipart pandas openpyxl scikit-learn joblib
+cp .env.example .env             # then put your connection string in it
+pip install -r requirements.txt
 
 python preflight.py              # checks your machine, tells you what to fix
 bash run_all.sh 5000             # builds everything and checks it
-uvicorn main:app --reload
+
+python auth.py list                          # the accounts that exist
+python auth.py reset <email> <password>      # set one you can sign in with
+
+python -m uvicorn main:app --reload
 ```
 
 Open <http://127.0.0.1:8000>. API docs at `/docs`.
 
-`run_all.sh` takes a student count: `bash run_all.sh 20000` works too.
+`run_all.sh` takes a student count: `bash run_all.sh 20000` works too. Note
+that it **drops every table** in the database `.env` points at.
+
+Every endpoint except sign-in and the student's own `/public` view requires a
+bearer token. Seeded accounts get a random password and must change it on first
+use, so `auth.py reset` is how you get in the first time.
+
+### The React frontend
+
+```bash
+cd frontend && npm install && npm run dev     # proxies /api to :8000
+```
+
+For a deployed build, set `VITE_API_BASE` to the API's origin, and set
+`CORS_ORIGINS` on the API to the frontend's origin.
+
+## Deploying
+
+The frontend and the API deploy separately, because the API's dependencies
+(scikit-learn, xgboost, scipy) total ~300 MB and will not fit in a serverless
+function bundle.
+
+| Piece | Where | Config |
+|---|---|---|
+| React frontend | Vercel (Hobby) | `vercel.json`; set `VITE_API_BASE` |
+| FastAPI backend | Render (free web service) | `render.yaml` + `Dockerfile`; set `SUPABASE_DATABASE_URL` and `CORS_ORIGINS` |
+| Postgres | Supabase (free) | — |
+
+Render's free tier spins down after ~15 minutes idle, so the first request
+after a quiet spell takes around 50 seconds.
 
 ## Files
 
@@ -21,7 +57,7 @@ Open <http://127.0.0.1:8000>. API docs at `/docs`.
 |---|---|
 | `static/index.html` | The whole frontend. No CDN, no build step, works offline. |
 | `main.py` | FastAPI. Thin routing only. **This is what ships.** |
-| `service.py` | Business logic + SQLite. Snapshot scoring, caching. |
+| `service.py` | Business logic + persistence. Snapshot scoring, caching. |
 | `risk_engine.py` | Additive ledger, change detection, cohort anomalies, what-if. |
 | `ml.py` | Self-supervised model, leak-free features, honest evaluation. |
 | `outcomes.py` | Measures whether interventions worked, against a control group. |
@@ -30,7 +66,11 @@ Open <http://127.0.0.1:8000>. API docs at `/docs`.
 | `generate_demo_data.py` | Synthetic cohort with latent engagement dynamics. |
 | `preflight.py` | Environment check with plain-language fixes. |
 | `verify.py` | The six claims, proven. Run before the demo. |
-| `check.py` | Plain-Python checks. No extra dependencies. |
+| `check.py` | Plain-Python checks of the service layer. |
+| `check_json.py` | Asserts every response is valid JSON and every route needs auth. |
+| `database.py` | Postgres connection pool and the sqlite-shaped wrapper over it. |
+| `jsonsafe.py` | Serialisation guard: non-finite numbers become null, not a 500. |
+| `auth.py` | bcrypt passwords, sessions, login throttling, and the account CLI. |
 
 ## Numbers to quote
 

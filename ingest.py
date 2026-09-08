@@ -14,6 +14,7 @@ to install at 3am.
 """
 
 import difflib
+import math
 import re
 from datetime import datetime
 
@@ -109,6 +110,12 @@ def parse_attendance(v):
         f = float(s)
     except ValueError:
         return None
+    # float("NaN") and float("inf") both succeed, so a cell containing the
+    # literal text "NaN" parses to a real NaN and would be written to the
+    # database, where it poisons every later read. CSVs are read with
+    # keep_default_na=False, so pandas hands that text straight through.
+    if not math.isfinite(f):
+        return None
     if 0 < f <= 1:              # stored as a fraction
         f *= 100
     return round(min(max(f, 0.0), 100.0), 1)
@@ -126,6 +133,8 @@ def parse_marks(v, max_marks=None):
     try:
         f = float(s.replace("%", ""))
     except ValueError:
+        return None, False
+    if not math.isfinite(f):    # see parse_attendance: "NaN" is a valid float
         return None, False
     if max_marks:
         f = min(f, float(max_marks))
