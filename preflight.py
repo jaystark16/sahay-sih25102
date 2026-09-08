@@ -95,22 +95,116 @@ check("model.joblib (optional)",
 # whether we can reach it and whether the schema is there -- not whether
 # sahay.db exists (it is a leftover, and checking for it passed even when the
 # real database was unreachable).
-def _dsn_set():
+def _env_file_encoding():
+    """The .env file is readable as UTF-8 text.
+
+    Worth checking explicitly, because PowerShell's `>>` and `Out-File` write
+    UTF-16LE by default, and that is exactly how this repo's .gitignore and
+    requirements.txt were corrupted: the file looks fine in an editor and is
+    unparseable everywhere else. Use `Set-Content -Encoding utf8`, or an
+    editor's save-as, not shell redirection.
+    """
+    if not os.path.exists(os.path.join(BASE, ".env")):
+        return "no .env file (using the environment directly)"
+    raw = open(os.path.join(BASE, ".env"), "rb").read()
+    if b"\x00" in raw:
+        raise ValueError("contains NUL bytes -- it was written as UTF-16, "
+                         "probably by PowerShell '>>' or Out-File")
+    raw.decode("utf-8")
+    return f"{len(raw)} bytes, valid UTF-8"
+
+
+check(".env is UTF-8", _env_file_encoding,
+      "rewrite it with an editor, or: Set-Content .env -Encoding utf8")
+
+
+def _dsn_structure():
+    """The connection string has every part psycopg2 needs.
+
+    Reports what is missing without ever printing the password -- a diagnostic
+    you can paste into a chat or an issue safely.
+    """
+    from urllib.parse import urlparse
     import database
+
     url = database.dsn()
     if url == database.DEFAULT_DSN:
         return False
-    host = url.split("@")[-1].split("/")[0]
-    return f"configured ({host})"
+
+    u = urlparse(url)
+    missing = []
+    if u.scheme not in ("postgresql", "postgres"):
+        missing.append(f"scheme is {u.scheme!r}, expected postgresql://")
+    if not u.username:
+        missing.append("no username")
+    if not u.password:
+        missing.append("no password")
+    if not u.hostname:
+        missing.append("no host")
+    if missing:
+        raise ValueError("; ".join(missing))
+
+    notes = []
+    # Supabase's pooler authenticates as postgres.<project-ref>. Using the bare
+    # "postgres" user against port 6543 fails with "password authentication
+    # failed", which reads like a wrong password rather than a wrong username.
+    if u.port == 6543 and "." not in (u.username or ""):
+        notes.append("port 6543 is the pooler, which needs the "
+                     "postgres.<project-ref> username, not plain 'postgres'")
+    if u.hostname and u.hostname.startswith("-"):
+        notes.append(f"host {u.hostname!r} starts with '-', so it looks "
+                     f"truncated (Supabase hosts begin 'aws-0-')")
+    if notes:
+        raise ValueError("; ".join(notes))
+
+    return f"{u.username.split('.')[0]}...@{u.hostname}:{u.port or 5432}"
 
 
-check("SUPABASE_DATABASE_URL", _dsn_set,
-      "cp .env.example .env and put your connection string in it")
+check("SUPABASE_DATABASE_URL is well formed", _dsn_structure,
+      "cp .env.example .env and paste the URI from Supabase > Project "
+      "Settings > Database > Connection string")
+
+
+def _dsn_resolves():
+    import socket
+    from urllib.parse import urlparse
+    import database
+
+    host = urlparse(database.dsn()).hostname
+    return f"{host} -> {socket.gethostbyname(host)}"
+
+
+check("database host resolves", _dsn_resolves,
+      "check the host part of SUPABASE_DATABASE_URL for typos or truncation",
+      fatal=False)
 
 
 def _db_reachable():
+    """Connect, and say which half failed if it does not work.
+
+    "password authentication failed" and "could not translate host name" are
+    very different problems, and the raw psycopg2 message repeats itself twice
+    over several lines, which buries the useful part.
+    """
+    import psycopg2
     import database
-    con = database.connect()
+    try:
+        con = database.connect()
+    except psycopg2.OperationalError as e:
+        msg = str(e).strip().splitlines()[0]
+        if "password authentication failed" in msg:
+            # Two common causes, and the server cannot tell them apart for us.
+            # The second one bites hard: a password containing @ : / # or ? is
+            # a URI delimiter, so it has to be percent-encoded or urlparse
+            # splits the string in the wrong place.
+            raise ValueError(
+                "credentials rejected. Either the password in .env is not the "
+                "current one (rotated it recently?), or it contains a "
+                "character that must be percent-encoded in a URI "
+                "(@ -> %40, : -> %3A, / -> %2F, # -> %23, ? -> %3F)") from None
+        if "could not translate host name" in msg or "Name or service" in msg:
+            raise ValueError(f"host not found -- {msg}") from None
+        raise ValueError(msg) from None
     try:
         n = con.execute("SELECT COUNT(*) c FROM students").fetchone()["c"]
         return f"{n:,} students"
@@ -119,7 +213,7 @@ def _db_reachable():
 
 
 check("database reachable, schema present", _db_reachable,
-      "check SUPABASE_DATABASE_URL, then: python service.py")
+      "fix SUPABASE_DATABASE_URL, then: python service.py")
 
 
 # ---- the routes actually respond ------------------------------------------
