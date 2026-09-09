@@ -315,14 +315,77 @@ def require_active_user(user=Depends(require_user)):
     return user
 
 
-def require_mentor(user=Depends(require_active_user)):
-    """Staff-only actions: config, uploads, admissions, deletions, reset."""
-    if user["role"] not in ("mentor", "admin", "staff"):
+def scoped(mentor: Optional[str] = None, user=Depends(require_active_user)):
+    """(user, mentor_id) where mentor_id is what this session may actually see.
+
+    The one place a request's scope is decided, and it is decided from the
+    session rather than the query string.
+
+    Before this, every scoped route took `mentor` straight from the URL and
+    passed it to the service layer, which filtered only when the name happened
+    to belong to a mentor. So `?mentor=` omitted returned the entire
+    institution to any signed-in account, and `?mentor=someone_else` returned
+    that person's caseload. Authentication was enforced; authorization was not.
+
+    A mentor is now pinned to their own id and gets 403 for anyone else's.
+    Institution roles may pass a mentor name to narrow the view, which is what
+    the HOD's per-mentor drill-down uses, or omit it for the whole institution.
+    """
+    try:
+        return user, service.resolve_scope(user, mentor)
+    except service.ScopeDenied as e:
+        raise HTTPException(403, {
+            "code": "forbidden_scope",
+            "message": "You can only see the students assigned to you.",
+            "hint": str(e),
+        })
+
+
+def require_institution(user=Depends(require_active_user)):
+    """Institution-wide operations: HOD, principal, admin."""
+    if not service.is_institution_role(user.get("role")):
+        raise HTTPException(403, {
+            "code": "forbidden",
+            "message": "This view is for the head of department or principal.",
+        })
+    return user
+
+
+def authorize_student(roll_no: str, con, user):
+    """403 unless this session may open this student's record.
+
+    get_student() had no scope check at all, so any signed-in mentor could read
+    any of the 5,003 records by roll number. Scoping the list endpoints without
+    scoping this one would only have hidden the directory, not the data.
+    """
+    if not service.may_view_student(con, user, roll_no):
+        raise HTTPException(403, {
+            "code": "forbidden_student",
+            "message": "That student is not on your caseload.",
+            "hint": "Ask the head of department to assign them to you.",
+        })
+
+
+def require_staff(user=Depends(require_active_user)):
+    """Any staff account: mentor, HOD, principal or admin.
+
+    This is the "you work here" gate, not the "you may see everything" gate.
+    Institution-wide access is require_institution and per-student access is
+    authorize_student; a route that only needs the first must not accidentally
+    grant the others.
+    """
+    if user["role"] not in ("mentor", "hod", "principal", "admin", "staff"):
         raise HTTPException(403, {
             "code": "forbidden",
             "message": "This action is restricted to staff accounts.",
         })
     return user
+
+
+# The old name, kept because ~15 routes reference it. Same meaning it always
+# had -- "a staff account" -- with hod and principal added, since they are
+# staff and were being refused config, uploads and admissions.
+require_mentor = require_staff
 
 
 def actor_id(user=Depends(require_mentor)) -> str:
@@ -382,34 +445,47 @@ def api_users(con=Depends(get_con), user=Depends(require_mentor)):
 # Read
 # ----------------------------------------------------------------------------
 @app.get("/api/dashboard")
-def dashboard(mentor: Optional[str] = None, con=Depends(get_con), user=Depends(require_active_user)):
-    return service.get_dashboard(con, mentor)
+def dashboard(scope=Depends(scoped), con=Depends(get_con)):
+    _user, mentor_id = scope
+    return service.get_dashboard(con, mentor_id)
 
 
 @app.get("/api/summary")
-def summary(mentor: Optional[str] = None, con=Depends(get_con), user=Depends(require_active_user)):
-    return service.get_summary(con, mentor)
+def summary(scope=Depends(scoped), con=Depends(get_con)):
+    _user, mentor_id = scope
+    return service.get_summary(con, mentor_id)
 
 
 @app.get("/api/worklist")
-def worklist(mentor: Optional[str] = None, capacity: int = Query(5, ge=1, le=50),
-             page: int = Query(1, ge=1), page_size: int = Query(50, ge=1, le=200), con=Depends(get_con), user=Depends(require_active_user)):
-    return service.get_worklist(con, mentor, capacity, page, page_size)
+def worklist(capacity: int = Query(5, ge=1, le=50),
+             page: int = Query(1, ge=1), page_size: int = Query(50, ge=1, le=200),
+             scope=Depends(scoped), con=Depends(get_con)):
+    _user, mentor_id = scope
+    return service.get_worklist(con, mentor_id, capacity, page, page_size)
 
 
 @app.get("/api/students")
-def students(mentor: Optional[str] = None, q: str = "", risk: str = "all", page: int = Query(1, ge=1),
-             page_size: int = Query(50, ge=1, le=200), con=Depends(get_con), user=Depends(require_active_user)):
-    """Paginated. At 20,000 students the full table is not a response body."""
-    return service.list_students(con, mentor, q, risk, page, page_size)
+def students(q: str = "", risk: str = "all", page: int = Query(1, ge=1),
+             page_size: int = Query(50, ge=1, le=200),
+             scope=Depends(scoped), con=Depends(get_con)):
+    """Paginated, and scoped to the session.
+
+    For a mentor this is "my students" -- the default search surface the spec
+    asks for. It never returns the institution: resolve_scope pins mentor_id to
+    the caller, so there is no query string that widens it.
+    """
+    _user, mentor_id = scope
+    return service.list_students(con, mentor_id, q, risk, page, page_size)
 
 
 @app.get("/api/onboarding")
-def onboarding(limit: int = Query(50, ge=1, le=200), con=Depends(get_con), user=Depends(require_active_user)):
+def onboarding(limit: int = Query(50, ge=1, le=200),
+               scope=Depends(scoped), con=Depends(get_con)):
     """Admitted but not yet scoreable. Visible on purpose."""
     # Wrapped in an object rather than returned as a bare JSON array, so a
     # total or a cursor can be added later without changing the response type.
-    return {"students": service.get_onboarding(con, limit)}
+    _user, mentor_id = scope
+    return {"students": service.get_onboarding(con, limit, mentor_id)}
 
 
 @app.get("/api/model")
@@ -421,7 +497,9 @@ def model_info(con=Depends(get_con), user=Depends(require_active_user)):
 
 @app.get("/api/student/{roll_no}")
 def student(roll_no: str, con=Depends(get_con), user=Depends(require_active_user)):
-    d = service.get_student(con, roll_no.upper())
+    roll_no = roll_no.upper()
+    authorize_student(roll_no, con, user)
+    d = service.get_student(con, roll_no)
     if not d:
         raise HTTPException(404, "student not found")
     return d
@@ -451,8 +529,10 @@ def whatif(roll_no: str, body: WhatIfIn, con=Depends(get_con), user=Depends(requ
     Exact, because the score is a sum of fixed rules and this is the same
     arithmetic on different numbers.
     """
+    roll_no = roll_no.upper()
+    authorize_student(roll_no, con, user)
     changes = {k: v for k, v in _fields(body).items() if v is not None}
-    r = service.what_if(con, roll_no.upper(), changes)
+    r = service.what_if(con, roll_no, changes)
     if r is None:
         raise HTTPException(404, "student not found")
     return r
@@ -461,7 +541,9 @@ def whatif(roll_no: str, body: WhatIfIn, con=Depends(get_con), user=Depends(requ
 @app.get("/api/student/{roll_no}/whatif")
 def whatif_levers(roll_no: str, con=Depends(get_con), user=Depends(require_active_user)):
     """The controls and where they currently sit, with no changes applied."""
-    r = service.what_if(con, roll_no.upper(), {})
+    roll_no = roll_no.upper()
+    authorize_student(roll_no, con, user)
+    r = service.what_if(con, roll_no, {})
     if r is None:
         raise HTTPException(404, "student not found")
     return r
@@ -479,8 +561,9 @@ def effectiveness(con=Depends(get_con), user=Depends(require_active_user)):
 
 
 @app.get("/api/analytics/roster")
-def analytics_roster(mentor: Optional[str] = None, con=Depends(get_con), user=Depends(require_active_user)):
-    return service.get_roster(con, mentor)
+def analytics_roster(scope=Depends(scoped), con=Depends(get_con)):
+    _user, mentor_id = scope
+    return service.get_roster(con, mentor_id)
 
 
 @app.get("/api/analytics/fairness")
@@ -538,37 +621,59 @@ class FeedbackIn(BaseModel):
 @app.post("/api/interventions")
 def create_intervention(body: InterventionIn, con=Depends(get_con),
                         user=Depends(require_mentor)):
+    """Log an approved action against a student on your own caseload.
+
+    `body.mentor` is ignored. It used to be trusted, falling back to
+    default_mentor(con) -- so the browser decided whose name went on an
+    intervention and into the audit trail. The acting mentor is the verified
+    session.
+    """
+    roll_no = body.roll_no.upper()
+    authorize_student(roll_no, con, user)
     try:
         return service.create_intervention(
-            con, body.roll_no.upper(), body.mentor or service.default_mentor(con),
+            con, roll_no, user["id"],
             body.playbook, body.trigger, body.action_text, body.followup_days)
     except ValueError as e:
         raise HTTPException(404, str(e))
 
 
 @app.post("/api/interventions/{iv_id}/outcome")
-def close_intervention(iv_id: str, body: OutcomeIn, con=Depends(get_con), user=Depends(require_mentor)):
+def close_intervention(iv_id: str, body: OutcomeIn, con=Depends(get_con),
+                       user=Depends(require_mentor)):
+    """Record how an action turned out. The student must be on your caseload."""
+    owner = con.execute("SELECT roll_no FROM interventions WHERE id=?",
+                        (iv_id,)).fetchone()
+    if not owner:
+        raise HTTPException(404, f"intervention {iv_id} not found")
+    authorize_student(owner["roll_no"], con, user)
     try:
         return service.close_intervention(
-            con, iv_id, body.outcome, body.mentor or service.default_mentor(con),
-            body.notes)
+            con, iv_id, body.outcome, user["id"], body.notes)
     except ValueError as e:
         raise HTTPException(400, str(e))
 
 
 @app.post("/api/feedback")
 def feedback(body: FeedbackIn, con=Depends(get_con), user=Depends(require_mentor)):
+    """Mentor agreement or disagreement with a flag. Own caseload only."""
+    roll_no = body.roll_no.upper()
+    authorize_student(roll_no, con, user)
     try:
         return service.record_feedback(
-            con, body.roll_no.upper(), body.mentor or service.default_mentor(con),
-            body.verdict, body.reason)
+            con, roll_no, user["id"], body.verdict, body.reason)
     except ValueError as e:
         raise HTTPException(400, str(e))
 
 
 @app.put("/api/config")
-def update_config(cfg: dict, con=Depends(get_con), actor: str = Depends(actor_id)):
-    """Update the scoring thresholds.
+def update_config(cfg: dict, con=Depends(get_con),
+                  user=Depends(require_institution)):
+    """Update the scoring thresholds. Institution roles only.
+
+    These thresholds decide every risk score in the institution. A mentor
+    changing them to make their own 27 students look calmer would silently
+    rescore the other 4,976, so this sits with the HOD.
 
     This route used to accept a raw dict and write it over the config row
     wholesale, unauthenticated. Because risk_engine does
@@ -592,7 +697,7 @@ def update_config(cfg: dict, con=Depends(get_con), actor: str = Depends(actor_id
             "hint": "Only known keys are accepted, and every value must be a "
                     "finite number in range.",
         })
-    return service.set_config(con, merged, actor)
+    return service.set_config(con, merged, user["id"])
 
 
 @app.post("/api/upload")
@@ -668,14 +773,146 @@ def admit(body: AdmitIn, actor: str = Depends(actor_id), con=Depends(get_con)):
 
 @app.delete("/api/students/{roll_no}")
 def remove_student(roll_no: str, con=Depends(get_con),
-                   user=Depends(require_mentor)):
-    """Delete a student and their attendance, interventions and score history."""
+                   user=Depends(require_institution)):
+    """Erase a student from the institution. Restricted, and irreversible.
+
+    require_institution, not require_mentor. This destroys the record, the
+    attendance history, the interventions and the score history, and a mentor
+    who wants a student off their list wants DELETE /api/mentor/caseload/{roll}
+    instead -- which ends the assignment and keeps every one of those.
+
+    Exposing this to mentors merely because the route existed is how "remove
+    from my list" becomes "delete a person's history".
+    """
     try:
         result = service.remove_student(con, roll_no, actor=user["id"])
     except ValueError as e:
         raise HTTPException(404, str(e))
     service.refresh_scores(con, actor=user["id"])
     return result
+
+
+# ----------------------------------------------------------------------------
+# Caseload: assignment, not creation; dropping, not deletion
+# ----------------------------------------------------------------------------
+class CaseloadIn(BaseModel):
+    roll_no: str
+    reason: str = ""
+
+
+class AssignIn(BaseModel):
+    roll_no: str
+    mentor_id: str
+    reason: str = ""
+
+
+@app.get("/api/mentor/caseload")
+def my_caseload(con=Depends(get_con), user=Depends(require_mentor)):
+    """Who is on my list, and how many. The mentor's own scope, restated."""
+    mentor_id = user["id"]
+    if service.is_institution_role(user.get("role")):
+        return {"mentor_id": None, "count": None,
+                "note": "Institution roles are not scoped to a caseload."}
+    return service.caseload_of(con, mentor_id)
+
+
+@app.get("/api/directory/lookup")
+def directory_lookup(q: str = Query("", min_length=0), limit: int = Query(10, ge=1, le=25),
+                     con=Depends(get_con), user=Depends(require_mentor)):
+    """Find a student anywhere in the institution, to add them to a caseload.
+
+    Deliberately separate from GET /api/students, which is scoped to the
+    caller. A mentor needs to be able to identify a student who is not yet
+    theirs, and cannot do that through a search that only returns their own.
+
+    So this one is institution-wide by necessity, and narrow to compensate: it
+    requires a search term, caps at 25 rows, and returns only the fields needed
+    to pick the right person -- no scores, no bands, no attendance. It is a
+    lookup, not a second directory.
+    """
+    if not q.strip():
+        return {"students": [], "note": "Type at least two characters to search."}
+    return {"students": service.directory_lookup(con, q, limit)}
+
+
+@app.post("/api/mentor/caseload")
+def add_to_my_caseload(body: CaseloadIn, con=Depends(get_con),
+                       user=Depends(require_mentor)):
+    """Take responsibility for an existing student.
+
+    This creates an ASSIGNMENT. It does not create a student -- the person
+    already exists in the institution and their history comes with them.
+    """
+    if service.is_institution_role(user.get("role")):
+        raise HTTPException(400, {
+            "code": "bad_request",
+            "message": "Institution roles do not hold a caseload.",
+            "hint": "Use POST /api/assignments to assign a student to a mentor.",
+        })
+    try:
+        return service.assign_student(con, body.roll_no, user["id"],
+                                      actor=user["id"], reason=body.reason)
+    except ValueError as e:
+        raise HTTPException(400, str(e))
+
+
+@app.delete("/api/mentor/caseload/{roll_no}")
+def drop_from_my_caseload(roll_no: str, con=Depends(get_con),
+                          user=Depends(require_mentor)):
+    """Hand a student back. The student is NOT deleted.
+
+    Their record, attendance, interventions, outcomes, risk history and audit
+    trail all remain, the HOD still sees them, and another mentor can pick them
+    up. Only the assignment ends, and it is kept as a row rather than removed.
+    """
+    try:
+        return service.drop_student(con, roll_no, user["id"], actor=user["id"])
+    except ValueError as e:
+        raise HTTPException(400, str(e))
+
+
+@app.get("/api/institution")
+def institution(con=Depends(get_con), user=Depends(require_institution)):
+    """The HOD's view: institution totals, then departments, cohorts, mentors.
+
+    Aggregated in SQL. The HOD's question is "how is my institution doing",
+    and answering it by shipping 5,000 rows to the browser and counting there
+    is what turns an institution view into a giant list nobody can operate.
+    """
+    return service.institution_overview(con)
+
+
+@app.get("/api/institution/mentors")
+def institution_mentors(con=Depends(get_con), user=Depends(require_institution)):
+    """Caseload and risk load per mentor."""
+    return {"mentors": service.mentor_overview(con)}
+
+
+@app.get("/api/institution/caseload/{mentor_id}")
+def institution_caseload(mentor_id: str, con=Depends(get_con),
+                         user=Depends(require_institution)):
+    """Drill into one mentor's caseload from the institution view."""
+    return service.caseload_of(con, mentor_id)
+
+
+@app.post("/api/assignments")
+def assign(body: AssignIn, con=Depends(get_con), user=Depends(require_institution)):
+    """Assign or reassign any student to any mentor. HOD/principal/admin."""
+    try:
+        return service.assign_student(con, body.roll_no, body.mentor_id,
+                                      actor=user["id"], reason=body.reason)
+    except ValueError as e:
+        raise HTTPException(400, str(e))
+
+
+@app.get("/api/assignments/{roll_no}")
+def assignment_history(roll_no: str, con=Depends(get_con),
+                       user=Depends(require_active_user)):
+    """Every mentor this student has had. Own caseload, or any if institution."""
+    roll_no = roll_no.upper()
+    authorize_student(roll_no, con, user)
+    return {"roll_no": roll_no,
+            "history": service.assignment_history(con, roll_no)}
 
 
 @app.post("/api/students/bulk")
@@ -721,7 +958,10 @@ def refresh(actor: str = Depends(actor_id), con=Depends(get_con)):
 
 
 @app.post("/api/demo/reset")
-def demo_reset(con=Depends(get_con), user=Depends(require_mentor)):
+def demo_reset(con=Depends(get_con), user=Depends(require_institution)):
+    # require_institution, not require_mentor. This drops every table and
+    # rebuilds the institution; a mentor with a 27-student caseload has no
+    # business being able to erase the other 4,976.
     """The button that saves your demo when something goes wrong on stage.
 
     The previous version closed the process-wide connection *before* calling

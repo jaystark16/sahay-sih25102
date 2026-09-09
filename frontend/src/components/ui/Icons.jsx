@@ -110,7 +110,16 @@ export const IconTrash = (p) => (
   </svg>
 );
 
+export const IconBuilding = (p) => (
+  <svg {...base} {...p}>
+    <path d="M3.5 17.5h13M5 17.5V4.5a1 1 0 011-1h5a1 1 0 011 1v13" />
+    <path d="M12 8.5h2.5a1 1 0 011 1v8" />
+    <path d="M7.5 6.5h2M7.5 9.5h2M7.5 12.5h2" />
+  </svg>
+);
+
 export const NAV_ICONS = {
+  building: IconBuilding,
   clipboard: IconClipboard,
   users: IconUsers,
   chart: IconChart,

@@ -71,7 +71,14 @@ if service.db_is_empty(con):
 if service.snapshots_stale(con):
     service.refresh_scores(con)
 
-wl = service.get_worklist(con, "rao", 5)
+# None means institution-wide, which is what these checks want: they assert
+# on the engine, not on one person's caseload. This used to pass "rao" -- a
+# mentor id that has not existed for a while. MENTORS.get("rao") returned
+# nothing, the old role test failed, and the filter was silently dropped, so
+# these checks had been reading institution-wide all along by accident. Now
+# that mentor_id is honoured whenever it is set, the same call returned an
+# empty worklist and this file stopped at line 75.
+wl = service.get_worklist(con, None, 5)
 roll = wl["this_week"][0]["roll_no"]
 sd = service.get_student(con, roll)
 _, feats = service._features(con, roll)
@@ -343,6 +350,60 @@ ok("an empty student still scores without crashing",
    R.score_student({})["score"] == 0)
 ok("a one-week history does not crash",
    R.score_student({"weekly_attendance": [50]})["score"] >= 0)
+
+
+print("ROLE SCOPE")
+# The authorization boundary, asserted rather than assumed. A mentor sees their
+# caseload; an institution role sees the institution; nothing a caller puts in
+# a request changes either.
+_mentors = [m for m, i in service.MENTORS.items() if i["role"] == "mentor"]
+_inst = [m for m, i in service.MENTORS.items()
+         if service.is_institution_role(i["role"])]
+ok("there is more than one mentor", len(_mentors) > 1, f"{len(_mentors)} mentors")
+ok("an institution role exists", bool(_inst), ", ".join(_inst))
+
+if len(_mentors) > 1 and _inst:
+    _m = _mentors[0]
+    _mu = {"id": _m, "role": "mentor"}
+    _hu = {"id": _inst[0], "role": "hod"}
+    _total = con.execute("SELECT COUNT(*) c FROM students").fetchone()["c"]
+    _case = service.caseload_of(con, _m)
+
+    ok("a caseload is a caseload, not a cohort",
+       20 <= _case["count"] <= 40, f"{_case['count']} students")
+    ok("a caseload spans several departments",
+       len(_case["departments"]) > 1, f"{len(_case['departments'])} departments")
+    ok("the institution keeps every student",
+       _total > 4000, f"{_total:,} on the roll")
+
+    ok("resolve_scope pins a mentor to themselves",
+       service.resolve_scope(_mu) == _m)
+    ok("a mentor cannot widen scope by omitting the parameter",
+       service.resolve_scope(_mu, None) == _m)
+    ok("a mentor cannot name another mentor",
+       raises_early(lambda: service.resolve_scope(_mu, _mentors[1])))
+    ok("an institution role sees everything by default",
+       service.resolve_scope(_hu) is None)
+    ok("an institution role may narrow to one mentor",
+       service.resolve_scope(_hu, _m) == _m)
+
+    _listed = service.list_students(con, _m, "", "all", 1, 200)
+    ok("the directory returns only the caseload",
+       _listed["total"] == _case["count"],
+       f"{_listed['total']} vs {_case['count']}")
+    _mine = {r["roll_no"] for r in _case["students"]}
+    ok("no student outside the caseload appears in it",
+       all(s["roll_no"] in _mine for s in _listed["students"]))
+
+    _outside = con.execute(
+        "SELECT roll_no FROM students WHERE mentor_id IS DISTINCT FROM ? LIMIT 1",
+        (_m,)).fetchone()["roll_no"]
+    ok("a mentor may open their own student",
+       service.may_view_student(con, _mu, next(iter(_mine))))
+    ok("a mentor may not open someone else's student",
+       not service.may_view_student(con, _mu, _outside), _outside)
+    ok("an institution role may open any student",
+       service.may_view_student(con, _hu, _outside))
 
 
 print("\nSPEED")

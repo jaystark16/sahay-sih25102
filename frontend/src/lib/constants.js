@@ -40,11 +40,28 @@ export function bandMeta(band) {
  */
 export const NAV = [
   {
+    // The HOD's landing view. institutionOnly, because a mentor asking
+    // /api/institution gets a 403 -- rendering it for them would only offer a
+    // door that does not open.
+    id: 'institution', label: 'Institution', icon: 'building',
+    institutionOnly: true,
+    hint: 'Departments, cohorts and mentors',
+    children: [
+      { id: 'institution:overview', label: 'Overview', section: 'sec-institution' },
+      { id: 'institution:departments', label: 'By department', section: 'sec-departments' },
+      { id: 'institution:mentors', label: 'Mentors', section: 'sec-mentors' },
+      { id: 'institution:cohorts', label: 'Cohorts', section: 'sec-cohorts' },
+    ],
+  },
+  {
     id: 'worklist', label: 'Worklist', icon: 'clipboard',
     hint: 'Students needing attention this week',
   },
   {
     id: 'students', label: 'Students', icon: 'users',
+    // Set per role at render time: a mentor's directory is their caseload, an
+    // HOD's is the institution. Same screen, different scope -- which is the
+    // whole point, so the subtitle should not claim otherwise.
     hint: 'The full directory',
     children: [
       { id: 'students:all', label: 'Everyone', filter: 'all' },

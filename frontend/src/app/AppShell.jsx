@@ -2,9 +2,12 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useAuth } from '../auth/AuthContext';
 import { NAV } from '../lib/constants';
 import { NAV_ICONS, IconLogout, IconMenu, IconPlus, IconTrash } from '../components/ui/Icons';
-import { Button, IconButton, cx } from '../components/ui/Primitives';
+import { Badge, Button, IconButton, cx } from '../components/ui/Primitives';
 import { useToast } from '../components/ui/Toast';
+import api from '../services/api';
 import { AddStudentModal, RemoveStudentModal } from '../features/students/StudentAdminModals';
+import { AddToCaseloadModal, DropFromCaseloadModal } from '../features/students/CaseloadModals';
+import { InstitutionPage } from '../pages/InstitutionPage';
 import { WorklistPage } from '../pages/WorklistPage';
 import { StudentsPage } from '../pages/StudentsPage';
 import { StudentDetailPage } from '../pages/StudentDetailPage';
@@ -32,9 +35,12 @@ const NAV_COLLAPSED_KEY = 'sahay_nav_collapsed';
  * a desktop it was a visible control that did nothing when pressed.
  */
 export function AppShell() {
-  const { user, logout, isStaff } = useAuth();
+  const { user, logout, isStaff, isInstitution } = useAuth();
   const toast = useToast();
-  const [view, setView] = useState('worklist');
+  // An HOD lands on the institution; a mentor lands on their worklist. The
+  // roles ask different questions and the first screen should answer the one
+  // they actually have.
+  const [view, setView] = useState(() => (isInstitution ? 'institution' : 'worklist'));
   const [selectedRoll, setSelectedRoll] = useState(null);
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [studentsFilter, setStudentsFilter] = useState('all');
@@ -42,17 +48,41 @@ export function AppShell() {
   const [collapsed, setCollapsed] = useState(
     () => localStorage.getItem(NAV_COLLAPSED_KEY) === '1',
   );
-  const [dialog, setDialog] = useState(null);   // 'add' | 'remove' | null
+  // 'add' | 'remove'                    institution: create / delete a student
+  // 'caseload-add' | 'caseload-drop'     mentor: assign / unassign
+  const [dialog, setDialog] = useState(null);
+  // The mentor's own caseload size, shown in the sidebar. Institution roles do
+  // not have one, so it stays null and nothing is rendered.
+  const [caseload, setCaseload] = useState(null);
+  // HOD drilling into one mentor from the institution view. Null for a mentor,
+  // whose scope the server pins regardless of what this component asks for.
+  const [mentorScope, setMentorScope] = useState(null);
   // Bumped whenever the roster changes. It is part of every page's key, so the
   // open page remounts and refetches instead of showing a student count that
   // no longer matches the database.
   const [dataVersion, setDataVersion] = useState(0);
 
-  const nav = useMemo(() => NAV.filter((n) => !n.staffOnly || isStaff), [isStaff]);
+  const nav = useMemo(() => NAV
+    .filter((n) => (!n.staffOnly || isStaff) && (!n.institutionOnly || isInstitution))
+    .map((n) => (n.id === 'students'
+      ? { ...n, hint: isInstitution ? 'Every student on the roll' : 'My students' }
+      : n)),
+  [isStaff, isInstitution]);
 
   useEffect(() => {
     localStorage.setItem(NAV_COLLAPSED_KEY, collapsed ? '1' : '0');
   }, [collapsed]);
+
+  // Refetched on dataVersion so an add or a drop updates the count without a
+  // reload. Institution roles are skipped rather than shown a count of zero.
+  useEffect(() => {
+    if (isInstitution) { setCaseload(null); return undefined; }
+    const ac = new AbortController();
+    api.caseload.mine({ signal: ac.signal })
+      .then(setCaseload)
+      .catch(() => { /* the sidebar badge is not worth an error state */ });
+    return () => ac.abort();
+  }, [isInstitution, dataVersion]);
 
   /** Scroll to a section on the page that is already open. */
   const scrollToSection = useCallback((sectionId) => {
@@ -69,6 +99,7 @@ export function AppShell() {
   const goto = useCallback((item, parent) => {
     setDrawerOpen(false);
     setSelectedRoll(null);
+    setMentorScope(null);
 
     if (parent?.id === 'students' || item.id === 'students') {
       setStudentsFilter(item.filter || 'all');
@@ -83,10 +114,20 @@ export function AppShell() {
   /** Drill down from a metric or chart into the matching student list. */
   const showStudents = useCallback((filter = 'all') => {
     setStudentsFilter(filter);
+    setMentorScope(null);
     setView('students');
     setSelectedRoll(null);
     setDrawerOpen(false);
     setExpanded((e) => new Set(e).add('students'));
+  }, []);
+
+  /** HOD: from the mentor table into that mentor's caseload. */
+  const showMentorCaseload = useCallback((mentorId, mentorName) => {
+    setMentorScope({ id: mentorId, name: mentorName });
+    setStudentsFilter('all');
+    setView('students');
+    setSelectedRoll(null);
+    setDrawerOpen(false);
   }, []);
 
   const openStudent = useCallback((rollNo) => {
@@ -118,9 +159,16 @@ export function AppShell() {
   }, [drawerOpen]);
 
   const current = nav.find((n) => n.id === view);
-  const scope = user?.role === 'mentor'
-    ? [user.dept, user.section].filter(Boolean).join(' · ') || 'Your sections'
-    : 'All departments';
+  // What this person is responsible for, in words.
+  //
+  // "Your sections" was wrong for a mentor and always had been: a caseload is
+  // a pastoral allocation, not a timetable slice, and these 27 students span
+  // eleven departments. Saying how many departments is the honest summary.
+  const scope = isInstitution
+    ? 'Whole institution'
+    : caseload && caseload.count
+      ? `${Object.keys(caseload.departments || {}).length} departments`
+      : 'Your caseload';
 
   return (
     <div className={cx('shell', collapsed && 'shell--rail')}>
@@ -141,6 +189,17 @@ export function AppShell() {
             icon={<IconMenu width={16} height={16} />}
           />
         </div>
+
+        {/* The mentor's scope, stated as a number. "My students: 27" is the
+            answer to "what am I responsible for", and it is the caseload the
+            server returns rather than a count of what happens to be on
+            screen. */}
+        {caseload && caseload.count !== null && (
+          <div className="sidebar__scope">
+            <span className="sidebar__scope-label">My students</span>
+            <Badge tone="info">{caseload.count}</Badge>
+          </div>
+        )}
 
         <nav className="sidebar__nav" aria-label="Main">
           {nav.map((item) => {
@@ -228,26 +287,54 @@ export function AppShell() {
             onClick={() => setDrawerOpen(true)} icon={<IconMenu />} />
           <div className="topbar__title">
             <h1>{selectedRoll ? 'Student record' : (current?.label || 'Sahay')}</h1>
-            <p>{selectedRoll ? selectedRoll : (current?.hint || '')}</p>
+            <p>
+              {selectedRoll ? selectedRoll
+                : mentorScope ? `${mentorScope.name}’s caseload`
+                  : (current?.hint || '')}
+            </p>
           </div>
 
           {/* Staff only, because both routes sit behind require_mentor -- for
               anyone else these would be buttons that return 403. */}
+          {/* Different verbs for different authority, and the wording is the
+              safeguard. A mentor adds a student TO THEIR CASELOAD and removes
+              them FROM IT; the institution admits a new student and can erase
+              one. Offering a mentor a button labelled "Remove student" that
+              called DELETE is how "off my list" becomes "gone from the
+              institution", so the two pairs are kept apart. The backend
+              enforces this regardless -- DELETE is require_institution. */}
           {isStaff && (
             <div className="topbar__actions">
-              {/* The label is a span so a phone can drop to icon-only without
-                  losing the accessible name, which aria-label keeps either
-                  way. */}
-              <Button variant="secondary" onClick={() => setDialog('add')}
-                aria-label="Add student" title="Add student"
-                icon={<IconPlus width={15} height={15} />}>
-                <span className="btn__label">Add student</span>
-              </Button>
-              <Button variant="ghost" onClick={() => setDialog('remove')}
-                aria-label="Remove student" title="Remove student"
-                icon={<IconTrash width={15} height={15} />}>
-                <span className="btn__label">Remove student</span>
-              </Button>
+              {isInstitution ? (
+                <>
+                  <Button variant="secondary" onClick={() => setDialog('add')}
+                    aria-label="Admit a new student" title="Admit a new student"
+                    icon={<IconPlus width={15} height={15} />}>
+                    <span className="btn__label">Admit student</span>
+                  </Button>
+                  <Button variant="ghost" onClick={() => setDialog('remove')}
+                    aria-label="Delete a student from the institution"
+                    title="Delete a student from the institution"
+                    icon={<IconTrash width={15} height={15} />}>
+                    <span className="btn__label">Delete student</span>
+                  </Button>
+                </>
+              ) : (
+                <>
+                  <Button variant="secondary" onClick={() => setDialog('caseload-add')}
+                    aria-label="Add a student to my caseload"
+                    title="Add a student to my caseload"
+                    icon={<IconPlus width={15} height={15} />}>
+                    <span className="btn__label">Add student</span>
+                  </Button>
+                  <Button variant="ghost" onClick={() => setDialog('caseload-drop')}
+                    aria-label="Remove a student from my caseload"
+                    title="Remove a student from my caseload — this does not delete them"
+                    icon={<IconTrash width={15} height={15} />}>
+                    <span className="btn__label">Drop student</span>
+                  </Button>
+                </>
+              )}
             </div>
           )}
         </header>
@@ -261,15 +348,23 @@ export function AppShell() {
             />
           ) : (
             <>
+              {view === 'institution' && isInstitution && (
+                <InstitutionPage key={`institution-${dataVersion}`}
+                  onDrillDown={showStudents}
+                  onSelectMentor={showMentorCaseload} />
+              )}
               {view === 'worklist' && (
                 <WorklistPage key={`worklist-${dataVersion}`}
                   onSelectStudent={openStudent} onDrillDown={showStudents} />
               )}
               {view === 'students' && (
                 <StudentsPage
-                  key={`students-${studentsFilter}-${dataVersion}`}
+                  key={`students-${studentsFilter}-${mentorScope?.id || 'self'}-${dataVersion}`}
                   onSelectStudent={openStudent}
                   defaultRisk={studentsFilter}
+                  mentorScope={mentorScope?.id}
+                  scopeLabel={mentorScope ? `${mentorScope.name}’s caseload`
+                    : isInstitution ? 'the institution' : 'your caseload'}
                 />
               )}
               {view === 'analytics' && (
@@ -292,6 +387,35 @@ export function AppShell() {
             // until enough weeks of data exist, which is the thing a mentor
             // would otherwise report as a bug.
             toast.success(res.message || `${res.name} admitted as ${res.roll_no}.`);
+          }}
+        />
+      )}
+
+      {dialog === 'caseload-add' && (
+        <AddToCaseloadModal
+          onClose={() => setDialog(null)}
+          onAdded={(res) => {
+            setDialog(null);
+            setDataVersion((v) => v + 1);
+            toast.success(`${res.name} added to your caseload.`);
+          }}
+        />
+      )}
+
+      {dialog === 'caseload-drop' && (
+        <DropFromCaseloadModal
+          onClose={() => setDialog(null)}
+          onDropped={(res) => {
+            setDialog(null);
+            // If their record is open it must close: the mentor is no longer
+            // authorised for it, and refetching would give them a 403.
+            if (selectedRoll && res.roll_no
+                && selectedRoll.toUpperCase() === res.roll_no.toUpperCase()) {
+              setSelectedRoll(null);
+            }
+            setDataVersion((v) => v + 1);
+            toast.success(`${res.name} removed from your caseload. `
+                          + 'Their record and history are unchanged.');
           }}
         />
       )}

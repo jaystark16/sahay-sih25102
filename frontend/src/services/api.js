@@ -31,6 +31,20 @@ export const auth = {
 };
 
 /* ----------------------------------------------------------- dashboard ---- */
+/**
+ * Scope is NOT sent from here.
+ *
+ * These used to take a `mentor` argument and put it in the query string, which
+ * made the browser the authority on what it was allowed to see -- omitting it
+ * returned the whole institution. The API now derives scope from the session
+ * (see resolve_scope), so a mentor gets their caseload and an HOD gets the
+ * institution, whatever the request says.
+ *
+ * `mentor` survives on a few of these as an OPTIONAL narrowing argument, and
+ * the backend honours it only for institution roles. That is the HOD's
+ * per-mentor drill-down; for a mentor it is refused with 403 rather than
+ * silently ignored.
+ */
 export const dashboard = {
   /** -> {at_risk, total_students, rising, average_cgpa} */
   summaryCards: (mentor, opts) => get(`/dashboard${query({ mentor })}`, opts),
@@ -138,6 +152,60 @@ export const interventions = {
     post('/feedback', { roll_no: rollNo, mentor, verdict, reason: reason ?? '' }),
 };
 
+/* ------------------------------------------------------------ caseload ---- */
+/**
+ * Assignment, not creation. Dropping, not deletion.
+ *
+ * A mentor adding a student is taking responsibility for someone who already
+ * exists in the institution -- no student record is created and none is
+ * duplicated. A mentor dropping a student ends that responsibility and keeps
+ * every trace of the student: record, attendance, interventions, outcomes,
+ * risk history, audit trail. Deletion is a separate institution-only route.
+ */
+export const caseload = {
+  /** -> {mentor_id, mentor_name, count, departments:{DEPT:n}, cohort_count, students:[...]} */
+  mine: (opts) => get('/mentor/caseload', opts),
+
+  /**
+   * Institution-wide student lookup, for the Add flow only.
+   *
+   * Separate from dashboard.students on purpose: that one is scoped to the
+   * caller, so a mentor could never use it to find a student who is not yet
+   * theirs. Returns identification fields only -- no score, no band.
+   * -> {students:[{roll_no,name,dept,year,section,status,current_mentor_name}]}
+   */
+  lookup: (q, { limit = 10, ...opts } = {}) =>
+    get(`/directory/lookup${query({ q, limit })}`, opts),
+
+  /** Take responsibility for an existing student. -> {roll_no,name,mentor_id,...} */
+  add: (rollNo, reason) => post('/mentor/caseload', { roll_no: rollNo, reason: reason ?? '' }),
+
+  /** Hand a student back. The student is retained. -> {..., student_retained:true} */
+  drop: (rollNo) => del(`/mentor/caseload/${encodeURIComponent(rollNo)}`),
+
+  /** -> {roll_no, history:[{mentor_id,assigned_at,status,ended_at,end_reason}]} */
+  history: (rollNo, opts) => get(`/assignments/${encodeURIComponent(rollNo)}`, opts),
+};
+
+/* --------------------------------------------------------- institution ---- */
+/** HOD / principal / admin only. A mentor gets 403. */
+export const institution = {
+  /** -> {totals:{students,scored,high,medium,low,rising,unassigned},
+   *      departments:[...], cohorts:[...], mentors:[...]} */
+  overview: (opts) => get('/institution', opts),
+
+  /** -> {mentors:[{mentor_id,mentor_name,caseload,high,medium,rising,departments,cohorts,open_interventions}]} */
+  mentors: (opts) => get('/institution/mentors', opts),
+
+  /** Drill into one mentor's caseload. */
+  caseloadOf: (mentorId, opts) =>
+    get(`/institution/caseload/${encodeURIComponent(mentorId)}`, opts),
+
+  /** Assign or reassign any student to any mentor. */
+  assign: (rollNo, mentorId, reason) =>
+    post('/assignments', { roll_no: rollNo, mentor_id: mentorId, reason: reason ?? '' }),
+};
+
 /* --------------------------------------------------- data operations ------ */
 /** All staff-only. Destructive ones are confirmed in the UI before calling. */
 export const dataOps = {
@@ -175,5 +243,5 @@ export const dataOps = {
 
 export default {
   auth, dashboard, student, analytics, model, config, mentors,
-  interventions, dataOps,
+  interventions, dataOps, caseload, institution,
 };

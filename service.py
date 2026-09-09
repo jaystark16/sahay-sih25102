@@ -39,7 +39,7 @@ except ImportError:                     # pragma: no cover - depends on install
     ml = None
 import outcomes
 from ingest import ingest_file
-from risk_engine import (DEFAULT_CONFIG, WHAT_IF_FIELDS, apply_changes,
+from risk_engine import (DEFAULT_CONFIG, PLAYBOOKS, WHAT_IF_FIELDS, apply_changes,
                          build_worklist, current_levers, detect_cohort_anomalies,
                          intervention_effectiveness, minimum_change_to, risk_delta,
                          score_student, suggest_playbook)
@@ -83,6 +83,416 @@ def load_mentors(con):
 
 PRIMARY_MENTOR = "mentor"
 PRIMARY_MENTOR_NAME = "Dr. K. Fernandes"
+
+# Roles that see the whole institution. A mentor sees their caseload and
+# nothing else.
+INSTITUTION_ROLES = ("hod", "principal", "admin")
+
+
+def is_institution_role(role):
+    return role in INSTITUTION_ROLES
+
+
+# ----------------------------------------------------------------------------
+# Scope: what a session is allowed to see
+# ----------------------------------------------------------------------------
+# This is the authorization boundary, and it is deliberately the only way to
+# answer the question.
+#
+# Every scoped endpoint used to take `mentor` from the query string, so the
+# scope of a request was whatever the browser said it was. `?mentor=` omitted
+# dropped the filter entirely and returned the whole institution; naming
+# another mentor returned their caseload. Authentication was enforced and
+# authorization was not.
+#
+# resolve_scope() derives the answer from the verified session instead. A
+# mentor is pinned to their own id whatever the request asks for; only an
+# institution role may widen to everything or narrow to a named mentor, and
+# that is what makes the HOD's mentor drill-down safe.
+
+class ScopeDenied(Exception):
+    """A session asked for data outside its authority."""
+
+
+def resolve_scope(user, requested_mentor=None):
+    """The mentor_id to filter on, or None for institution-wide.
+
+    Raises ScopeDenied when a mentor asks for someone else's caseload, rather
+    than silently substituting their own -- a request that was refused is
+    something the caller should know about.
+    """
+    role = (user or {}).get("role")
+    uid = (user or {}).get("id")
+    if is_institution_role(role):
+        # HOD/principal/admin: None means the institution, a name means that
+        # mentor's caseload. Both are within authority.
+        return (requested_mentor or "").strip() or None
+    req = (requested_mentor or "").strip()
+    if req and req != uid:
+        raise ScopeDenied(f"{uid} may not view the caseload of {req}")
+    return uid
+
+
+# ----------------------------------------------------------------------------
+# Caseload assignment
+# ----------------------------------------------------------------------------
+def _sync_student_mentor(con, roll_no):
+    """Point students.mentor_id at the active assignment, or NULL if none.
+
+    The denormalised column is what every scoped query and risk_snapshots read,
+    so it has to follow the assignment table rather than drift from it.
+    """
+    row = con.execute("SELECT mentor_id FROM mentor_assignments "
+                      "WHERE roll_no=? AND status='active'", (roll_no,)).fetchone()
+    con.execute("UPDATE students SET mentor_id=? WHERE roll_no=?",
+                (row["mentor_id"] if row else None, roll_no))
+
+
+def current_assignment(con, roll_no):
+    return con.execute(
+        "SELECT mentor_id, assigned_at, assigned_by FROM mentor_assignments "
+        "WHERE roll_no=? AND status='active'", (roll_no,)).fetchone()
+
+
+def is_assigned_to(con, roll_no, mentor_id):
+    """Authoritative caseload membership check."""
+    return con.execute(
+        "SELECT 1 FROM mentor_assignments WHERE roll_no=? AND mentor_id=? "
+        "AND status='active'", (roll_no, mentor_id)).fetchone() is not None
+
+
+def may_view_student(con, user, roll_no):
+    """Can this session open this student's record?"""
+    if is_institution_role((user or {}).get("role")):
+        return True
+    return is_assigned_to(con, roll_no, (user or {}).get("id"))
+
+
+def assign_student(con, roll_no, mentor_id, actor, reason=""):
+    """Give a student to a mentor, ending any existing assignment first.
+
+    Reassignment is end-then-insert so the history survives: the previous
+    mentor's row stays, marked ended, and the new one is active. That is what
+    makes "was this student ever mine" answerable, which a single mentor_id
+    column could never do.
+    """
+    roll_no = (roll_no or "").strip().upper()
+    s = con.execute("SELECT roll_no, name FROM students WHERE roll_no=?",
+                    (roll_no,)).fetchone()
+    if not s:
+        raise ValueError(f"{roll_no} is not a student at this institution")
+    if mentor_id not in MENTORS:
+        raise ValueError(f"{mentor_id} is not a mentor")
+
+    prior = current_assignment(con, roll_no)
+    if prior and prior["mentor_id"] == mentor_id:
+        raise ValueError(f"{s['name']} is already assigned to "
+                         f"{MENTORS[mentor_id]['name']}")
+
+    now = datetime.now().isoformat(timespec="seconds")
+    if prior:
+        con.execute("UPDATE mentor_assignments SET status='ended', ended_at=?, "
+                    "ended_by=?, end_reason=? WHERE roll_no=? AND status='active'",
+                    (now, actor, reason or "reassigned", roll_no))
+    con.execute("INSERT INTO mentor_assignments "
+                "(roll_no,mentor_id,assigned_at,assigned_by,status) "
+                "VALUES (?,?,?,?,'active')", (roll_no, mentor_id, now, actor))
+    _sync_student_mentor(con, roll_no)
+    con.execute("UPDATE risk_snapshots SET mentor_id=? WHERE roll_no=?",
+                (mentor_id, roll_no))
+    audit(con, actor, "caseload_assigned", roll_no,
+          f"{s['name']} assigned to {MENTORS[mentor_id]['name']}"
+          + (f" (from {MENTORS.get(prior['mentor_id'], {}).get('name', prior['mentor_id'])})"
+             if prior else ""))
+    con.commit()
+    return {"roll_no": roll_no, "name": s["name"], "mentor_id": mentor_id,
+            "mentor_name": MENTORS[mentor_id]["name"],
+            "previous_mentor_id": prior["mentor_id"] if prior else None,
+            "assigned_at": now}
+
+
+def drop_student(con, roll_no, mentor_id, actor, reason=""):
+    """Remove a student from a mentor's caseload. NOT a deletion.
+
+    The student, their attendance, interventions, outcomes, risk history and
+    audit trail are all untouched. Only the assignment ends, and even that is
+    kept as a row rather than removed, so the institution can see who held the
+    case and when.
+    """
+    roll_no = (roll_no or "").strip().upper()
+    s = con.execute("SELECT roll_no, name FROM students WHERE roll_no=?",
+                    (roll_no,)).fetchone()
+    if not s:
+        raise ValueError(f"{roll_no} is not a student at this institution")
+    if not is_assigned_to(con, roll_no, mentor_id):
+        raise ValueError(f"{s['name']} is not on this caseload")
+
+    now = datetime.now().isoformat(timespec="seconds")
+    con.execute("UPDATE mentor_assignments SET status='ended', ended_at=?, "
+                "ended_by=?, end_reason=? WHERE roll_no=? AND mentor_id=? "
+                "AND status='active'",
+                (now, actor, reason or "dropped from caseload", roll_no, mentor_id))
+    _sync_student_mentor(con, roll_no)
+    con.execute("UPDATE risk_snapshots SET mentor_id=NULL WHERE roll_no=?", (roll_no,))
+    audit(con, actor, "caseload_dropped", roll_no,
+          f"{s['name']} removed from {MENTORS.get(mentor_id, {}).get('name', mentor_id)}"
+          f"'s caseload. Student record retained.")
+    con.commit()
+    return {"roll_no": roll_no, "name": s["name"], "dropped_from": mentor_id,
+            "ended_at": now, "student_retained": True}
+
+
+def caseload_counts(con):
+    """Active caseload size per mentor, for the HOD's mentor view."""
+    rows = con.execute(
+        "SELECT a.mentor_id, COUNT(*) n FROM mentor_assignments a "
+        "WHERE a.status='active' GROUP BY a.mentor_id").fetchall()
+    return {r["mentor_id"]: r["n"] for r in rows}
+
+
+def seed_role_demo(con, sizes=(27, 21, 34, 24, 39, 31), actor="system"):
+    """Give the institution an HOD and several mentors with real caseloads.
+
+    The starting state was one account holding all 5,003 students, which is not
+    a mentor -- it is an institution. This keeps every student and splits
+    RESPONSIBILITY instead of splitting the data: the HOD still sees all 5,003,
+    and each mentor sees the twenty-to-forty they answer for.
+
+    Caseloads are sampled across the whole roster rather than by department, so
+    a mentor holds a believable mix -- three CSE, four ECE, six MECH -- which is
+    what a real pastoral allocation looks like. Sizes differ on purpose;
+    identical caseloads look generated.
+
+    Students left unassigned are not a bug. 4,800-odd with no mentor is exactly
+    the coverage gap an HOD should be able to see, and institution_overview
+    reports it.
+    """
+    import random as _random
+    rng = _random.Random(25102)          # deterministic: same demo every time
+
+    # --- mentors and the HOD ------------------------------------------------
+    people = [(PRIMARY_MENTOR, PRIMARY_MENTOR_NAME, "mentor")]
+    for i, surname in enumerate(["Rao", "Iyer", "Menon", "Kulkarni", "Bose"], start=2):
+        people.append((f"mentor{i}", f"Dr. {MENTOR_INITIALS[i]}. {surname}", "mentor"))
+    people.append(("hod", "Prof. S. Deshpande", "hod"))
+
+    con.execute("DELETE FROM mentors")
+    con.executebatch(
+        "INSERT INTO mentors (id,name,role,dept,year,section) VALUES (?,?,?,?,?,?)",
+        [(pid, name, role, None, None, None) for pid, name, role in people])
+    con.commit()
+    load_mentors(con)
+
+    # --- caseloads ----------------------------------------------------------
+    # Only students who can actually be worked with: scoreable, active.
+    pool = [r["roll_no"] for r in con.execute(
+        "SELECT roll_no FROM students WHERE status IN ('active','enrolled') "
+        "ORDER BY roll_no")]
+    rng.shuffle(pool)
+
+    con.execute("UPDATE mentor_assignments SET status='ended', ended_at=?, "
+                "ended_by=?, end_reason='caseloads rebuilt' WHERE status='active'",
+                (datetime.now().isoformat(timespec="seconds"), actor))
+    con.execute("UPDATE students SET mentor_id=NULL")
+
+    now = datetime.now().isoformat(timespec="seconds")
+    mentors = [p[0] for p in people if p[2] == "mentor"]
+    rows, assigned = [], {}
+    cursor = 0
+    for mid, n in zip(mentors, sizes):
+        take = pool[cursor:cursor + n]
+        cursor += n
+        assigned[mid] = take
+        rows += [(r, mid, now, actor, "active") for r in take]
+
+    con.executebatch("INSERT INTO mentor_assignments "
+                     "(roll_no,mentor_id,assigned_at,assigned_by,status) "
+                     "VALUES (?,?,?,?,?)", rows)
+    con.executebatch("UPDATE students SET mentor_id=? WHERE roll_no=?",
+                     [(mid, r) for mid, rl in assigned.items() for r in rl])
+    con.executebatch("UPDATE risk_snapshots SET mentor_id=? WHERE roll_no=?",
+                     [(mid, r) for mid, rl in assigned.items() for r in rl])
+    con.execute("UPDATE risk_snapshots SET mentor_id=NULL WHERE roll_no IN "
+                "(SELECT roll_no FROM students WHERE mentor_id IS NULL)")
+    audit(con, actor, "caseloads_seeded", "institution",
+          f"{len(rows)} assignments across {len(mentors)} mentors")
+    con.commit()
+
+    # Each mentor needs a few open cases of their own, or the tracking half of
+    # the product is invisible to them: the seeded interventions all belonged
+    # to students nobody was assigned, so a mentor's strip read "Open
+    # interventions 0" beside the HOD's 12 -- true, and useless to demonstrate.
+    seeded_iv = 0
+    for mid in mentors:
+        flagged = con.execute(
+            "SELECT r.roll_no, r.primary_driver FROM risk_snapshots r "
+            "WHERE r.mentor_id=? AND r.flagged=1 "
+            "  AND NOT EXISTS (SELECT 1 FROM interventions i "
+            "                  WHERE i.roll_no=r.roll_no AND i.status='open') "
+            "ORDER BY r.priority DESC LIMIT 3", (mid,)).fetchall()
+        for f in flagged:
+            driver = f["primary_driver"] or "attendance_level"
+            pb = PLAYBOOKS.get(driver) or PLAYBOOKS["attendance_level"]
+            try:
+                create_intervention(con, f["roll_no"], mid,
+                                    pb["title"], pb["trigger"], pb["draft"],
+                                    pb.get("followup_days", 21))
+                seeded_iv += 1
+            except (ValueError, database.PostgresWrapper.Error):
+                con.rollback()
+
+    out = {"mentors": [], "hod": "hod", "open_interventions": seeded_iv,
+           "assigned": len(rows), "unassigned": len(pool) - len(rows)}
+    for mid in mentors:
+        c = caseload_of(con, mid)
+        out["mentors"].append({"mentor_id": mid, "name": c["mentor_name"],
+                               "caseload": c["count"],
+                               "departments": len(c["departments"]),
+                               "cohorts": c["cohort_count"]})
+    return out
+
+
+def caseload_of(con, mentor_id):
+    """Summary of one mentor's active caseload, with its spread.
+
+    The spread matters: a caseload is not a section. A mentor can hold three
+    CSE, four ECE and six MECH students, and the UI should be able to say so
+    rather than implying a single cohort.
+    """
+    rows = con.execute(
+        "SELECT s.roll_no, s.name, s.dept, s.year, s.section, s.status "
+        "FROM mentor_assignments a JOIN students s ON s.roll_no = a.roll_no "
+        "WHERE a.mentor_id=? AND a.status='active' "
+        "ORDER BY s.dept, s.year, s.section, s.name", (mentor_id,)).fetchall()
+    depts, sections = {}, set()
+    for r in rows:
+        depts[r["dept"]] = depts.get(r["dept"], 0) + 1
+        sections.add(f"{r['dept']} {r['year']}-{r['section']}")
+    return {
+        "mentor_id": mentor_id,
+        "mentor_name": MENTORS.get(mentor_id, {}).get("name", mentor_id),
+        "count": len(rows),
+        "departments": dict(sorted(depts.items())),
+        "cohort_count": len(sections),
+        "students": [dict(r) for r in rows],
+    }
+
+
+def directory_lookup(con, q, limit=10):
+    """Minimum information needed to identify a student, institution-wide.
+
+    No score, no band, no attendance -- picking the right person needs a name,
+    a roll number and a cohort, and nothing else. Whoever currently holds them
+    is included because assigning an already-assigned student is a
+    reassignment, and the caller should see that before they confirm.
+    """
+    term = f"%{(q or '').strip()}%"
+    rows = con.execute(
+        "SELECT s.roll_no, s.name, s.dept, s.year, s.section, s.status, "
+        "       s.mentor_id "
+        "FROM students s "
+        "WHERE s.name ILIKE ? OR s.roll_no ILIKE ? "
+        "ORDER BY s.name LIMIT ?", (term, term, int(limit))).fetchall()
+    out = []
+    for r in rows:
+        d = dict(r)
+        # Popped unconditionally. Inside a conditional expression the pop only
+        # ran when the student had a mentor, so an unassigned student kept the
+        # raw mentor_id key and the response shape varied row to row.
+        mid = d.pop("mentor_id", None)
+        d["current_mentor_name"] = MENTORS.get(mid, {}).get("name") if mid else None
+        out.append(d)
+    return out
+
+
+def institution_overview(con):
+    """The HOD's top level: institution, then departments, then cohorts.
+
+    Aggregated in SQL rather than by shipping 5,000 rows to the browser and
+    counting there. The HOD's question is "how is my institution doing", and
+    the answer is a few hundred bytes.
+    """
+    if snapshots_stale(con):
+        refresh_scores(con)
+
+    totals = con.execute(
+        "SELECT COUNT(*) students, COUNT(r.roll_no) scored, "
+        "  COUNT(CASE WHEN r.band='High' THEN 1 END) high, "
+        "  COUNT(CASE WHEN r.band='Medium' THEN 1 END) medium, "
+        "  COUNT(CASE WHEN r.band='Low' THEN 1 END) low, "
+        "  COUNT(CASE WHEN r.delta >= 10 THEN 1 END) rising, "
+        "  COUNT(CASE WHEN s.mentor_id IS NULL THEN 1 END) unassigned "
+        "FROM students s LEFT JOIN risk_snapshots r ON r.roll_no = s.roll_no"
+    ).fetchone()
+
+    depts = [dict(r) for r in con.execute(
+        "SELECT s.dept, COUNT(*) students, "
+        "  COUNT(CASE WHEN r.band='High' THEN 1 END) high, "
+        "  COUNT(CASE WHEN r.band='Medium' THEN 1 END) medium, "
+        "  COUNT(CASE WHEN r.delta >= 10 THEN 1 END) rising, "
+        "  COUNT(CASE WHEN s.mentor_id IS NOT NULL THEN 1 END) assigned, "
+        "  ROUND(AVG(r.score)::numeric, 1)::float8 avg_score "
+        "FROM students s LEFT JOIN risk_snapshots r ON r.roll_no = s.roll_no "
+        "GROUP BY s.dept ORDER BY s.dept")]
+
+    cohorts = [dict(r) for r in con.execute(
+        "SELECT s.dept, s.year, s.section, COUNT(*) students, "
+        "  COUNT(CASE WHEN r.band='High' THEN 1 END) high, "
+        "  COUNT(CASE WHEN r.delta >= 10 THEN 1 END) rising, "
+        "  ROUND(AVG(r.score)::numeric, 1)::float8 avg_score "
+        "FROM students s LEFT JOIN risk_snapshots r ON r.roll_no = s.roll_no "
+        "GROUP BY s.dept, s.year, s.section "
+        "ORDER BY COUNT(CASE WHEN r.band='High' THEN 1 END) DESC, s.dept "
+        "LIMIT 60")]
+
+    return {
+        "totals": dict(totals),
+        "departments": depts,
+        "cohorts": cohorts,
+        "mentors": mentor_overview(con),
+    }
+
+
+def mentor_overview(con):
+    """Caseload and risk load per mentor, for the HOD's mentor drill-down."""
+    rows = con.execute(
+        "SELECT a.mentor_id, COUNT(*) caseload, "
+        "  COUNT(CASE WHEN r.band='High' THEN 1 END) high, "
+        "  COUNT(CASE WHEN r.band='Medium' THEN 1 END) medium, "
+        "  COUNT(CASE WHEN r.delta >= 10 THEN 1 END) rising, "
+        "  COUNT(DISTINCT s.dept) departments, "
+        "  COUNT(DISTINCT s.dept || s.year || s.section) cohorts "
+        "FROM mentor_assignments a "
+        "JOIN students s ON s.roll_no = a.roll_no "
+        "LEFT JOIN risk_snapshots r ON r.roll_no = a.roll_no "
+        "WHERE a.status='active' GROUP BY a.mentor_id").fetchall()
+    # Counted through the student's assignment, not through interventions.mentor.
+    # That column stores the mentor's display NAME ("Dr. K. Fernandes"), not
+    # their id, so grouping by it and looking the result up by mentor_id
+    # matched nothing and every mentor showed 0 open cases. Going via
+    # students.mentor_id also means a reassigned student's open case follows
+    # them to the new mentor, which is the behaviour that matches "who is
+    # responsible for this now".
+    open_iv = {r["mentor_id"]: r["n"] for r in con.execute(
+        "SELECT s.mentor_id, COUNT(*) n FROM interventions i "
+        "JOIN students s ON s.roll_no = i.roll_no "
+        "WHERE i.status='open' AND s.mentor_id IS NOT NULL "
+        "GROUP BY s.mentor_id")}
+    out = []
+    for r in rows:
+        d = dict(r)
+        d["mentor_name"] = MENTORS.get(d["mentor_id"], {}).get("name", d["mentor_id"])
+        d["open_interventions"] = open_iv.get(d["mentor_id"], 0)
+        out.append(d)
+    return sorted(out, key=lambda x: (-x["high"], -x["caseload"]))
+
+
+def assignment_history(con, roll_no):
+    """Every mentor this student has had, newest first."""
+    return [dict(r) for r in con.execute(
+        "SELECT mentor_id, assigned_at, assigned_by, status, ended_at, ended_by, "
+        "end_reason FROM mentor_assignments WHERE roll_no=? "
+        "ORDER BY id DESC", ((roll_no or "").strip().upper(),))]
 
 
 def _seed_mentors(con):
@@ -148,6 +558,29 @@ CREATE TABLE IF NOT EXISTS risk_snapshots (
 CREATE TABLE IF NOT EXISTS mentors (
   id TEXT PRIMARY KEY, name TEXT, role TEXT, dept TEXT, year INT, section TEXT
 );
+-- Who is responsible for whom, and who has been.
+--
+-- students.mentor_id alone cannot answer "was this student ever mine", cannot
+-- record who made the assignment, and has nowhere to put a reassignment. It
+-- stays as the denormalised current-owner cache, because risk_snapshots and
+-- every scoped query already read it and an indexed single-column filter is
+-- what keeps the worklist flat at institution size -- but this table is the
+-- record of truth and _sync_student_mentor() below keeps the two in step.
+--
+-- A student may have many rows here and at most one with status='active';
+-- ux_assign_active_student enforces that, so REASSIGN is end-then-insert and
+-- cannot silently leave a student with two mentors.
+CREATE TABLE IF NOT EXISTS mentor_assignments (
+  id SERIAL PRIMARY KEY,
+  roll_no TEXT NOT NULL,
+  mentor_id TEXT NOT NULL,
+  assigned_at TEXT NOT NULL,
+  assigned_by TEXT NOT NULL,
+  status TEXT NOT NULL DEFAULT 'active',
+  ended_at TEXT,
+  ended_by TEXT,
+  end_reason TEXT
+);
 CREATE TABLE IF NOT EXISTS effectiveness_cache (
   stamp TEXT PRIMARY KEY, payload TEXT, computed_at TEXT
 );
@@ -165,6 +598,14 @@ CREATE INDEX IF NOT EXISTS ix_snap_mentor ON risk_snapshots(mentor_id, priority 
 CREATE INDEX IF NOT EXISTS ix_snap_band ON risk_snapshots(band);
 CREATE INDEX IF NOT EXISTS ix_snap_flagged ON risk_snapshots(flagged, priority DESC);
 CREATE INDEX IF NOT EXISTS ix_students_weeks ON students(weeks_of_data);
+-- At most one active mentor per student. A partial unique index rather than
+-- application logic, so a concurrent double-assign fails in the database
+-- instead of quietly producing a student with two owners.
+CREATE UNIQUE INDEX IF NOT EXISTS ux_assign_active_student
+  ON mentor_assignments(roll_no) WHERE status = 'active';
+CREATE INDEX IF NOT EXISTS ix_assign_mentor
+  ON mentor_assignments(mentor_id, status);
+CREATE INDEX IF NOT EXISTS ix_assign_roll ON mentor_assignments(roll_no);
 """
 
 
@@ -505,7 +946,12 @@ def _cohort(con, mentor_id=None):
     """Everything the engine needs, for the slice this user is allowed to see."""
     q = "SELECT * FROM students"
     args = ()
-    if mentor_id and MENTORS.get(mentor_id, {}).get("role") == "mentor":
+    # mentor_id here has already been through resolve_scope(), which is the
+    # authorization boundary: None means an institution role asked for the
+    # whole institution, a value means that caseload. Re-checking the role
+    # here would let a request that resolve_scope refused slip through as
+    # unscoped, which is exactly how `?mentor=` omitted returned all 5,003.
+    if mentor_id:
         q += " WHERE mentor_id=?"
         args = (mentor_id,)
     rows = con.execute(q, args).fetchall()
@@ -1038,7 +1484,12 @@ def get_worklist(con, mentor_id=None, capacity=5, page=1, page_size=50):
         refresh_scores(con)
 
     scope, args = "1=1", []
-    if MENTORS.get(mentor_id, {}).get("role") == "mentor":
+    # mentor_id here has already been through resolve_scope(), which is the
+    # authorization boundary: None means an institution role asked for the
+    # whole institution, a value means that caseload. Re-checking the role
+    # here would let a request that resolve_scope refused slip through as
+    # unscoped, which is exactly how `?mentor=` omitted returned all 5,003.
+    if mentor_id:
         scope, args = "mentor_id=?", [mentor_id]
 
     def rows(where, extra=(), limit=None, offset=0):
@@ -1083,14 +1534,19 @@ def get_worklist(con, mentor_id=None, capacity=5, page=1, page_size=50):
             "mentor": MENTORS.get(mentor_id, {}).get("name", mentor_id),
             "mentor_id": mentor_id, "students_in_scope": in_scope,
             "mode": model_status(con)["mode"],
-            "onboarding": lifecycle.onboarding_queue(con, 20),
+            "onboarding": lifecycle.onboarding_queue(con, 20, mentor_id),
             "scores_computed_at": stamp}
 
 
 def list_students(con, mentor_id=None, q="", risk="all", page=1, page_size=50):
     """Paginated directory. At 20,000 students you cannot ship the whole table."""
     where, args = ["1=1"], []
-    if mentor_id and MENTORS.get(mentor_id, {}).get("role") == "mentor":
+    # mentor_id here has already been through resolve_scope(), which is the
+    # authorization boundary: None means an institution role asked for the
+    # whole institution, a value means that caseload. Re-checking the role
+    # here would let a request that resolve_scope refused slip through as
+    # unscoped, which is exactly how `?mentor=` omitted returned all 5,003.
+    if mentor_id:
         where.append("s.mentor_id=?")
         args.append(mentor_id)
     if q:
@@ -1135,7 +1591,12 @@ def get_summary(con, mentor_id=None):
     if snapshots_stale(con):
         refresh_scores(con)
     scope, args = "1=1", []
-    if MENTORS.get(mentor_id, {}).get("role") == "mentor":
+    # mentor_id here has already been through resolve_scope(), which is the
+    # authorization boundary: None means an institution role asked for the
+    # whole institution, a value means that caseload. Re-checking the role
+    # here would let a request that resolve_scope refused slip through as
+    # unscoped, which is exactly how `?mentor=` omitted returned all 5,003.
+    if mentor_id:
         scope, args = "mentor_id=?", [mentor_id]
     bands = {"Low": 0, "Medium": 0, "High": 0}
     for r in con.execute(f"SELECT band, COUNT(*) c FROM risk_snapshots WHERE {scope} "
@@ -1151,8 +1612,16 @@ def get_summary(con, mentor_id=None):
     scored = sum(bands.values())
     return {"total_students": total, "scored": scored,
             "not_yet_scoreable": total - scored, "bands": bands, "rising": rising,
+            # Scoped like every other number on this strip. It was a bare
+            # COUNT over the whole interventions table, so a mentor with 27
+            # students saw the institution's 12 open actions beside their own
+            # counts of 3 and 2 -- a number they could not reconcile and did
+            # not own.
             "open_interventions": con.execute(
-                "SELECT COUNT(*) c FROM interventions WHERE status='open'").fetchone()["c"],
+                f"SELECT COUNT(*) c FROM interventions i WHERE i.status='open'"
+                + (" AND i.roll_no IN (SELECT roll_no FROM students "
+                   "WHERE mentor_id=?)" if mentor_id else ""),
+                ([mentor_id] if mentor_id else [])).fetchone()["c"],
             "mode": model_status(con)["mode"], "data_source": "Synthetic demo data"}
 
 
@@ -1163,7 +1632,12 @@ def get_roster(con, mentor_id=None):
     last week correctly shows no percentage rather than a misleading 0.
     """
     scope, args = "1=1", []
-    if MENTORS.get(mentor_id, {}).get("role") == "mentor":
+    # mentor_id here has already been through resolve_scope(), which is the
+    # authorization boundary: None means an institution role asked for the
+    # whole institution, a value means that caseload. Re-checking the role
+    # here would let a request that resolve_scope refused slip through as
+    # unscoped, which is exactly how `?mentor=` omitted returned all 5,003.
+    if mentor_id:
         scope, args = "s.mentor_id=?", [mentor_id]
     # Two Postgres details in this one query, both of which SQLite tolerated:
     #   1. attendance.pct is REAL, so AVG() returns double precision, and
@@ -1186,7 +1660,12 @@ def get_roster(con, mentor_id=None):
 
 def get_dashboard(con, mentor_id=None):
     scope, args = "1=1", []
-    if MENTORS.get(mentor_id, {}).get("role") == "mentor":
+    # mentor_id here has already been through resolve_scope(), which is the
+    # authorization boundary: None means an institution role asked for the
+    # whole institution, a value means that caseload. Re-checking the role
+    # here would let a request that resolve_scope refused slip through as
+    # unscoped, which is exactly how `?mentor=` omitted returned all 5,003.
+    if mentor_id:
         scope, args = "mentor_id=?", [mentor_id]
         
     bands = {"Low": 0, "Medium": 0, "High": 0}
@@ -1584,12 +2063,47 @@ def get_audit(con, limit=100):
 # ----------------------------------------------------------------------------
 # Lifecycle passthroughs (thin, so main.py stays a router)
 # ----------------------------------------------------------------------------
-def admit_student(con, **kw):
-    return lifecycle.admit(con, audit_fn=audit, **kw)
+def _record_admission_assignment(con, roll_no, actor):
+    """Mirror an admission's auto-assigned mentor into mentor_assignments.
+
+    lifecycle.admit() picks a mentor with _auto_mentor() and writes
+    students.mentor_id directly, which predates the assignment table. Without
+    this the two disagree the moment anyone is admitted: the directory filters
+    on students.mentor_id and counted the new student, caseload_of() reads
+    mentor_assignments and did not, so a mentor's own screens showed 28 and 27
+    at the same time.
+
+    Written here rather than inside lifecycle so that module stays free of the
+    assignment concept, and idempotent so a re-admission cannot create a second
+    active row -- the partial unique index would refuse it anyway.
+    """
+    mid = con.execute("SELECT mentor_id FROM students WHERE roll_no=?",
+                      (roll_no,)).fetchone()
+    mid = mid["mentor_id"] if mid else None
+    if not mid or is_assigned_to(con, roll_no, mid):
+        return
+    con.execute("UPDATE mentor_assignments SET status='ended', ended_at=?, "
+                "ended_by=?, end_reason='superseded on admission' "
+                "WHERE roll_no=? AND status='active'",
+                (datetime.now().isoformat(timespec="seconds"), actor, roll_no))
+    con.execute("INSERT INTO mentor_assignments "
+                "(roll_no,mentor_id,assigned_at,assigned_by,status) "
+                "VALUES (?,?,?,?,'active')",
+                (roll_no, mid, datetime.now().isoformat(timespec="seconds"), actor))
+    con.commit()
+
+
+def admit_student(con, actor="admin", **kw):
+    res = lifecycle.admit(con, actor=actor, audit_fn=audit, **kw)
+    _record_admission_assignment(con, res["roll_no"], actor)
+    return res
 
 
 def admit_students_bulk(con, records, actor="admin"):
-    return lifecycle.admit_bulk(con, records, actor=actor, audit_fn=audit)
+    res = lifecycle.admit_bulk(con, records, actor=actor, audit_fn=audit)
+    for s in res.get("students", []):
+        _record_admission_assignment(con, s["roll_no"], actor)
+    return res
 
 
 def remove_student(con, roll_no, actor="mentor"):
@@ -1606,7 +2120,13 @@ def remove_student(con, roll_no, actor="mentor"):
         raise ValueError(f"{roll_no} not found")
 
     removed = {}
-    for table in ("attendance", "interventions", "feedback", "risk_snapshots"):
+    # mentor_assignments included: a genuine deletion means the person is gone,
+    # and leaving their assignment rows behind would keep them in a mentor's
+    # caseload count for ever with no student to open. This is the one place
+    # assignment history is discarded rather than ended, because there is no
+    # longer a subject for it to be history of.
+    for table in ("attendance", "interventions", "feedback", "risk_snapshots",
+                  "mentor_assignments"):
         cur = con.execute(f"DELETE FROM {table} WHERE roll_no=?", (roll_no,))
         removed[table] = cur.rowcount
     con.execute("DELETE FROM students WHERE roll_no=?", (roll_no,))
@@ -1636,8 +2156,8 @@ def update_student(con, roll_no, actor="staff", **kw):
     return lifecycle.update_record(con, roll_no, actor=actor, audit_fn=audit, **kw)
 
 
-def get_onboarding(con, limit=50):
-    return lifecycle.onboarding_queue(con, limit)
+def get_onboarding(con, limit=50, mentor_id=None):
+    return lifecycle.onboarding_queue(con, limit, mentor_id)
 
 def seed_open_interventions(con, count=12, actor="system"):
     """Give the demo a realistic set of interventions that are still running.

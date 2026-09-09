@@ -105,11 +105,29 @@ export function AuthProvider({ children }) {
     clearSession();
   }, [clearSession]);
 
-  const isStaff = Boolean(user && ['mentor', 'admin', 'staff'].includes(user.role));
+  /**
+   * Two different questions, kept apart on purpose.
+   *
+   * isStaff  -- "does this person work here": mentors included. Gates the
+   *             staff surfaces (uploads, config, interventions).
+   * isInstitution -- "may this person see the whole institution": mentors
+   *             excluded. Gates the HOD views and destructive deletion.
+   *
+   * Mirrors the backend exactly (service.INSTITUTION_ROLES and require_staff),
+   * because a UI that offers a control the API will refuse is worse than not
+   * offering it. Neither of these is the security boundary -- that is enforced
+   * server-side -- they only decide what is worth rendering.
+   */
+  const isStaff = Boolean(user
+    && ['mentor', 'hod', 'principal', 'admin', 'staff'].includes(user.role));
+  const isInstitution = Boolean(user
+    && ['hod', 'principal', 'admin'].includes(user.role));
 
   const value = useMemo(() => ({
-    user, token, checking, isStaff, login, logout, changePassword, clearSession,
-  }), [user, token, checking, isStaff, login, logout, changePassword, clearSession]);
+    user, token, checking, isStaff, isInstitution,
+    login, logout, changePassword, clearSession,
+  }), [user, token, checking, isStaff, isInstitution,
+       login, logout, changePassword, clearSession]);
 
   return <AuthCtx.Provider value={value}>{children}</AuthCtx.Provider>;
 }

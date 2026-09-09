@@ -1,5 +1,4 @@
 import { useMemo, useState } from 'react';
-import { useAuth } from '../auth/AuthContext';
 import { useApi, useDebounced } from '../hooks/useApi';
 import api from '../services/api';
 import { Card, FilterBar, SearchInput, SectionHeader, Select } from '../components/ui/Primitives';
@@ -10,21 +9,32 @@ import { PAGE_SIZE, RISK_FILTERS } from '../lib/constants';
 import { count, date, label } from '../lib/format';
 
 /**
- * The student directory.
+ * The student directory, scoped by the server.
  *
  * Server-paginated. The API caps page_size at 200 and returns
  * {total, page, page_size, pages}, so this asks for one page at a time rather
  * than pulling the whole institution and slicing it in the browser -- at
  * 5,000+ students that would be several megabytes per view.
  *
+ * `mentorScope` is NOT how a mentor gets scoped. The API pins that to the
+ * session, so this component could ask for anything and still receive only the
+ * caller's caseload. It exists for the HOD drilling into one mentor from the
+ * institution view, which the backend permits for institution roles and
+ * refuses with 403 for everyone else. It used to send `mentor = user.id` for
+ * mentors, which read as though the browser were choosing the scope; it never
+ * should have been, and now it is not.
+ *
+ * `scopeLabel` is passed in rather than derived here, because the shell already
+ * knows the role and this component has no other reason to read the session.
+ *
  * A note on columns: /api/students deliberately returns only identity, status
  * and the current score/band. Attendance and CGPA are NOT in this payload
  * (they live on /analytics/roster), so they are not shown here rather than
  * being faked or fetched per row.
  */
-export function StudentsPage({ onSelectStudent, defaultRisk = 'all' }) {
-  const { user } = useAuth();
-  const mentor = user?.role === 'mentor' ? user.id : undefined;
+export function StudentsPage({ onSelectStudent, defaultRisk = 'all',
+                               mentorScope, scopeLabel = 'this list' }) {
+  const mentor = mentorScope || undefined;
 
   const [search, setSearch] = useState('');
   const [risk, setRisk] = useState(defaultRisk);
@@ -97,10 +107,7 @@ export function StudentsPage({ onSelectStudent, defaultRisk = 'all' }) {
       <Card className="stack">
         <SectionHeader
           title="Students"
-          subtitle={
-            data ? `${count(data.total)} in ${mentor ? 'your sections' : 'the institution'}`
-              : 'Directory'
-          }
+          subtitle={data ? `${count(data.total)} in ${scopeLabel}` : 'Directory'}
         />
 
         <FilterBar>

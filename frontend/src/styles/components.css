@@ -133,6 +133,28 @@
   overflow-y: auto; min-height: 0;
 }
 
+/* The mentor's caseload size, above the nav. */
+.sidebar__scope {
+  display: flex; align-items: center; justify-content: space-between;
+  gap: var(--s-2); padding: var(--s-2) var(--s-3); margin-bottom: var(--s-3);
+  background: var(--fill-primary); border-radius: var(--r-sm);
+}
+.sidebar__scope-label {
+  font-size: 11.5px; font-weight: 550; color: var(--label-secondary);
+  text-transform: uppercase; letter-spacing: 0.03em;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.shell--rail .sidebar__scope { display: none; }
+
+/* A note under a pick-list row, e.g. who currently holds this student. */
+.pick-list__note { font-size: 11px; color: var(--warning); }
+
+/* The neutral variant of the confirmation subject: adding someone is not a
+   destructive act and should not be dressed in the danger colour. */
+.confirm-subject--neutral {
+  background: var(--fill-primary); border-color: var(--separator);
+}
+
 .nav-group { display: flex; flex-direction: column; }
 
 .nav-item {

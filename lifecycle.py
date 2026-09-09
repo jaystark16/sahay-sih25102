@@ -286,15 +286,23 @@ def weeks_of_data(con, roll_no):
                        (roll_no,)).fetchone()["c"]
 
 
-def onboarding_queue(con, limit=50):
+def onboarding_queue(con, limit=50, mentor_id=None):
     """Students admitted but not yet scoreable. The screen that tells a mentor
-    'these exist, we are watching, there is nothing to act on yet'."""
+    'these exist, we are watching, there is nothing to act on yet'.
+
+    Scoped, because this returns names. Unscoped it put students from anywhere
+    in the institution on a mentor's own worklist under "Collecting data" --
+    people they are not responsible for and should not be reading about. The
+    HOD passes mentor_id=None and sees all of them.
+    """
     # Reads the denormalised counter. The GROUP BY version joined half a million
     # attendance rows on every page load.
     rows = con.execute(
         "SELECT roll_no, name, dept, year, section, admitted_on, "
         "weeks_of_data AS weeks FROM students "
         "WHERE status IN ('enrolled','active') AND weeks_of_data < ? "
-        "ORDER BY admitted_on DESC, roll_no LIMIT ?",
-        (MODEL_MIN_WEEKS, limit)).fetchall()
+        + ("AND mentor_id = ? " if mentor_id else "")
+        + "ORDER BY admitted_on DESC, roll_no LIMIT ?",
+        ((MODEL_MIN_WEEKS, mentor_id, limit) if mentor_id
+         else (MODEL_MIN_WEEKS, limit))).fetchall()
     return [{**dict(r), "stage": stage_info(r["weeks"])} for r in rows]
