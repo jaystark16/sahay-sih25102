@@ -132,7 +132,7 @@ function AuthProvider({ children }) {
   }, [token]);
 
   return (
-    <AuthCtx.Provider value={{ user, token, checking, login, logout, apiFetch }}>
+    <AuthCtx.Provider value={{ user, setUser, token, checking, login, logout, apiFetch }}>
       {children}
     </AuthCtx.Provider>
   );
@@ -151,7 +151,73 @@ function AppRouter() {
   const { user, checking } = useAuth();
   if (checking) return <LoadingScreen />;
   if (!user) return <LoginPage />;
+  // A seeded account gets a random password and must_change_password set, and
+  // the API refuses every other route until it is cleared. Without this screen
+  // the user signs in successfully and then sees "Set a new password before
+  // using the app" on every page with no way to do it -- locked out by the
+  // very check meant to protect them.
+  if (user.must_change_password) return <ChangePasswordPage />;
   return <AppShell />;
+}
+
+function ChangePasswordPage() {
+  const { user, setUser, apiFetch } = useAuth();
+  const [oldPassword, setOldPassword] = useState('');
+  const [newPassword, setNewPassword] = useState('');
+  const [confirm, setConfirm] = useState('');
+  const [err, setErr] = useState('');
+  const [busy, setBusy] = useState(false);
+
+  const submit = async e => {
+    e.preventDefault();
+    setErr('');
+    if (newPassword !== confirm) { setErr('The two new passwords do not match.'); return; }
+    if (newPassword.length < 10) { setErr('New password must be at least 10 characters.'); return; }
+    setBusy(true);
+    try {
+      await apiFetch('/api/auth/change-password', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ old_password: oldPassword, new_password: newPassword }),
+      });
+      // The API revokes every session on a password change, so the current
+      // token is now dead. Send the user back to sign in with the new one.
+      localStorage.removeItem('sahay_token');
+      setUser(null);
+      window.location.reload();
+    } catch (e2) {
+      setErr(e2.message);
+      setBusy(false);
+    }
+  };
+
+  return (
+    <div className="login-page">
+      <div className="login-card">
+        <div className="login-logo">S</div>
+        <h1>Set a new password</h1>
+        <p className="login-sub">
+          This account was created with a temporary password. Choose your own to continue.
+        </p>
+        {err && <div className="login-error">{err}</div>}
+        <form onSubmit={submit}>
+          <label>Current password</label>
+          <input type="password" value={oldPassword} autoFocus
+            onChange={e => setOldPassword(e.target.value)} />
+          <label>New password</label>
+          <input type="password" value={newPassword}
+            onChange={e => setNewPassword(e.target.value)} />
+          <label>Confirm new password</label>
+          <input type="password" value={confirm}
+            onChange={e => setConfirm(e.target.value)} />
+          <button type="submit" disabled={busy}>
+            {busy ? 'Saving…' : 'Set password'}
+          </button>
+        </form>
+        <p className="login-hint">Signed in as {user.email}</p>
+      </div>
+    </div>
+  );
 }
 
 function LoadingScreen() {
