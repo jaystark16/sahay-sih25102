@@ -634,8 +634,15 @@ def _stored_model_result(con, roll_no):
         "probability": round(pct / 100.0, 4),
         "percent": round(pct, 1),
         "horizon_weeks": (report.get("task") or {}).get("horizon_weeks"),
-        "statement": f"About {pct:.0f}% likely to fall further within the next "
-                     f"{(report.get('task') or {}).get('horizon_weeks', 6)} weeks.",
+        # Matches ml._statement's wording deliberately. "About X% likely to
+        # fall further within the next 6 weeks" claimed both a calibrated
+        # probability and a horizon, and the model has neither: its label
+        # carries no time dimension, and on this cohort it averages ~40% where
+        # the observed six-week rate is ~2%. It ranks well (ROC AUC 0.91
+        # against a real six-week outcome); it does not quantify.
+        "statement": f"Disengagement score {pct:.0f}/100 -- how much this "
+                     f"student's attendance pattern resembles those the model "
+                     f"was trained to flag. A ranking, not a probability.",
         "computed": "stored",
         "note": "Served from the last scoring run rather than recomputed now.",
     }

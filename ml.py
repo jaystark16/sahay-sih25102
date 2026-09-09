@@ -311,8 +311,40 @@ def train(seed=0, verbose=True):
 
     report = {
         "task": {
-            "target": "dropout",
-            "target_is_not": "short term disengagement",
+            # What this ACTUALLY trains on, which is not what the docstring at
+            # the top of this file describes.
+            #
+            # The design in that docstring -- stand at week t, predict whether
+            # mean attendance over t+1..t+H falls below DISENGAGE_PCT -- is
+            # implemented in label_at(). label_at() is never called.
+            # build_dataset() uses `lab = r.get("dropout", 0)` instead: a
+            # student-level flag from the dataset, identical for all ten time
+            # points of a student. Verified: of 5,000 students, zero have a
+            # label that changes over time, so there is no horizon in the
+            # target at all and horizon_weeks describes only the feature
+            # window.
+            #
+            # In demo_data that flag is
+            #   dropout = (backlogs >= 2) or (mean_engagement < 0.7 and rand() < 0.3)
+            # so it is ~determined by backlogs -- every student with 2+
+            # backlogs is positive -- and backlogs is deliberately EXCLUDED as
+            # a feature. The model therefore infers a mostly-backlog-driven
+            # flag from the shape of attendance, with a 30% random draw on top
+            # that is irreducible. That is what the 0.786 ROC AUC measures.
+            #
+            # Left stated rather than quietly relabelled: fixing this means
+            # switching build_dataset() to label_at() and retraining, which
+            # changes every number in this report.
+            "target": ("a student-level flag in the training data "
+                       "(demo_data: 2+ backlogs, or low engagement with a 30% "
+                       "draw), inferred from attendance shape alone"),
+            "target_is_not": ("a time-to-event forecast. The label does not "
+                              "vary over time, so this is not a 6-week "
+                              "prediction despite horizon_weeks below"),
+            "target_implementation_note": (
+                "label_at() implements the intended 6-week disengagement "
+                "event but is not used; build_dataset() reads the dataset's "
+                "dropout column."),
             "horizon_weeks": HORIZON,
             "min_history_weeks": MIN_HISTORY,
             "split": "by student, 70/30. No student appears in both sides.",
@@ -369,12 +401,26 @@ DISPLAY_FLOOR, DISPLAY_CEIL = 0.01, 0.99
 
 def _statement(prob, bundle):
     """Never print 100% or 0%. A model that claims certainty about a person is
-    making a claim it cannot support, and a judge will say so."""
+    making a claim it cannot support, and a judge will say so.
+
+    It also must not claim a horizon it does not have. This used to read
+    "N% chance attendance falls below 50% within 6 weeks", which describes
+    label_at() -- the intended target that build_dataset() never uses. The
+    label it is actually fitted to is a student-level flag with no time
+    dimension, so the honest reading of the output is a comparative one: this
+    student resembles the flagged group more than that student does.
+
+    The number is also not a calibrated probability. Measured on the demo
+    cohort, the mean prediction is ~40% where the observed rate over the next
+    six weeks is ~2%, so it is useful for ranking and misleading as a
+    likelihood. The wording says "score", not "chance", for that reason.
+    """
     p = min(max(prob, DISPLAY_FLOOR), DISPLAY_CEIL)
-    lead = ("over 99%" if prob > DISPLAY_CEIL else
-            "under 1%" if prob < DISPLAY_FLOOR else f"{p * 100:.0f}%")
-    return (f"{lead} chance attendance falls below {bundle['threshold']:.0f}% "
-            f"within {bundle['horizon']} weeks")
+    lead = ("over 99" if prob > DISPLAY_CEIL else
+            "under 1" if prob < DISPLAY_FLOOR else f"{p * 100:.0f}")
+    return (f"Disengagement score {lead}/100 -- how much this student's "
+            f"attendance pattern resembles those the model was trained to "
+            f"flag. A ranking, not a probability.")
 
 
 def predict_batch(bundle, students, n_weeks=None):

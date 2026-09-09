@@ -66,10 +66,15 @@ function TrainedModel({ info }) {
             <span className="model-claim__key">It does not predict</span>
             <span className="model-claim__val">{task.target_is_not || ABSENT}</span>
           </div>
+          {/* "6 weeks ahead" read as a forecast horizon. It is the width of
+              the feature window, not of the target: the label the model is
+              fitted to is a fixed property of the student and does not vary
+              over time, so there is no "ahead" in it. */}
           <div className="model-claim__row">
-            <span className="model-claim__key">Horizon</span>
+            <span className="model-claim__key">Feature window</span>
             <span className="model-claim__val">
-              {isNum(task.horizon_weeks) ? `${task.horizon_weeks} weeks ahead` : ABSENT}
+              {isNum(task.horizon_weeks)
+                ? `${task.horizon_weeks} weeks of history` : ABSENT}
             </span>
           </div>
           <div className="model-claim__row">

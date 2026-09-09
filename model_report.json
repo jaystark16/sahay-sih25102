@@ -1,7 +1,7 @@
 {
   "task": {
-    "target": "dropout",
-    "target_is_not": "short term disengagement",
+    "target": "a student-level flag in the training data (demo_data: 2+ backlogs, or low engagement with a 30% draw), inferred from attendance shape alone",
+    "target_is_not": "a time-to-event forecast. The label does not vary over time, so this is not a 6-week prediction despite horizon_weeks",
     "horizon_weeks": 6,
     "min_history_weeks": 10,
     "split": "by student, 70/30. No student appears in both sides.",
@@ -16,7 +16,8 @@
       "weeks_observed": "calendar artifact, does not transfer across time",
       "ia_count_available": "calendar artifact, does not transfer across time"
     },
-    "n_features": 17
+    "n_features": 17,
+    "target_implementation_note": "label_at() implements the intended 6-week disengagement event but is not used; build_dataset() reads the dataset's dropout column."
   },
   "overall": [
     {

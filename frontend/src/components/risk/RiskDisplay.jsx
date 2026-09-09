@@ -224,18 +224,20 @@ export function ModelOpinion({ hybrid }) {
   return (
     <div className="model-opinion">
       <h4 className="model-opinion__title">
-        Model estimate
-        <HelpTip text={'An estimate from a trained model, not arithmetic. It '
-          + 'looks at the shape of the attendance trend, which the threshold '
-          + 'rules cannot see.'} />
+        Disengagement score
+        <HelpTip text={'A trained model, not arithmetic: it reads the shape of '
+          + 'the attendance trend, which the threshold rules cannot see. Use it '
+          + 'to rank who to contact first. It is not a probability -- across '
+          + 'this cohort it averages about 40 while roughly 2% of students '
+          + 'actually disengage over six weeks, so the ordering is meaningful '
+          + 'and the magnitude is not.'} />
       </h4>
+      {/* Printed as a score out of 100, not "N% risk within 6 weeks". That
+          wording claimed a calibrated probability and a horizon; the label the
+          model is fitted to has neither -- it does not vary over time at all. */}
       <p className="model-opinion__figure">
-        {pct(m.percent, 0)}
-        {isNum(m.horizon_weeks) && (
-          <span className="model-opinion__horizon">
-            {' '}risk within {m.horizon_weeks} weeks
-          </span>
-        )}
+        {isNum(m.percent) ? Math.round(m.percent) : ABSENT}
+        <span className="model-opinion__horizon"> / 100</span>
       </p>
       {m.statement && <p className="model-opinion__statement">{m.statement}</p>}
       {m.computed === 'stored' && m.note && (
