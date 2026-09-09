@@ -1002,8 +1002,24 @@ def list_students(con, mentor_id=None, q="", risk="all", page=1, page_size=50):
         where.append("(s.roll_no ILIKE ? OR s.name ILIKE ?)")
         args += [f"%{q}%", f"%{q}%"]
         
-    if risk == "at_risk":
-        where.append("r.band IN ('Medium', 'High')")
+    # Band filtering, so a drill-down from the dashboard or the risk
+    # distribution chart lands on exactly the cohort that was clicked rather
+    # than an approximation of it. Values are matched against a fixed map, so
+    # nothing user-supplied reaches the SQL.
+    RISK_FILTERS = {
+        "at_risk": "r.band IN ('Medium', 'High')",
+        "high": "r.band = 'High'",
+        "medium": "r.band = 'Medium'",
+        "low": "r.band = 'Low'",
+        # delta >= 10 exactly matches get_summary's "rising" count. Using
+        # delta > 0 here would show 1,087 students behind a metric reading
+        # 544 -- a drill-down that contradicts the number it came from.
+        "rising": "r.delta >= 10",
+        "unscored": "r.band IS NULL",
+    }
+    clause = RISK_FILTERS.get(risk)
+    if clause:
+        where.append(clause)
 
     w = " AND ".join(where)
     total = con.execute(f"SELECT COUNT(*) c FROM students s LEFT JOIN risk_snapshots r ON s.roll_no = r.roll_no WHERE {w}", args).fetchone()["c"]
@@ -1518,10 +1534,80 @@ def update_student(con, roll_no, actor="staff", **kw):
 def get_onboarding(con, limit=50):
     return lifecycle.onboarding_queue(con, limit)
 
+def seed_open_interventions(con, count=12, actor="system"):
+    """Give the demo a realistic set of interventions that are still running.
+
+    interventions_seed.csv is history: every one of its 900 rows is closed with
+    an outcome. That leaves the tracking half of the product loop invisible --
+    "Open interventions" reads 0, no student shows a follow-up, and nobody can
+    see what an in-progress case looks like.
+
+    "Open" is a statement about today, not about whenever the CSV was
+    generated, so these are created here against the students who are actually
+    flagged right now, using each student's own suggested playbook. Requires
+    risk_snapshots to be populated, so call it after refresh_scores.
+
+    Idempotent: students who already have an open intervention are skipped.
+    """
+    # Spread across primary drivers rather than taking the top N by priority.
+    # The highest-priority students almost all share one driver, so a plain
+    # LIMIT produced twelve copies of the same playbook -- true, but it hides
+    # the range of actions the system actually routes to. Every student here is
+    # genuinely flagged and still gets their own suggested playbook; only the
+    # selection order changes.
+    candidates = con.execute(
+        "SELECT r.roll_no, r.mentor_id, r.primary_driver FROM risk_snapshots r "
+        "WHERE r.flagged = 1 AND r.cohort IS NULL "
+        "AND NOT EXISTS (SELECT 1 FROM interventions i "
+        "                WHERE i.roll_no = r.roll_no AND i.status = 'open') "
+        "ORDER BY r.priority DESC LIMIT ?", (count * 25,)).fetchall()
+
+    by_driver = {}
+    for row in candidates:
+        by_driver.setdefault(row["primary_driver"], []).append(row)
+
+    flagged, pools = [], list(by_driver.values())
+    while pools and len(flagged) < count:
+        for pool in list(pools):
+            if not pool:
+                pools.remove(pool)
+                continue
+            flagged.append(pool.pop(0))
+            if len(flagged) >= count:
+                break
+
+    fallback_mentor = default_mentor(con)
+    made = 0
+    for row in flagged:
+        detail = get_student(con, row["roll_no"])
+        pb = (detail or {}).get("suggested_playbook")
+        if not pb:
+            # No dominant driver, so no standard action to suggest. Skipping is
+            # correct: inventing one would misrepresent what the rules decided.
+            continue
+        try:
+            create_intervention(con, row["roll_no"],
+                                row["mentor_id"] or fallback_mentor,
+                                pb["title"], pb["trigger"],
+                                action_text="",
+                                followup_days=pb.get("followup_days", 21))
+            made += 1
+        except ValueError:
+            # Student vanished between the query and the insert; not fatal.
+            continue
+    return made
+
+
 if __name__ == "__main__":
     print("Rebuilding database...")
     print(" ", reset_db())
     con = connect()
+
+    # Scores first: seed_open_interventions picks the students who are actually
+    # flagged, so it needs risk_snapshots to exist.
+    refresh_scores(con)
+    opened = seed_open_interventions(con)
+    print(f"  {opened} interventions left open, so the demo shows work in progress")
 
     mid = default_mentor(con)
     s = get_summary(con, mid)

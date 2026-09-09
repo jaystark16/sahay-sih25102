@@ -41,10 +41,20 @@ export const NAV = [
     hint: 'Import, refresh and configuration' },
 ];
 
-/** Risk filter options for the directory. Values match the API's `risk` param. */
+/**
+ * Directory filters. Values match service.list_students' RISK_FILTERS map
+ * exactly, and each one reconciles with the metric that links to it -- the
+ * "rising" filter uses the same delta >= 10 threshold as the summary count,
+ * so clicking 544 shows 544 students.
+ */
 export const RISK_FILTERS = [
   { value: 'all', label: 'All students' },
   { value: 'at_risk', label: 'At risk (Medium + High)' },
+  { value: 'high', label: 'High risk only' },
+  { value: 'medium', label: 'Medium risk only' },
+  { value: 'low', label: 'Low risk only' },
+  { value: 'rising', label: 'Risk rising' },
+  { value: 'unscored', label: 'Not yet scoreable' },
 ];
 
 /**

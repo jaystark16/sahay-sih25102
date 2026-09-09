@@ -79,7 +79,7 @@ export function InterventionPanel({ rollNo, interventions, suggested, onChanged 
         <div className="playbook">
           <div className="playbook__head">
             <strong>{suggested.title || suggested.playbook}</strong>
-            {suggested.trigger && <Badge tone="neutral">{suggested.trigger}</Badge>}
+            {suggested.trigger && <Badge tone="neutral">{label(suggested.trigger)}</Badge>}
           </div>
           {suggested.why && <p className="playbook__why">{suggested.why}</p>}
           {Array.isArray(suggested.steps) && suggested.steps.length > 0 && (

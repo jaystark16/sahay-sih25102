@@ -157,7 +157,12 @@ function Lever({ name, field, value, onChange }) {
 }
 
 function WhatIfResult({ result }) {
-  const improved = isNum(result.score_change) && result.score_change < 0;
+  // Three outcomes, not two. Zero change is neutral -- rendering it red said
+  // "this made things worse" when the honest answer is "this changed nothing",
+  // which happens whenever the moved lever's component is already at its cap.
+  const change = isNum(result.score_change) ? result.score_change : null;
+  const tone = change === null || change === 0 ? 'is-flat'
+    : change < 0 ? 'is-good' : 'is-bad';
   return (
     <div className="whatif-result">
       <div className="whatif-result__scores">
@@ -170,8 +175,8 @@ function WhatIfResult({ result }) {
           <span className="whatif-result__cap">Simulated</span>
           <RiskBadge band={result.after?.band} score={result.after?.score} size="sm" />
         </div>
-        <span className={`whatif-result__change ${improved ? 'is-good' : 'is-bad'}`}>
-          {signed(result.score_change)} points
+        <span className={`whatif-result__change ${tone}`}>
+          {change === 0 ? 'No change' : `${signed(result.score_change)} points`}
         </span>
       </div>
 

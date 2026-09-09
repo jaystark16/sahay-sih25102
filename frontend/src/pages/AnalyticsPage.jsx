@@ -16,7 +16,7 @@ import { ABSENT, count, decimal, isNum, label, num, pct, share } from '../lib/fo
  * our actions help, and is the system treating groups differently. Anything
  * the backend cannot yet measure says so rather than rendering an empty axis.
  */
-export function AnalyticsPage() {
+export function AnalyticsPage({ onDrillDown }) {
   const { user } = useAuth();
   const mentor = user?.role === 'mentor' ? user.id : undefined;
 
@@ -26,7 +26,7 @@ export function AnalyticsPage() {
 
   return (
     <div className="page">
-      <RiskDistribution summary={summary} />
+      <RiskDistribution summary={summary} onDrillDown={onDrillDown} />
       <Effectiveness state={effectiveness} />
       <Fairness state={fairness} />
     </div>
@@ -34,7 +34,7 @@ export function AnalyticsPage() {
 }
 
 /* ------------------------------------------------- risk distribution ----- */
-function RiskDistribution({ summary }) {
+function RiskDistribution({ summary, onDrillDown }) {
   const s = summary.data;
   const bands = s?.bands;
   const total = isNum(s?.scored) ? s.scored : null;
@@ -60,15 +60,18 @@ function RiskDistribution({ summary }) {
       >
         <>
           <div className="metric-strip">
-            <Metric label="Total students" value={count(s?.total_students)} />
+            <Metric label="Total students" value={count(s?.total_students)}
+              onClick={onDrillDown ? () => onDrillDown('all') : undefined} />
             <Metric label="Scored" value={count(s?.scored)}
               sub={isNum(s?.total_students) && isNum(s?.scored)
                 ? `${pct(share(s.scored, s.total_students), 0)} coverage` : undefined}
               hint="Students with enough history for the rules to produce a score." />
             <Metric label="Not yet scoreable" tone="muted"
               value={count(s?.not_yet_scoreable)}
-              hint="Recently admitted. Listed rather than hidden." />
-            <Metric label="Risk rising" tone="warning" value={count(s?.rising)} />
+              hint="Recently admitted. Listed rather than hidden."
+              onClick={onDrillDown ? () => onDrillDown('unscored') : undefined} />
+            <Metric label="Risk rising" tone="warning" value={count(s?.rising)}
+              onClick={onDrillDown ? () => onDrillDown('rising') : undefined} />
             <Metric label="Scoring mode" value={s?.mode || ABSENT}
               hint="Rules only, or rules combined with the trained model." />
           </div>
@@ -95,7 +98,15 @@ function RiskDistribution({ summary }) {
                     'Count',
                   ]}
                 />
-                <Bar dataKey="n" radius={[6, 6, 0, 0]}>
+                <Bar
+                  dataKey="n"
+                  radius={[6, 6, 0, 0]}
+                  cursor={onDrillDown ? 'pointer' : undefined}
+                  onClick={onDrillDown
+                    ? (bar) => bar?.payload?.band
+                      && onDrillDown(bar.payload.band.toLowerCase())
+                    : undefined}
+                >
                   {data.map((d) => (
                     <Cell key={d.band} fill={`var(--${toneVar(d.tone)})`} />
                   ))}
@@ -103,6 +114,23 @@ function RiskDistribution({ summary }) {
               </BarChart>
             </ResponsiveContainer>
           </div>
+
+          {onDrillDown && bands && (
+            <div className="drill-row">
+              <span className="muted-note">Open a band in the directory:</span>
+              {BAND_ORDER.map((b) => (
+                <button
+                  key={b}
+                  type="button"
+                  className="drill-chip"
+                  onClick={() => onDrillDown(b.toLowerCase())}
+                >
+                  {bandMeta(b).text}
+                  <span className="drill-chip__n">{count(bands[b])}</span>
+                </button>
+              ))}
+            </div>
+          )}
         </>
       </AsyncBoundary>
     </Card>

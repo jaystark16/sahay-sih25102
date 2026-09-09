@@ -66,13 +66,17 @@ export function Card({ as: Tag = 'section', pad = true, className, children, ...
 }
 
 export function SectionHeader({ title, subtitle, actions, help, id }) {
+  // The help control sits beside the heading, not inside it. Nested, its
+  // accessible name is concatenated into the heading's, so a screen reader
+  // announced "Section alerts When a whole section drops together, the cause
+  // is usually a timetable..." as the heading text.
   return (
     <header className="section-header">
       <div className="section-header__text">
-        <h2 className="section-header__title" id={id}>
-          {title}
+        <div className="section-header__row">
+          <h2 className="section-header__title" id={id}>{title}</h2>
           {help && <HelpTip text={help} />}
-        </h2>
+        </div>
         {subtitle && <p className="section-header__sub">{subtitle}</p>}
       </div>
       {actions && <div className="section-header__actions">{actions}</div>}
@@ -82,15 +86,24 @@ export function SectionHeader({ title, subtitle, actions, help, id }) {
 
 /* ------------------------------------------------------------ HelpTip ---- */
 /**
- * A small "?" that explains a term. Uses the native title attribute plus an
- * accessible name, so it works without JS and is reachable by keyboard.
+ * A small "?" that explains a term.
+ *
+ * Deliberately not a <button>. It performs no action -- the previous version
+ * was a button whose only handler was preventDefault(), i.e. a control that
+ * did nothing -- and nesting it inside the now-clickable Metric card produced
+ * invalid HTML (a button inside a button) that React reported as a hydration
+ * error.
+ *
+ * A focusable span with role="note" keeps it reachable by keyboard and
+ * announced by a screen reader, while being legal anywhere and honest about
+ * doing nothing when pressed.
  */
 export function HelpTip({ text }) {
   return (
-    <button type="button" className="help-tip" title={text}
-      aria-label={text} onClick={(e) => e.preventDefault()}>
+    <span className="help-tip" role="note" tabIndex={0}
+      title={text} aria-label={text}>
       ?
-    </button>
+    </span>
   );
 }
 
@@ -107,8 +120,11 @@ export function Metric({ label, value, sub, tone = 'default', hint, onClick }) {
       onClick={onClick}
       type={onClick ? 'button' : undefined}
     >
-      <span className="metric__label">
-        {label}
+      {/* HelpTip is a sibling of the label, not a child: nested, its text is
+          concatenated into the label's accessible name, so "At risk" would be
+          announced as the whole explanatory sentence. */}
+      <span className="metric__head">
+        <span className="metric__label">{label}</span>
         {hint && <HelpTip text={hint} />}
       </span>
       <span className="metric__value">{value}</span>

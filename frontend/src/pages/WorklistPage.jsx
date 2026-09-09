@@ -14,7 +14,7 @@ import { ABSENT, count, isNum, label, pct } from '../lib/format';
  * scoped to the signed-in mentor when they hold that role, which is how the
  * backend expects to be asked.
  */
-export function WorklistPage({ onSelectStudent }) {
+export function WorklistPage({ onSelectStudent, onDrillDown }) {
   const { user } = useAuth();
   const mentor = user?.role === 'mentor' ? user.id : undefined;
 
@@ -32,7 +32,7 @@ export function WorklistPage({ onSelectStudent }) {
 
   return (
     <div className="page">
-      <SummaryStrip summary={summary} worklist={data} />
+      <SummaryStrip summary={summary} worklist={data} onDrillDown={onDrillDown} />
 
       <Card className="stack">
         <SectionHeader
@@ -101,7 +101,7 @@ export function WorklistPage({ onSelectStudent }) {
 }
 
 /* ------------------------------------------------------- summary strip --- */
-function SummaryStrip({ summary, worklist }) {
+function SummaryStrip({ summary, worklist, onDrillDown }) {
   if (summary.loading) return <LoadingState label="Loading summary…" />;
   if (summary.error) {
     return <ErrorState error={summary.error} onRetry={summary.reload} compact />;
@@ -119,6 +119,7 @@ function SummaryStrip({ summary, worklist }) {
         label="Students in scope"
         value={count(s.total_students)}
         sub={isNum(s.scored) ? `${count(s.scored)} scored` : undefined}
+        onClick={onDrillDown ? () => onDrillDown('all') : undefined}
       />
       <Metric
         label="At risk"
@@ -126,13 +127,15 @@ function SummaryStrip({ summary, worklist }) {
         value={atRisk === null ? ABSENT : count(atRisk)}
         sub={isNum(s.bands?.High) ? `${count(s.bands.High)} high` : undefined}
         hint="Students currently in the Medium or High band."
+        onClick={onDrillDown ? () => onDrillDown('at_risk') : undefined}
       />
       <Metric
         label="Risk rising"
         tone="warning"
         value={count(s.rising)}
-        hint="Students whose score has increased since the last comparison point.
-              This is the signal the worklist ranks on."
+        hint="Students whose score has increased by 10 points or more since the
+              last comparison. This is the signal the worklist ranks on."
+        onClick={onDrillDown ? () => onDrillDown('rising') : undefined}
       />
       <Metric
         label="Open interventions"
@@ -145,6 +148,7 @@ function SummaryStrip({ summary, worklist }) {
           value={count(s.not_yet_scoreable)}
           hint="Recently admitted students without enough history to score yet.
                 They are shown deliberately rather than hidden."
+          onClick={onDrillDown ? () => onDrillDown('unscored') : undefined}
         />
       )}
       {isNum(worklist?.routed_to_cohort_count) && worklist.routed_to_cohort_count > 0 && (

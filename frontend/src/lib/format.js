@@ -131,6 +131,15 @@ const LABELS = {
   // student status
   active: 'Active',
   enrolled: 'Enrolled',
+  // intervention triggers, exactly as risk_engine emits them.
+  // assessment_decline is deliberately absent: it is already above as a risk
+  // component key with the same wording, and a duplicate literal key is a
+  // silent footgun.
+  chronic_low_attendance: 'Chronic low attendance',
+  sudden_disengagement: 'Sudden disengagement',
+  backlog_burden: 'Backlog burden',
+  low_submission: 'Low submission',
+  fee_pressure: 'Fee pressure',
   // fairness dimensions
   first_generation: 'First-generation',
   hostel: 'Hostel resident',

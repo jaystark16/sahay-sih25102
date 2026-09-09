@@ -26,11 +26,23 @@ export function AppShell() {
   const [view, setView] = useState('worklist');
   const [selectedRoll, setSelectedRoll] = useState(null);
   const [navOpen, setNavOpen] = useState(false);
+  // Set when another screen sends the user to the directory pre-filtered --
+  // clicking "At risk 480" should land on those 480, not on everyone.
+  const [studentsFilter, setStudentsFilter] = useState('all');
 
   const nav = NAV.filter((n) => !n.staffOnly || isStaff);
 
   const go = (id) => {
     setView(id);
+    setSelectedRoll(null);
+    setNavOpen(false);
+    if (id !== 'students') setStudentsFilter('all');
+  };
+
+  /** Drill down from a metric or a chart into the matching student list. */
+  const showStudents = (filter = 'all') => {
+    setStudentsFilter(filter);
+    setView('students');
     setSelectedRoll(null);
     setNavOpen(false);
   };
@@ -122,9 +134,17 @@ export function AppShell() {
             />
           ) : (
             <>
-              {view === 'worklist' && <WorklistPage onSelectStudent={openStudent} />}
-              {view === 'students' && <StudentsPage onSelectStudent={openStudent} />}
-              {view === 'analytics' && <AnalyticsPage />}
+              {view === 'worklist' && (
+                <WorklistPage onSelectStudent={openStudent} onDrillDown={showStudents} />
+              )}
+              {view === 'students' && (
+                <StudentsPage
+                  key={studentsFilter}
+                  onSelectStudent={openStudent}
+                  defaultRisk={studentsFilter}
+                />
+              )}
+              {view === 'analytics' && <AnalyticsPage onDrillDown={showStudents} />}
               {view === 'model' && <ModelPage />}
               {view === 'admin' && isStaff && <AdminPage />}
             </>

@@ -27,6 +27,13 @@ export function AuthProvider({ children }) {
   const [checking, setChecking] = useState(Boolean(localStorage.getItem(TOKEN_KEY)));
   const tokenRef = useRef(token);
 
+  // Which token we have already established a user for. Without this, a fresh
+  // login was immediately followed by a redundant /auth/me and, worse, by
+  // setChecking(true) -- which makes the router swap the whole app out for the
+  // loading screen, unmounting every page and remounting it. Measured cost:
+  // the worklist's three requests fired four times each on sign-in.
+  const validatedToken = useRef(null);
+
   // The client reads the token through a getter so it always sees the current
   // one, without every request closing over a stale value. Writing the ref in
   // an effect rather than during render keeps render pure.
@@ -38,6 +45,7 @@ export function AuthProvider({ children }) {
 
   const clearSession = useCallback(() => {
     localStorage.removeItem(TOKEN_KEY);
+    validatedToken.current = null;
     setToken('');
     setUser(null);
   }, []);
@@ -53,10 +61,22 @@ export function AuthProvider({ children }) {
   // Resume an existing session on load.
   useEffect(() => {
     let cancelled = false;
-    if (!token) { setChecking(false); setUser(null); return undefined; }
+    if (!token) {
+      validatedToken.current = null;
+      setChecking(false);
+      setUser(null);
+      return undefined;
+    }
+    // login() already returned the user for this token; nothing to verify.
+    if (validatedToken.current === token) { setChecking(false); return undefined; }
+
     setChecking(true);
     api.auth.me()
-      .then((u) => { if (!cancelled) setUser(u); })
+      .then((u) => {
+        if (cancelled) return;
+        validatedToken.current = token;
+        setUser(u);
+      })
       .catch(() => {
         // 401 already cleared the token via the central handler. Any other
         // failure (server down) also leaves us signed out rather than
@@ -70,6 +90,9 @@ export function AuthProvider({ children }) {
   const login = useCallback(async (email, password) => {
     const d = await api.auth.login(email, password);
     localStorage.setItem(TOKEN_KEY, d.token);
+    // Mark it validated before the state updates, so the effect above does not
+    // re-verify a token we were just handed the user for.
+    validatedToken.current = d.token;
     setToken(d.token);
     setUser(d.user);
     return d.user;

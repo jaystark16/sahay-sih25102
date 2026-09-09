@@ -732,6 +732,10 @@ def demo_reset(con=Depends(get_con), user=Depends(require_mentor)):
     """
     out = service.reset_db()
     out["refresh"] = service.refresh_scores(con)
+    # Scores exist now, so the demo can be given some work in progress. Without
+    # this every seeded intervention is closed and "Open interventions" reads 0,
+    # which hides the tracking half of the product loop.
+    out["open_interventions_seeded"] = service.seed_open_interventions(con)
     # Re-seed user accounts after the full rebuild.
     auth.ensure_auth_schema(con)
     auth.seed_users(con, service.MENTORS)

@@ -26,7 +26,12 @@ export function StudentDetailPage({ rollNo, onBack }) {
     [rollNo],
   );
 
-  if (loading) {
+  // Only the *first* load replaces the page. Once there is data, a reload --
+  // which happens after every intervention is recorded -- keeps the existing
+  // content on screen. Swapping the whole tree for a skeleton unmounted the
+  // what-if panel and made it refetch its levers on every mutation, and it
+  // flashed the page for no reason.
+  if (loading && !data) {
     return (
       <div className="page">
         <BackLink onBack={onBack} />
@@ -34,7 +39,7 @@ export function StudentDetailPage({ rollNo, onBack }) {
       </div>
     );
   }
-  if (error) {
+  if (error && !data) {
     return (
       <div className="page">
         <BackLink onBack={onBack} />
@@ -49,6 +54,15 @@ export function StudentDetailPage({ rollNo, onBack }) {
   return (
     <div className="page">
       <BackLink onBack={onBack} />
+
+      {error && (
+        // A refresh failed but we still have the previous data. Say so rather
+        // than showing stale numbers as though they were current.
+        <ErrorState error={error} onRetry={reload} compact />
+      )}
+      {loading && (
+        <p className="muted-note" role="status" aria-live="polite">Refreshing…</p>
+      )}
 
       <Card className="student-head">
         <div className="student-head__identity">
