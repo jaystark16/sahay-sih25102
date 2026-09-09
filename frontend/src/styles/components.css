@@ -1130,3 +1130,130 @@
   .toast-region { left: var(--s-3); right: var(--s-3); max-width: none; }
   .metric__value { font-size: 21px; }
 }
+
+/* =========================================================
+   Motion
+
+   Restored from the pre-rebuild stylesheet, which had these and lost them when
+   its component layer was deleted. Kept deliberately small:
+
+     - CSS only. No library, no JS, so the JavaScript bundle does not grow by a
+       single byte.
+     - Only `opacity` and `transform` are animated. Both are composited on the
+       GPU, so nothing here triggers layout or paint. Animating height, width
+       or top would.
+     - Entrances are 200-320ms and run once. Nothing loops except the login
+       backdrop, which is one element on a page with nothing else to do.
+     - The stagger is nth-child delays rather than per-element classes, so no
+       component has to know its own position.
+
+   The global prefers-reduced-motion block near the top of this file already
+   collapses every animation and transition here to 0.01ms, so a user who has
+   asked for less motion gets the final state instantly and never sees any of
+   it. That rule is why none of this needs its own opt-out.
+   ========================================================= */
+
+@keyframes rise {
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: none; }
+}
+
+@keyframes pop {
+  from { opacity: 0; transform: translateY(14px) scale(0.985); }
+  to   { opacity: 1; transform: none; }
+}
+
+@keyframes slide-in-right {
+  from { opacity: 0; transform: translateX(16px) scale(0.98); }
+  to   { opacity: 1; transform: none; }
+}
+
+@keyframes fade {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+@keyframes drift {
+  from { transform: translate3d(-1.5%, -1%, 0) scale(1); }
+  to   { transform: translate3d(1.5%, 1%, 0) scale(1.04); }
+}
+
+/* --- page and card entrances ------------------------------------------- */
+/* Each direct child of a page rises in turn. `both` so the element holds the
+   start state before its delay elapses instead of flashing at full opacity
+   and then jumping. */
+.page > * {
+  animation: rise 0.28s var(--ease-out) both;
+}
+.page > *:nth-child(2) { animation-delay: 0.04s; }
+.page > *:nth-child(3) { animation-delay: 0.08s; }
+.page > *:nth-child(4) { animation-delay: 0.12s; }
+.page > *:nth-child(5) { animation-delay: 0.16s; }
+.page > *:nth-child(n + 6) { animation-delay: 0.2s; }
+
+/* The metric strip reads as one row, so the cards arrive across it. */
+.metric-strip > .metric {
+  animation: rise 0.26s var(--ease-out) both;
+}
+.metric-strip > .metric:nth-child(2) { animation-delay: 0.03s; }
+.metric-strip > .metric:nth-child(3) { animation-delay: 0.06s; }
+.metric-strip > .metric:nth-child(4) { animation-delay: 0.09s; }
+.metric-strip > .metric:nth-child(5) { animation-delay: 0.12s; }
+.metric-strip > .metric:nth-child(n + 6) { animation-delay: 0.15s; }
+
+/* --- hover and press --------------------------------------------------- */
+.metric--clickable {
+  transition: background 0.15s var(--ease-out), transform 0.12s var(--ease-out),
+              border-color 0.15s var(--ease-out);
+}
+.metric--clickable:hover {
+  transform: translateY(-2px);
+  border-color: var(--separator-thick);
+}
+.metric--clickable:active { transform: translateY(0); }
+
+.btn { transition: background 0.14s var(--ease-out), transform 0.1s var(--ease-out),
+                   border-color 0.14s var(--ease-out), opacity 0.14s; }
+/* Presses register. 0.97 is enough to feel and too small to notice as motion. */
+.btn:active:not(:disabled) { transform: scale(0.97); }
+
+.icon-btn { transition: background 0.14s var(--ease-out), color 0.14s var(--ease-out); }
+.nav-item, .nav-sub__item { transition: background 0.14s var(--ease-out),
+                                        color 0.14s var(--ease-out); }
+.card { transition: border-color 0.16s var(--ease-out); }
+.table tbody tr.is-activatable { transition: background 0.12s var(--ease-out); }
+.pick-list__item { transition: background 0.14s var(--ease-out),
+                               border-color 0.14s var(--ease-out); }
+.priority-row__btn { transition: background 0.14s var(--ease-out); }
+
+/* --- bars fill rather than appear -------------------------------------- */
+/* Width is not a composited property, but these are 4px tall and there are a
+   handful per page, so the paint cost is trivial and the payoff is that a
+   ledger reads as accumulating rather than arriving fully formed. */
+.progress__fill { transition: width 0.55s var(--ease-out); }
+
+/* --- overlays ---------------------------------------------------------- */
+.modal-backdrop { animation: fade 0.16s ease both; }
+.modal { animation: pop 0.22s var(--ease-spring) both; }
+.toast { animation: slide-in-right 0.24s cubic-bezier(0.16, 1, 0.3, 1) both; }
+.scrim { animation: fade 0.16s ease both; }
+.sidebar.is-open { animation: none; }   /* already has its own transform transition */
+
+/* --- sign-in ----------------------------------------------------------- */
+.auth-card { animation: pop 0.42s var(--ease-spring) both; }
+
+/* A slow drift behind the sign-in card. One element, transform only, and the
+   page it sits on has nothing else running. */
+.auth-page { position: relative; overflow: hidden; }
+.auth-page::before {
+  content: "";
+  position: absolute; inset: -10%;
+  background-image:
+    linear-gradient(rgba(255, 255, 255, 0.028) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.028) 1px, transparent 1px);
+  background-size: 56px 56px;
+  -webkit-mask-image: radial-gradient(circle at 50% 50%, #000 0%, transparent 72%);
+  mask-image: radial-gradient(circle at 50% 50%, #000 0%, transparent 72%);
+  pointer-events: none;
+  animation: drift 24s ease-in-out infinite alternate;
+}
