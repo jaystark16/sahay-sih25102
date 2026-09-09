@@ -50,6 +50,11 @@ One target: **Vercel**, serving both halves from a single project, with
 Vercel's **Root Directory must be the repository root** (not `frontend`), or the
 Python function at `api/index.py` is invisible to the build.
 
+`vercel.json` also sets `includeFiles` on the function. Vercel's Python builder
+ships the modules your code imports, not data files sitting beside them — so
+without it `model_report.json` and `demo_data/` are missing at runtime, and
+`/api/model` reports "no model file" even though a trained model exists.
+
 Because both halves share one origin, `VITE_API_BASE` and `CORS_ORIGINS` are not
 needed. Set them only if you split the frontend and API across different hosts.
 
