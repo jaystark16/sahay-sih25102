@@ -164,8 +164,14 @@ function LoadingScreen() {
 }
 
 // ─── Login ────────────────────────────────────────────────────────────────────
-// The single demo account. There is no admin or HOD login any more.
-const MENTOR_DEMO = { email: 'mentor@gmail.com', password: 'Sahay@Mentor2025' };
+// The demo account's address only. The password is deliberately not here.
+//
+// This used to carry `password: 'Sahay@Mentor2025'` and print it on the sign-in
+// page, which published a working credential to anyone who loaded the site. It
+// is also no longer true: seeded accounts now get a random password that must
+// be changed on first use (see auth.seed_users), so the printed value could
+// only ever mislead. Set one with `python auth.py reset <email> <password>`.
+const MENTOR_DEMO = { email: 'mentor@gmail.com' };
 
 function LoginPage() {
   const { login } = useAuth();
@@ -220,14 +226,10 @@ function LoginPage() {
         <p className="login-hint">
           <span style={{ display: 'block' }}>Mentor sign-in</span>
           <span style={{ display: 'block', marginTop: '0.3rem', cursor: 'pointer' }}
-            title="Click to fill"
-            onClick={() => { setUserId(MENTOR_DEMO.email); setPassword(MENTOR_DEMO.password); }}>
+            title="Click to fill the email"
+            onClick={() => setUserId(MENTOR_DEMO.email)}>
             <code style={{ fontFamily: 'var(--font-mono)', fontSize: '0.75rem', color: 'var(--accent)' }}>
               {MENTOR_DEMO.email}
-            </code>
-            <span style={{ color: 'var(--label-tertiary)' }}>{' / '}</span>
-            <code style={{ fontFamily: 'var(--font-mono)', fontSize: '0.75rem', color: 'var(--accent)' }}>
-              {MENTOR_DEMO.password}
             </code>
           </span>
         </p>
