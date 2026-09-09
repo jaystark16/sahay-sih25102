@@ -241,8 +241,19 @@ export function ModelOpinion({ hybrid }) {
       {m.computed === 'stored' && m.note && (
         <p className="model-opinion__note">{m.note}</p>
       )}
+      {/* The badge carries the label and the note is a sentence beneath it.
+          Concatenated into the badge, the note inherited .badge's
+          `white-space: nowrap` and pushed 72px out of a 425px panel -- the
+          text was cut off mid-word and the whole page gained a horizontal
+          scrollbar. Only visible once predictions were restored, since a
+          cohort with no stored anomaly flag never rendered this at all. */}
       {m.anomaly?.unusual && (
-        <Badge tone="info">Unusual pattern{m.anomaly.note ? ` — ${m.anomaly.note}` : ''}</Badge>
+        <div className="model-opinion__anomaly">
+          <Badge tone="info">Unusual pattern</Badge>
+          {m.anomaly.note && (
+            <p className="model-opinion__note">{m.anomaly.note}</p>
+          )}
+        </div>
       )}
       {hybrid.disagreement && (
         <div className="model-opinion__disagreement">
