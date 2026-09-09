@@ -166,8 +166,8 @@ function LoadingScreen() {
 // ─── Login ────────────────────────────────────────────────────────────────────
 // The demo account's address only. The password is deliberately not here.
 //
-// This used to carry `password: 'Sahay@Mentor2025'` and print it on the sign-in
-// page, which published a working credential to anyone who loaded the site. It
+// This used to carry a hardcoded password and print it on the sign-in page,
+// which published a working credential to anyone who loaded the site. It
 // is also no longer true: seeded accounts now get a random password that must
 // be changed on first use (see auth.seed_users), so the printed value could
 // only ever mislead. Set one with `python auth.py reset <email> <password>`.
