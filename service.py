@@ -552,13 +552,23 @@ def get_model():
     """
     global _BUNDLE, _BUNDLE_MTIME
     if ml is None:
-        # No model libraries installed -- the deployed API. Every caller
-        # already treats None as "Rules Mode", and the stored model_pct on
-        # risk_snapshots covers the display case.
         return None
     try:
         mtime = os.path.getmtime(ml.MODEL_PATH)
     except OSError:
+        # No model.joblib on this host. THIS is the branch the deployed
+        # function takes, not the `ml is None` one above: ml.py's only
+        # module-level third-party import is numpy, which pandas already
+        # installs, so `import ml` succeeds in the deployed API and every
+        # heavy import sits inside a function.
+        #
+        # Four separate call sites tested `ml is None` to mean "the deployed
+        # host", and all four were therefore wrong there: /api/model claimed
+        # nothing had been trained, the student page said the same, the stored
+        # prediction was never read, and refresh_scores overwrote all 5,001
+        # stored predictions with NULL. The honest question is the return
+        # value of this function -- can this host compute a prediction -- and
+        # callers should ask that, not guess from the import.
         _BUNDLE, _BUNDLE_MTIME = None, None
         return None
     if _BUNDLE is None or mtime != _BUNDLE_MTIME:
@@ -589,6 +599,15 @@ def _model_report():
         return None
 
 
+def _stored_prediction_count(con):
+    """How many students currently have a stored model prediction."""
+    try:
+        return con.execute("SELECT COUNT(model_pct) c FROM risk_snapshots"
+                           ).fetchone()["c"]
+    except database.PostgresWrapper.Error:
+        return None
+
+
 def _stored_model_result(con, roll_no):
     """This student's prediction as of the last refresh, from the database.
 
@@ -602,7 +621,7 @@ def _stored_model_result(con, roll_no):
     the two disagreement thresholds in _hybrid read it, and both sit well
     inside the clamp, so the reconstruction is safe for that use.
     """
-    row = con.execute("SELECT model_pct FROM risk_snapshots WHERE roll_no=?",
+    row = con.execute("SELECT model_pct, anomaly FROM risk_snapshots WHERE roll_no=?",
                       (roll_no,)).fetchone()
     if not row or row["model_pct"] is None:
         return {"available": False,
@@ -610,7 +629,7 @@ def _stored_model_result(con, roll_no):
                           "`python service.py` to refresh the scores."}
     pct = float(row["model_pct"])
     report = _model_report() or {}
-    return {
+    out = {
         "available": True,
         "probability": round(pct / 100.0, 4),
         "percent": round(pct, 1),
@@ -620,17 +639,40 @@ def _stored_model_result(con, roll_no):
         "computed": "stored",
         "note": "Served from the last scoring run rather than recomputed now.",
     }
+    # The anomaly flag is stored alongside the probability, so the "unusual
+    # pattern" badge should survive too. Without this the stored path silently
+    # dropped it and the same student showed the badge on a dev machine and not
+    # in production. Shaped like ml.predict's `anomaly` so the UI needs no
+    # special case; the isolation-forest score itself is not stored, and no
+    # caller reads it.
+    if row["anomaly"]:
+        out["anomaly"] = {
+            "unusual": True,
+            "note": "Pattern unlike the rest of the cohort. Worth a look even "
+                    "if no rule fired.",
+        }
+    return out
 
 
 def model_status(con):
     b = get_model()
     if not b:
         report = _model_report()
-        if ml is None and report:
-            # The libraries are not installed here, but a trained model exists
-            # and its report travels with the repo. Report it honestly: the
-            # predictions on the student pages are real, they were just
-            # computed elsewhere.
+        if report:
+            # A trained model exists and its report travels with the repo, but
+            # this host cannot load it -- the deployed function carries neither
+            # the 220 MB of libraries nor model.joblib. Report that honestly:
+            # the predictions on the student pages are real, they were computed
+            # elsewhere and stored.
+            #
+            # This used to be `if ml is None and report:`, which never fired on
+            # the deployed host. ml.py's only module-level third-party import is
+            # numpy, which pandas already installs, so `import ml` SUCCEEDS
+            # there -- every heavy import is inside a function. `ml` was
+            # therefore not None, this branch was skipped, and production
+            # reported "Rules Mode -- no model file" about a trained xgboost
+            # that beats both baselines. Whether the libraries imported was
+            # never the question; whether a trained model exists is.
             return {"trained": True, "mode": "Rules + Model (stored)",
                     "kind": report.get("shipped_model"),
                     "horizon_weeks": report["task"]["horizon_weeks"],
@@ -645,12 +687,17 @@ def model_status(con):
                     "early_warning": report.get("early_warning"),
                     "overall": report["overall"],
                     "data": report["data"],
+                    # Counted, not asserted. "Predictions are stored" is a
+                    # claim about the database, and for a while it was false
+                    # while this endpoint went on making it.
+                    "stored_predictions": _stored_prediction_count(con),
                     "why": "Predictions are computed during scoring and stored, "
                            "because the model libraries are too large to deploy "
                            "as a serverless function."}
         return {"trained": False, "mode": "Rules Mode",
-                "why": "No model file. Threshold rules only, which is the correct "
-                       "state before an institution has enough history."}
+                "why": "No model has been trained yet. Threshold rules only, "
+                       "which is the correct state before an institution has "
+                       "enough history."}
     r = b["report"]
     return {"trained": True, "mode": "Rules + Model",
             "kind": b["kind"], "horizon_weeks": b["horizon"],
@@ -779,11 +826,16 @@ def _hybrid(ledger, mlres, stage):
     if stage["scoring"] != "hybrid" or not mlres or not mlres.get("available"):
         if stage["scoring"] == "hybrid" and not get_model():
             # Two different situations, and saying the wrong one is a lie the
-            # /api/model page immediately contradicts. Where the libraries are
-            # simply absent -- the deployed function, which cannot carry
-            # 220 MB of scikit-learn and friends -- a model does exist and its
-            # predictions are stored; this student just has none yet.
-            if ml is None:
+            # /api/model page immediately contradicts.
+            #
+            # The test is whether a trained model EXISTS, not whether this
+            # process could import the libraries. `ml is None` was the wrong
+            # question: ml.py imports numpy and nothing else at module level,
+            # so `import ml` succeeds on the deployed function too, and
+            # production told every mentor "No prediction model has been
+            # trained yet" about a trained xgboost whose own report was sitting
+            # in the same deployment.
+            if _model_report():
                 out["model_note"] = (
                     "Predictions are computed during scoring and stored, and "
                     "none is stored for this student yet. Run `python "
@@ -814,7 +866,13 @@ def _hybrid(ledger, mlres, stage):
 
 
 def _batch_scores(con, students, cfg):
-    """Score a whole cohort. Rules in python, the model in ONE matrix call."""
+    """Score a whole cohort. Rules in python, the model in ONE matrix call.
+
+    An empty dict means "this host could not compute predictions at all" --
+    either there is no loadable model or the batch call failed. That is not the
+    same as "no student scored", and refresh_scores has to tell the two apart
+    before it writes NULL over predictions computed elsewhere.
+    """
     b = get_model()
     mlres = {}
     if b:
@@ -824,7 +882,12 @@ def _batch_scores(con, students, cfg):
                               s["features"].get("ia3")]} for s in students]
         try:
             mlres = ml.predict_batch(b, payload)
-        except Exception:
+        except Exception as e:                                  # noqa: BLE001
+            # Was a bare `except Exception: mlres = {}`. A model that loads but
+            # cannot predict is a real fault, and silently degrading to Rules
+            # Mode is how it would go unnoticed for weeks.
+            print(f"WARNING: model predict_batch failed, keeping stored "
+                  f"predictions: {type(e).__name__}: {e}")
             mlres = {}
     return mlres
 
@@ -850,6 +913,28 @@ def refresh_scores(con, actor="system"):
     wl = build_worklist(students, capacity=10 ** 9, config=cfg, cohort_alerts=alerts)
     mlres = _batch_scores(con, students, cfg)
 
+    # The predictions already on record, kept only when THIS host cannot
+    # compute any.
+    #
+    # This is what made the deployed API contradict itself. The model libraries
+    # are too large for a serverless function, so predictions are computed
+    # during a local scoring run and stored in risk_snapshots.model_pct for the
+    # API to serve. But refresh_scores also runs on the deployed host -- after
+    # an admission, a deletion, an upload commit or the admin Refresh button --
+    # and it rebuilt every row with model_pct = NULL, because that host has no
+    # model to ask. One click of Remove student in production silently erased
+    # all 5,001 stored predictions, and the student page then reported that no
+    # model had ever been trained.
+    #
+    # A host that cannot compute a prediction has learned nothing about it, so
+    # it now carries the stored value forward instead of destroying it. When a
+    # model IS loadable its per-student verdict is authoritative, including
+    # "not enough history yet", so nothing stale survives a real scoring run.
+    prior = {}
+    if not mlres:
+        prior = {r["roll_no"]: (r["model_pct"], r["anomaly"]) for r in
+                 con.execute("SELECT roll_no, model_pct, anomaly FROM risk_snapshots")}
+
     meta = {r["roll_no"]: dict(r) for r in con.execute(
         "SELECT roll_no,name,dept,year,section,mentor_id FROM students")}
     now = datetime.now().isoformat(timespec="seconds")
@@ -871,11 +956,17 @@ def refresh_scores(con, actor="system"):
         m = mlres.get(rn) or {}
         md = meta.get(rn, {})
         weeks = weeks_by_roll.get(rn, 0)
+        if m.get("available"):
+            pct, anom = m.get("percent"), int(bool(m.get("anomaly_unusual")))
+        elif mlres:
+            pct, anom = None, 0        # a real model looked and declined to score
+        else:
+            pct, anom = prior.get(rn, (None, 0))   # nothing was asked; keep what we had
         rows.append((rn, item["score"], item["band"], item["delta"], item["priority"],
                      item["confidence"], item["headline"], item["primary_driver"],
                      lifecycle.stage_for(weeks),
-                     m.get("percent") if m.get("available") else None,
-                     int(bool(m.get("anomaly_unusual"))),
+                     pct,
+                     anom,
                      (item.get("explained_by_cohort") or {}).get("cohort"),
                      jsonsafe.dumps(item.get("guardrails") or []),
                      md.get("dept"), md.get("year"), md.get("section"),
@@ -1132,11 +1223,18 @@ def get_student(con, roll_no):
             fc = ml.forecast_attendance(f["weekly_attendance"])
         except Exception as e:
             mlres = {"available": False, "reason": f"{type(e).__name__}: {e}"}
-    elif ml is None and stage["scoring"] == "hybrid":
-        # No model libraries here, but refresh_scores stored this student's
-        # probability when it last ran somewhere that had them. Serving the
-        # stored value keeps the prediction on the page; only the live
-        # recomputation and the forecast are unavailable.
+    elif stage["scoring"] == "hybrid":
+        # No loadable model on THIS host, but refresh_scores stored this
+        # student's probability when it last ran somewhere that had one.
+        # Serving the stored value keeps the prediction on the page; only the
+        # live recomputation and the attendance forecast are unavailable.
+        #
+        # The condition was `ml is None`, which is false on the deployed
+        # function -- ml.py imports only numpy at module level, so `import ml`
+        # succeeds there and every heavy import is inside a function. So this
+        # branch never ran in production, the stored predictions were never
+        # read, and the page fell through to "no model has been trained".
+        # `not b` is the real question: can this host compute or not.
         mlres = _stored_model_result(con, roll_no)
 
     att = con.execute("SELECT week_index, week_start, pct FROM attendance "

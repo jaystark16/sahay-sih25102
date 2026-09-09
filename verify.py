@@ -191,8 +191,24 @@ def main():
 
     print("\n" + "=" * 78)
     print("ALL CHECKS PASSED")
-    print(f"Mode: {score_student(students[0]['features'])['mode']}  "
-          f"(no model trained; thresholds from config)")
+    # The ledger's own mode is always "Rules Mode" -- it is exact arithmetic
+    # over the configured thresholds, by design, and never consults the model.
+    # This line used to append "(no model trained)", which was simply untrue:
+    # model_report.json describes a trained xgboost that beats both baselines.
+    # Saying otherwise in the verification output is how nobody noticed that
+    # production was making the same claim.
+    ledger_mode = score_student(students[0]["features"])["mode"]
+    trained = None
+    try:
+        import json
+        with open(os.path.join(os.path.dirname(os.path.abspath(__file__)),
+                               "model_report.json"), encoding="utf-8") as f:
+            trained = json.load(f).get("shipped_model")
+    except (OSError, ValueError):
+        pass
+    print(f"Ledger: {ledger_mode} (thresholds from config, no model involved)")
+    print(f"Model:  {trained or 'none trained'}"
+          + (" -- scored separately and shown beside the ledger" if trained else ""))
 
 
 if __name__ == "__main__":
