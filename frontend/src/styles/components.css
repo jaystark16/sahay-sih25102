@@ -93,9 +93,14 @@
 
 .page { display: flex; flex-direction: column; gap: var(--s-5); }
 
+/* `min(340px, 100%)` rather than a bare 340px: auto-fit still honours the
+   minimum when the container is narrower than it, so on a 390px phone the
+   student-detail column was laid out at 340px inside a 311px parent and spilled
+   29px past the card edge. Capping the minimum at the container width makes the
+   track collapse instead of overflow. */
 .grid-2 {
   display: grid; gap: var(--s-5);
-  grid-template-columns: repeat(auto-fit, minmax(340px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(min(340px, 100%), 1fr));
 }
 
 .stack { display: flex; flex-direction: column; gap: var(--s-4); }
@@ -328,9 +333,9 @@
   /* 188px minimum, not 158: six metrics crammed into one row at 1366 left
      every label truncated. Wrapping to two comfortable rows reads better than
      one tight one. auto-fit still uses a single row when there is space. */
-  grid-template-columns: repeat(auto-fit, minmax(188px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(min(188px, 100%), 1fr));
 }
-.metric-strip--compact { grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); }
+.metric-strip--compact { grid-template-columns: repeat(auto-fit, minmax(min(120px, 100%), 1fr)); }
 
 .metric {
   display: flex; flex-direction: column; gap: 3px;
@@ -748,7 +753,7 @@
 
 .facts {
   display: grid; gap: var(--s-3);
-  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(min(140px, 100%), 1fr));
 }
 .facts--stacked { grid-template-columns: 1fr; }
 .facts__item { display: flex; flex-direction: column; gap: 2px; }
