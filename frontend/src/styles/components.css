@@ -150,6 +150,11 @@
   font: inherit; font-size: 13.5px; font-weight: 500; text-align: left;
   border-radius: var(--r-sm);
 }
+/* The icon holds its size; only the label gives way. `min-width: 0` above
+   lets the button shrink to whatever the rail allows, and an SVG is a flex
+   item with the default `flex-shrink: 1`, so without this the icon absorbed
+   the squeeze -- 18px wide became 3px, drawn as a stray dot. */
+.nav-item__main > svg { flex-shrink: 0; }
 .nav-item__label { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
 .nav-item__caret {
@@ -190,6 +195,12 @@
 .shell--rail .sidebar { padding: var(--s-4) var(--s-2); }
 .shell--rail .sidebar__brand { flex-direction: column; gap: var(--s-2); padding-bottom: var(--s-4); }
 .shell--rail .sidebar__collapse { margin-left: 0; }
+/* Padding is stated rather than inherited. The rail has 44px of usable width
+   (60 minus the sidebar's 8px gutters) and an 18px icon needs all of it it can
+   get, so anything the row spends on horizontal padding comes straight out of
+   the icon. Declaring 0 here means a padding rule added to .nav-item later
+   cannot silently starve the rail again. */
+.shell--rail .nav-item { padding: 0; }
 .shell--rail .nav-item__main { justify-content: center; padding: var(--s-2); }
 .shell--rail .sidebar__foot { flex-direction: column; gap: var(--s-2); }
 .shell--rail .sidebar__user { justify-content: center; }
@@ -330,10 +341,15 @@
 /* ------------------------------------------------------------ metric ---- */
 .metric-strip {
   display: grid; gap: var(--s-3);
-  /* 188px minimum, not 158: six metrics crammed into one row at 1366 left
-     every label truncated. Wrapping to two comfortable rows reads better than
-     one tight one. auto-fit still uses a single row when there is space. */
-  grid-template-columns: repeat(auto-fit, minmax(min(188px, 100%), 1fr));
+  /* Measured, not guessed. At 1440 the strip is 1133px wide; the longest label
+     is "Open interventions" at 135px and the widest label-plus-help-tip is
+     "Not yet scoreable" at 149px, over 32px of card padding.
+     A 188px minimum fits only five columns here, which left the sixth metric
+     alone on its own row looking like a mistake. 170px fits all six at 178px
+     each, and the one label that no longer fits on a single line wraps to two
+     -- the labels are allowed to wrap, and every card in a grid row is the
+     same height regardless. */
+  grid-template-columns: repeat(auto-fit, minmax(min(170px, 100%), 1fr));
 }
 .metric-strip--compact { grid-template-columns: repeat(auto-fit, minmax(min(120px, 100%), 1fr)); }
 

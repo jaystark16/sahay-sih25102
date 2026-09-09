@@ -10,6 +10,7 @@ Prints a line per check and exits non-zero if anything is wrong, so you can
 trust the last line.
 """
 
+import atexit
 import os
 import sys
 import time
@@ -23,6 +24,17 @@ import risk_engine as R
 import service
 
 fails = []
+
+
+def _purge(roll_no):
+    """Remove a student this check created. Never fails the run."""
+    try:
+        service.remove_student(con, roll_no, actor="check.py")
+        print(f"  cleaned up {roll_no}")
+    except Exception as e:                                   # noqa: BLE001
+        # Said out loud on purpose. A silent failure here is how the leftover
+        # rows accumulated unnoticed in the first place.
+        print(f"  WARNING: could not clean up {roll_no}: {e}")
 
 
 def ok(name, cond, note=""):
@@ -199,6 +211,14 @@ def raises_early(fn):
 print("\nA STUDENT WHO JUST JOINED")
 name = f"Check Student {int(time.time())}"
 new = service.admit_student(con, name=name, dept="CSE", year=1)
+# Proving the onboarding path works means admitting a real student into a real
+# database, so the row has to be cleaned up afterwards. Registered here rather
+# than at the end of the section, and via atexit rather than a plain statement,
+# because a failed assertion or an exception below would otherwise skip the
+# cleanup -- which is precisely what happened. Three "Check Student
+# <timestamp>" rows accumulated in the live database and appeared on the
+# mentor's dashboard under "Collecting data".
+atexit.register(_purge, new["roll_no"])
 nd = service.get_student(con, new["roll_no"])
 ok("a record exists from day one", nd is not None, new["roll_no"])
 ok("no risk score is invented", nd["ledger"] is None, nd["stage"]["stage"])
