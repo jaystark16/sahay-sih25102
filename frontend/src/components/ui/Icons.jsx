@@ -103,6 +103,13 @@ export const IconLogout = (p) => (
   </svg>
 );
 
+export const IconTrash = (p) => (
+  <svg {...base} {...p}>
+    <path d="M3.5 6h13M8 3.5h4M5.5 6l.7 10A1.5 1.5 0 007.7 17.5h4.6a1.5 1.5 0 001.5-1.4l.7-10" />
+    <path d="M8.5 9v5M11.5 9v5" />
+  </svg>
+);
+
 export const NAV_ICONS = {
   clipboard: IconClipboard,
   users: IconUsers,

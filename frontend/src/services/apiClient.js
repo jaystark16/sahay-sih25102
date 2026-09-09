@@ -69,7 +69,13 @@ function kindForStatus(status) {
   if (status === 401) return ErrorKind.UNAUTHENTICATED;
   if (status === 403) return ErrorKind.FORBIDDEN;
   if (status === 404) return ErrorKind.NOT_FOUND;
-  if (status === 422) return ErrorKind.VALIDATION;
+  // 400 as well as 422. Every 400 this API raises comes from `except
+  // ValueError` around a domain rule -- a duplicate roll number, attendance
+  // above the classes held, marks above the maximum -- so it is the caller's
+  // input and the caller can fix it. Falling through to SERVER told the user
+  // "The server ran into a problem. This is not your input." above a message
+  // that said "22CSE0032 already exists", which is exactly their input.
+  if (status === 400 || status === 422) return ErrorKind.VALIDATION;
   if (status === 429) return ErrorKind.RATE_LIMITED;
   return ErrorKind.SERVER;
 }

@@ -108,3 +108,33 @@ export const OUTCOMES = [
 
 /** Page size for the directory. The API caps this at 200. */
 export const PAGE_SIZE = 50;
+
+/**
+ * Admissions vocabulary, for the "Add a student" form.
+ *
+ * These are the values present in the database, read off it rather than
+ * invented: SELECT DISTINCT on students.dept, .section, .year, .gender and
+ * .category. They are offered as pickers instead of text boxes because dept
+ * generates the roll number and selects the mentor -- "CSE", "cse " and "Cse"
+ * typed on three different days become three departments, and a student in a
+ * department no mentor owns is a student nobody ever sees.
+ *
+ * Adding a genuinely new department is an admin operation against the
+ * database, not something a typo in this form should be able to do.
+ */
+export const DEPTS = [
+  'AER', 'BIO', 'CHE', 'CIV', 'CIV2', 'CSE', 'CSE2',
+  'ECE', 'ECE2', 'EEE', 'IT', 'MEC', 'MEC2', 'MET',
+];
+
+export const YEARS = [1, 2, 3, 4];
+
+export const SECTIONS = ['A', 'B', 'C'];
+
+/** Stored only so the fairness audit can run; never a scoring input. */
+export const GENDERS = [
+  { value: 'M', label: 'Male' },
+  { value: 'F', label: 'Female' },
+];
+
+export const CATEGORIES = ['GEN', 'OBC', 'SC', 'ST'];

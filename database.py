@@ -205,9 +205,13 @@ class PostgresWrapper:
             self._conn.rollback()
         except psycopg2.Error:
             pass
+        # Records when this connection went idle, so alive() knows whether it
+        # has been sitting long enough to be worth probing. Only assignable
+        # because the pool builds _TrackedConnection rather than psycopg2's
+        # own C-level connection type.
         try:
             self._conn._sahay_last_used = time.monotonic()
-        except Exception:
+        except AttributeError:                                  # pragma: no cover
             pass
         try:
             if self._pool is not None and not self._conn.closed:
@@ -216,22 +220,55 @@ class PostgresWrapper:
                     return
                 except (psycopg2.Error, KeyError):
                     pass
-            self._shutdown()
+            self._discard()
         finally:
             # Must happen however we got here, or the pool leaks slots and
             # eventually every request blocks for CHECKOUT_TIMEOUT.
             self._drop_slot()
 
-    def _shutdown(self):
+    def _discard(self):
+        """Throw this connection away, and tell the pool we did.
+
+        Closing the socket is not enough. psycopg2's pool tracks checked-out
+        connections in its own `_used` dict and only removes them on putconn,
+        so a bare close() left the entry behind for ever: the pool went on
+        believing the connection was in use, its capacity dropped by one, and
+        after POOL_MAX such events every request failed with
+        "PoolError: connection pool exhausted" -- the precise error the
+        semaphore above was added to make impossible.
+
+        putconn(close=True) both closes it and frees the pool's slot.
+        """
         self._free_cursors()
+        if self._pool is not None:
+            try:
+                self._pool.putconn(self._conn, close=True)
+                return
+            except (psycopg2.Error, KeyError):
+                pass
         try:
             self._conn.close()
         except psycopg2.Error:
             pass
 
     def close(self):
-        self._shutdown()
+        self._discard()
         self._drop_slot()
+
+
+class _TrackedConnection(psycopg2.extensions.connection):
+    """A connection that can carry its own last-used timestamp.
+
+    psycopg2.extensions.connection is a C type with no __dict__, so
+    `conn._sahay_last_used = ...` raises AttributeError. That assignment sat
+    inside a bare `except Exception: pass`, so it failed silently on every
+    release, the attribute was never set, and alive() always took the
+    "no timestamp recorded, assume alive" branch. The whole IDLE_PROBE_AFTER
+    mechanism was dead code, and stale connections went straight to routes,
+    which is where "InterfaceError: connection already closed" came from.
+
+    A Python subclass has a __dict__, so the timestamp actually sticks.
+    """
 
 
 def get_pool():
@@ -243,6 +280,7 @@ def get_pool():
                     minconn=1,
                     maxconn=POOL_MAX,
                     dsn=dsn(),
+                    connection_factory=_TrackedConnection,
                     cursor_factory=RealDictCursor,
                 )
     return _pool
@@ -292,7 +330,8 @@ def connect():
     Used by the CLI entry points -- service.py, check.py, verify.py, ml.py --
     which are single-threaded and want a connection they fully own.
     """
-    raw = psycopg2.connect(dsn(), cursor_factory=RealDictCursor)
+    raw = psycopg2.connect(dsn(), connection_factory=_TrackedConnection,
+                           cursor_factory=RealDictCursor)
     raw.autocommit = False
     return PostgresWrapper(raw, pool=None, holds_slot=False)
 

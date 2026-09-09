@@ -243,6 +243,14 @@
 .topbar__title h1 { font-size: 17px; font-weight: 600; color: var(--label-primary); }
 .topbar__title p { font-size: 12.5px; color: var(--label-tertiary); margin-top: 1px; }
 
+/* Pushed to the trailing edge, and allowed to shrink before the title does --
+   a heading that says which page you are on matters more than a full-width
+   button label. */
+.topbar__actions {
+  margin-left: auto; display: flex; align-items: center; gap: var(--s-2);
+  flex-shrink: 0;
+}
+
 /* -------------------------------------------------------------- card ---- */
 .card {
   background: var(--bg-secondary);
@@ -675,6 +683,54 @@
 .field__help { font-size: 11px; color: var(--label-tertiary); }
 .field__error { font-size: 12px; color: var(--danger); }
 
+/* Fields that belong on one line. 160px, because the md dialog gives the form
+   525px and three fields need 3x160 + 2x12 = 504 to sit together -- at 180 the
+   department/year/section row broke 2 + 1, which reads as though section were
+   a different kind of thing.
+
+   `min(160px, 100%)` for the same reason the other grids use it: auto-fit
+   honours its minimum even when the container is narrower than it, so a bare
+   160px would push the form out of a phone-width dialog instead of stacking. */
+.field-row {
+  display: grid; gap: var(--s-3);
+  grid-template-columns: repeat(auto-fit, minmax(min(160px, 100%), 1fr));
+}
+
+/* An inline "show the optional half of this form" toggle. A real button, so
+   it is reachable by keyboard and announces its expanded state. */
+.disclosure {
+  align-self: flex-start; border: none; background: none; cursor: pointer;
+  padding: 2px 0; font: inherit; font-size: 12.5px; font-weight: 500;
+  color: var(--accent);
+}
+.disclosure:hover { text-decoration: underline; }
+
+/* Search results you pick from, in the remove-student dialog. */
+.pick-list { list-style: none; margin: 0; padding: 0; display: flex;
+             flex-direction: column; gap: 2px; }
+.pick-list__item {
+  width: 100%; display: flex; flex-direction: column; gap: 1px;
+  padding: var(--s-2) var(--s-3); border-radius: var(--r-sm);
+  border: 1px solid transparent; background: var(--fill-primary);
+  cursor: pointer; font: inherit; text-align: left; color: inherit;
+}
+.pick-list__item:hover {
+  background: var(--fill-secondary); border-color: var(--separator);
+}
+.pick-list__name { font-size: 13.5px; font-weight: 600; color: var(--label-primary); }
+.pick-list__meta {
+  font-size: 11.5px; color: var(--label-tertiary); font-family: var(--font-mono);
+}
+
+/* Who you are about to delete, restated above the confirmation field so the
+   name is on screen at the moment the button is pressed. */
+.confirm-subject {
+  display: flex; flex-direction: column; align-items: flex-start; gap: var(--s-1);
+  padding: var(--s-3); border-radius: var(--r-sm);
+  background: var(--danger-bg); border: 1px solid var(--danger-border);
+}
+.confirm-subject strong { font-size: 14px; color: var(--label-primary); }
+
 .tabs { display: flex; gap: 2px; border-bottom: 1px solid var(--separator); }
 .tabs__tab {
   padding: var(--s-2) var(--s-3); border: none; background: none; cursor: pointer;
@@ -993,6 +1049,12 @@
 }
 
 @media (max-width: 640px) {
+  /* The topbar has the menu button, the page title and two actions to fit.
+     At this width the actions drop to icon-only; aria-label and title carry
+     the name, so nothing is lost but the pixels. */
+  .topbar__actions .btn__label { display: none; }
+  .topbar__actions .btn { padding: 8px; }
+
   .student-head { flex-direction: column; }
   .score-summary { align-items: flex-start; }
   .priority-row__btn {

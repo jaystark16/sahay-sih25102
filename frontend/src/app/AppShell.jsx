@@ -1,8 +1,10 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useAuth } from '../auth/AuthContext';
 import { NAV } from '../lib/constants';
-import { NAV_ICONS, IconLogout, IconMenu } from '../components/ui/Icons';
-import { IconButton, cx } from '../components/ui/Primitives';
+import { NAV_ICONS, IconLogout, IconMenu, IconPlus, IconTrash } from '../components/ui/Icons';
+import { Button, IconButton, cx } from '../components/ui/Primitives';
+import { useToast } from '../components/ui/Toast';
+import { AddStudentModal, RemoveStudentModal } from '../features/students/StudentAdminModals';
 import { WorklistPage } from '../pages/WorklistPage';
 import { StudentsPage } from '../pages/StudentsPage';
 import { StudentDetailPage } from '../pages/StudentDetailPage';
@@ -31,6 +33,7 @@ const NAV_COLLAPSED_KEY = 'sahay_nav_collapsed';
  */
 export function AppShell() {
   const { user, logout, isStaff } = useAuth();
+  const toast = useToast();
   const [view, setView] = useState('worklist');
   const [selectedRoll, setSelectedRoll] = useState(null);
   const [drawerOpen, setDrawerOpen] = useState(false);
@@ -39,6 +42,11 @@ export function AppShell() {
   const [collapsed, setCollapsed] = useState(
     () => localStorage.getItem(NAV_COLLAPSED_KEY) === '1',
   );
+  const [dialog, setDialog] = useState(null);   // 'add' | 'remove' | null
+  // Bumped whenever the roster changes. It is part of every page's key, so the
+  // open page remounts and refetches instead of showing a student count that
+  // no longer matches the database.
+  const [dataVersion, setDataVersion] = useState(0);
 
   const nav = useMemo(() => NAV.filter((n) => !n.staffOnly || isStaff), [isStaff]);
 
@@ -222,33 +230,93 @@ export function AppShell() {
             <h1>{selectedRoll ? 'Student record' : (current?.label || 'Sahay')}</h1>
             <p>{selectedRoll ? selectedRoll : (current?.hint || '')}</p>
           </div>
+
+          {/* Staff only, because both routes sit behind require_mentor -- for
+              anyone else these would be buttons that return 403. */}
+          {isStaff && (
+            <div className="topbar__actions">
+              {/* The label is a span so a phone can drop to icon-only without
+                  losing the accessible name, which aria-label keeps either
+                  way. */}
+              <Button variant="secondary" onClick={() => setDialog('add')}
+                aria-label="Add student" title="Add student"
+                icon={<IconPlus width={15} height={15} />}>
+                <span className="btn__label">Add student</span>
+              </Button>
+              <Button variant="ghost" onClick={() => setDialog('remove')}
+                aria-label="Remove student" title="Remove student"
+                icon={<IconTrash width={15} height={15} />}>
+                <span className="btn__label">Remove student</span>
+              </Button>
+            </div>
+          )}
         </header>
 
         <main id="main" className="content" tabIndex={-1}>
           {selectedRoll ? (
             <StudentDetailPage
+              key={`detail-${selectedRoll}-${dataVersion}`}
               rollNo={selectedRoll}
               onBack={() => setSelectedRoll(null)}
             />
           ) : (
             <>
               {view === 'worklist' && (
-                <WorklistPage onSelectStudent={openStudent} onDrillDown={showStudents} />
+                <WorklistPage key={`worklist-${dataVersion}`}
+                  onSelectStudent={openStudent} onDrillDown={showStudents} />
               )}
               {view === 'students' && (
                 <StudentsPage
-                  key={studentsFilter}
+                  key={`students-${studentsFilter}-${dataVersion}`}
                   onSelectStudent={openStudent}
                   defaultRisk={studentsFilter}
                 />
               )}
-              {view === 'analytics' && <AnalyticsPage onDrillDown={showStudents} />}
-              {view === 'model' && <ModelPage />}
-              {view === 'admin' && isStaff && <AdminPage />}
+              {view === 'analytics' && (
+                <AnalyticsPage key={`analytics-${dataVersion}`} onDrillDown={showStudents} />
+              )}
+              {view === 'model' && <ModelPage key={`model-${dataVersion}`} />}
+              {view === 'admin' && isStaff && <AdminPage key={`admin-${dataVersion}`} />}
             </>
           )}
         </main>
       </div>
+
+      {dialog === 'add' && (
+        <AddStudentModal
+          onClose={() => setDialog(null)}
+          onAdmitted={(res) => {
+            setDialog(null);
+            setDataVersion((v) => v + 1);
+            // The API's own message explains that no risk score will be shown
+            // until enough weeks of data exist, which is the thing a mentor
+            // would otherwise report as a bug.
+            toast.success(res.message || `${res.name} admitted as ${res.roll_no}.`);
+          }}
+        />
+      )}
+
+      {dialog === 'remove' && (
+        <RemoveStudentModal
+          onClose={() => setDialog(null)}
+          onRemoved={(res) => {
+            setDialog(null);
+            // If the removed student's record is open, close it -- otherwise
+            // the detail page refetches a roll number that no longer exists
+            // and shows "That record could not be found".
+            if (selectedRoll && res.roll_no
+                && selectedRoll.toUpperCase() === res.roll_no.toUpperCase()) {
+              setSelectedRoll(null);
+            }
+            setDataVersion((v) => v + 1);
+            const weeks = res.removed?.attendance ?? 0;
+            toast.success(
+              `${res.name} removed, with ${weeks} week${weeks === 1 ? '' : 's'} `
+              + 'of attendance history. Scores have been recomputed.',
+            );
+          }}
+        />
+      )}
     </div>
   );
 }

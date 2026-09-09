@@ -70,10 +70,29 @@ export function EmptyState({ title, description, action, tone = 'neutral', icon 
  * rejected this request" and "your session ended" need different responses
  * from the user.
  */
+/**
+ * The heading above the backend's own message.
+ *
+ * "Something went wrong" is only true of a fault on our side. Saying it above
+ * "22CSE0032 already exists" blames the system for what the operator typed and
+ * hides the fact that they can fix it, so a rejected input gets its own
+ * heading.
+ */
+const ERROR_TITLE = {
+  [ErrorKind.NETWORK]: 'Cannot reach the server',
+  [ErrorKind.UNAUTHENTICATED]: 'Session ended',
+  [ErrorKind.VALIDATION]: 'Check the details',
+  [ErrorKind.FORBIDDEN]: 'Not permitted',
+  [ErrorKind.NOT_FOUND]: 'Not found',
+  [ErrorKind.RATE_LIMITED]: 'Too many attempts',
+};
+
 export function ErrorState({ error, onRetry, compact = false }) {
   if (!error) return null;
-  const isNetwork = error.kind === ErrorKind.NETWORK;
   const isAuth = error.kind === ErrorKind.UNAUTHENTICATED;
+  // Retrying rejected input just gets it rejected again. The fix is an edit,
+  // not another attempt.
+  const isRejectedInput = error.kind === ErrorKind.VALIDATION;
 
   return (
     <div className={`state state--error ${compact ? 'state--compact' : ''}`}
@@ -85,9 +104,7 @@ export function ErrorState({ error, onRetry, compact = false }) {
             strokeWidth="1.8" strokeLinecap="round" />
         </svg>
         <p className="state__title">
-          {isNetwork ? 'Cannot reach the server'
-            : isAuth ? 'Session ended'
-              : 'Something went wrong'}
+          {ERROR_TITLE[error.kind] || 'Something went wrong'}
         </p>
       </div>
       <p className="state__text">{error.message}</p>
@@ -99,7 +116,7 @@ export function ErrorState({ error, onRetry, compact = false }) {
           ))}
         </ul>
       )}
-      {onRetry && !isAuth && (
+      {onRetry && !isAuth && !isRejectedInput && (
         <div className="state__action">
           <Button variant="secondary" size="sm" onClick={onRetry}>Try again</Button>
         </div>
