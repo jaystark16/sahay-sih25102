@@ -74,9 +74,11 @@
    re-enabled explicitly where a real list is wanted (.ledger__guardrails ul,
    .review__group ul, .playbook__steps, .state__fields). */
 .priority-list, .watch-list, .alert-list, .onboard-list, .iv-list,
-.audit-list, .ops-list, .sidebar__nav, .excluded, .fairness {
-  list-style: none; padding-left: 0; margin: 0;
+.audit-list, .ops-list, .sidebar__nav, .nav-sub, .excluded, .fairness {
+  list-style: none; margin: 0;
 }
+.priority-list, .watch-list, .alert-list, .onboard-list, .iv-list,
+.audit-list, .ops-list, .sidebar__nav, .excluded, .fairness { padding-left: 0; }
 
 /* ------------------------------------------------------------ layout ---- */
 .shell { display: flex; min-height: 100vh; background: var(--bg-primary); }
@@ -121,18 +123,71 @@
 .sidebar__brand-text strong { font-size: 15px; color: var(--label-primary); }
 .sidebar__brand-text small { font-size: 11px; color: var(--label-tertiary); }
 
-.sidebar__nav { display: flex; flex-direction: column; gap: 2px; flex: 1; }
+.sidebar__nav {
+  display: flex; flex-direction: column; gap: 2px; flex: 1;
+  overflow-y: auto; min-height: 0;
+}
+
+.nav-group { display: flex; flex-direction: column; }
 
 .nav-item {
-  display: flex; align-items: center; gap: var(--s-3);
-  padding: var(--s-2) var(--s-3);
-  border: none; background: none; cursor: pointer;
-  color: var(--label-secondary); font-size: 13.5px; font-weight: 500;
-  border-radius: var(--r-sm); text-align: left;
-  transition: background var(--ease-fast, 0.15s), color var(--ease-fast, 0.15s);
+  display: flex; align-items: stretch; border-radius: var(--r-sm);
+  color: var(--label-secondary);
 }
 .nav-item:hover { background: var(--fill-primary); color: var(--label-primary); }
 .nav-item.is-active { background: var(--accent-muted); color: var(--accent); }
+
+.nav-item__main {
+  flex: 1; min-width: 0;
+  display: flex; align-items: center; gap: var(--s-3);
+  padding: var(--s-2) var(--s-3);
+  border: none; background: none; cursor: pointer; color: inherit;
+  font: inherit; font-size: 13.5px; font-weight: 500; text-align: left;
+  border-radius: var(--r-sm);
+}
+.nav-item__label { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+.nav-item__caret {
+  flex-shrink: 0; width: 26px; border: none; background: none;
+  cursor: pointer; color: var(--label-tertiary);
+  display: grid; place-items: center; border-radius: var(--r-sm);
+}
+.nav-item__caret:hover { color: var(--label-primary); }
+.nav-item__caret svg { transition: transform 0.15s ease; }
+.nav-item__caret.is-open svg { transform: rotate(90deg); }
+
+.nav-sub {
+  display: flex; flex-direction: column; gap: 1px;
+  margin: 2px 0 var(--s-2) 0; padding-left: 30px;
+  /* One guide line rather than a bullet per row: the indent already says
+     these belong to the item above. */
+  border-left: 1px solid var(--separator);
+  margin-left: 17px;
+}
+.nav-sub__item {
+  border: none; background: none; cursor: pointer; text-align: left;
+  padding: 5px var(--s-2); border-radius: var(--r-xs);
+  font: inherit; font-size: 12.5px; color: var(--label-tertiary);
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.nav-sub__item:hover { background: var(--fill-primary); color: var(--label-primary); }
+.nav-sub__item.is-active { color: var(--accent); background: var(--accent-muted); }
+
+.sidebar__collapse { margin-left: auto; flex-shrink: 0; }
+
+/* Icon rail. Collapsing gives a 1366-wide laptop back ~180px, which is the
+   difference between the worklist reading comfortably and reading cramped. */
+.shell--rail { --sidebar-w: 60px; }
+.shell--rail .sidebar__brand-text,
+.shell--rail .nav-item__label,
+.shell--rail .sidebar__user-text,
+.shell--rail .nav-sub { display: none; }
+.shell--rail .sidebar { padding: var(--s-4) var(--s-2); }
+.shell--rail .sidebar__brand { flex-direction: column; gap: var(--s-2); padding-bottom: var(--s-4); }
+.shell--rail .sidebar__collapse { margin-left: 0; }
+.shell--rail .nav-item__main { justify-content: center; padding: var(--s-2); }
+.shell--rail .sidebar__foot { flex-direction: column; gap: var(--s-2); }
+.shell--rail .sidebar__user { justify-content: center; }
 
 .sidebar__foot {
   display: flex; align-items: center; gap: var(--s-2);
@@ -270,7 +325,10 @@
 /* ------------------------------------------------------------ metric ---- */
 .metric-strip {
   display: grid; gap: var(--s-3);
-  grid-template-columns: repeat(auto-fit, minmax(158px, 1fr));
+  /* 188px minimum, not 158: six metrics crammed into one row at 1366 left
+     every label truncated. Wrapping to two comfortable rows reads better than
+     one tight one. auto-fit still uses a single row when there is space. */
+  grid-template-columns: repeat(auto-fit, minmax(188px, 1fr));
 }
 .metric-strip--compact { grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); }
 
@@ -439,30 +497,50 @@
 
 /* ------------------------------------------------------ priority list --- */
 .priority-list { display: flex; flex-direction: column; gap: 2px; }
+
+/* Flex, not a fixed 5-column grid.
+   The grid version was `26px minmax(150px,1.1fr) auto minmax(180px,1.6fr) auto`,
+   and grid items do not shrink below their content unless min-width is 0. The
+   headline column's min-content width therefore set a floor, so at ~1000px the
+   row was 97-197px wider than the card and clipped the risk badge and flags.
+   Flex with min-width:0 on the text columns lets the row give ground instead. */
 .priority-row__btn {
-  width: 100%; display: grid; align-items: center; gap: var(--s-3);
-  grid-template-columns: 26px minmax(150px, 1.1fr) auto minmax(180px, 1.6fr) auto;
+  width: 100%; display: flex; align-items: center; gap: var(--s-3);
   padding: var(--s-3); border: none; background: none; cursor: pointer;
   border-radius: var(--r-md); text-align: left;
-  border-left: 2px solid transparent;
+  border-left: 2px solid transparent; flex-wrap: wrap;
 }
 .priority-row__btn:hover { background: var(--fill-primary); border-left-color: var(--accent); }
+
 .priority-row__rank {
-  font-size: 12px; color: var(--label-quaternary); font-variant-numeric: tabular-nums;
+  flex: 0 0 20px; font-size: 12px; color: var(--label-quaternary);
+  font-variant-numeric: tabular-nums;
 }
-.priority-row__identity { display: flex; flex-direction: column; min-width: 0; }
+.priority-row__identity {
+  flex: 1 1 168px; min-width: 0;
+  display: flex; flex-direction: column;
+}
 .priority-row__name {
   font-size: 13.5px; font-weight: 550; color: var(--label-primary);
   overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
 }
-.priority-row__meta { font-size: 11.5px; color: var(--label-tertiary); }
-.priority-row__risk { display: flex; align-items: center; gap: var(--s-2); }
+.priority-row__meta {
+  font-size: 11.5px; color: var(--label-tertiary);
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.priority-row__risk {
+  flex: 0 0 auto; display: flex; align-items: center; gap: var(--s-2);
+}
 .priority-row__why {
+  flex: 2 1 220px; min-width: 0;
   display: flex; flex-direction: column; gap: 2px;
   font-size: 12.5px; color: var(--label-secondary); line-height: 1.45;
 }
 .priority-row__driver { font-size: 11px; color: var(--label-tertiary); }
-.priority-row__flags { display: flex; align-items: center; gap: 6px; justify-self: end; }
+.priority-row__flags {
+  flex: 0 0 auto; display: flex; align-items: center; gap: 6px;
+  margin-left: auto;
+}
 .priority-row__model {
   font-size: 11px; color: var(--label-tertiary); font-variant-numeric: tabular-nums;
 }
@@ -874,12 +952,14 @@
 .auth-foot { font-size: 11.5px; color: var(--label-tertiary); text-align: center; }
 
 /* ------------------------------------------------------- responsive ----- */
-@media (max-width: 1100px) {
-  .priority-row__btn { grid-template-columns: 22px minmax(130px, 1fr) auto minmax(150px, 1.2fr); }
+@media (max-width: 1180px) {
+  /* Flags are the least important column, so they are the first to go when
+     space is short -- the model percentage and "Unusual" badge are context,
+     not the decision. */
   .priority-row__flags { display: none; }
 }
 
-@media (max-width: 900px) {
+@media (max-width: 1000px) {
   .sidebar {
     position: fixed; left: 0; top: 0; z-index: 50;
     transform: translateX(-100%); transition: transform 0.2s ease;

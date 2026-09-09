@@ -49,7 +49,7 @@ function RiskDistribution({ summary, onDrillDown }) {
     : [];
 
   return (
-    <Card className="stack">
+    <Card className="stack" id="sec-distribution" tabIndex={-1}>
       <SectionHeader
         title="Institution overview"
         subtitle={s?.data_source ? `Source: ${s.data_source}` : undefined}
@@ -148,7 +148,7 @@ function Effectiveness({ state }) {
   const measuredTotal = d?.measured_total;
 
   return (
-    <Card className="stack">
+    <Card className="stack" id="sec-effectiveness" tabIndex={-1}>
       <SectionHeader
         title="Did our interventions help?"
         subtitle={d?.measured?.method}
@@ -227,7 +227,7 @@ function Fairness({ state }) {
   const names = Object.keys(dims);
 
   return (
-    <Card className="stack">
+    <Card className="stack" id="sec-fairness" tabIndex={-1}>
       <SectionHeader
         title="Fairness monitoring"
         subtitle={d?.method}

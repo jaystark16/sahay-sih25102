@@ -27,18 +27,56 @@ export function bandMeta(band) {
   return BANDS[band] || { text: 'Not scored', tone: 'neutral', order: 3 };
 }
 
-/** Primary navigation. `staffOnly` mirrors the API's require_mentor routes. */
+/**
+ * Primary navigation, with a second level.
+ *
+ * Sub-items are not decoration: each one is a real destination. Directory
+ * children carry a `filter` that maps onto service.list_students' RISK_FILTERS,
+ * and page children carry a `section` id that exists as an anchor on that
+ * page. Nothing here navigates nowhere.
+ *
+ * `staffOnly` mirrors the API's require_mentor routes -- hiding it is a
+ * convenience, not the authorisation, which stays server-side.
+ */
 export const NAV = [
-  { id: 'worklist', label: 'Worklist', icon: 'clipboard',
-    hint: 'Students needing attention this week' },
-  { id: 'students', label: 'Students', icon: 'users',
-    hint: 'The full directory' },
-  { id: 'analytics', label: 'Analytics', icon: 'chart',
-    hint: 'Outcomes, fairness and coverage' },
-  { id: 'model', label: 'Model', icon: 'bolt',
-    hint: 'What the model does and does not do' },
-  { id: 'admin', label: 'Data & admin', icon: 'settings', staffOnly: true,
-    hint: 'Import, refresh and configuration' },
+  {
+    id: 'worklist', label: 'Worklist', icon: 'clipboard',
+    hint: 'Students needing attention this week',
+  },
+  {
+    id: 'students', label: 'Students', icon: 'users',
+    hint: 'The full directory',
+    children: [
+      { id: 'students:all', label: 'Everyone', filter: 'all' },
+      { id: 'students:at_risk', label: 'At risk', filter: 'at_risk' },
+      { id: 'students:high', label: 'High risk', filter: 'high' },
+      { id: 'students:medium', label: 'Medium risk', filter: 'medium' },
+      { id: 'students:rising', label: 'Risk rising', filter: 'rising' },
+      { id: 'students:unscored', label: 'Not yet scoreable', filter: 'unscored' },
+    ],
+  },
+  {
+    id: 'analytics', label: 'Analytics', icon: 'chart',
+    hint: 'Outcomes, fairness and coverage',
+    children: [
+      { id: 'analytics:overview', label: 'Risk distribution', section: 'sec-distribution' },
+      { id: 'analytics:effect', label: 'Did actions help?', section: 'sec-effectiveness' },
+      { id: 'analytics:fairness', label: 'Fairness', section: 'sec-fairness' },
+    ],
+  },
+  {
+    id: 'model', label: 'Model', icon: 'bolt',
+    hint: 'What the model does and does not do',
+  },
+  {
+    id: 'admin', label: 'Data & admin', icon: 'settings', staffOnly: true,
+    hint: 'Import, refresh and configuration',
+    children: [
+      { id: 'admin:upload', label: 'Import a spreadsheet', section: 'sec-upload' },
+      { id: 'admin:maintenance', label: 'Maintenance', section: 'sec-maintenance' },
+      { id: 'admin:activity', label: 'Recent activity', section: 'sec-activity' },
+    ],
+  },
 ];
 
 /**

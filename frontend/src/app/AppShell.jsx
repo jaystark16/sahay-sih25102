@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useAuth } from '../auth/AuthContext';
 import { NAV } from '../lib/constants';
 import { NAV_ICONS, IconLogout, IconMenu } from '../components/ui/Icons';
@@ -10,90 +10,188 @@ import { AnalyticsPage } from '../pages/AnalyticsPage';
 import { ModelPage } from '../pages/ModelPage';
 import { AdminPage } from '../pages/AdminPage';
 
+const NAV_COLLAPSED_KEY = 'sahay_nav_collapsed';
+
 /**
  * The application frame.
  *
- * Navigation is local state rather than a router: the app has five
- * destinations and no deep links, so adding react-router would be a
- * dependency and a bundle cost for nothing. If shareable student URLs are
- * ever wanted, that is the point to revisit it.
+ * Navigation is two-level and every entry goes somewhere real: directory
+ * children apply an actual API filter, page children scroll to a section that
+ * exists on that page.
  *
- * On narrow screens the sidebar becomes an off-canvas drawer rather than a
- * squeezed column.
+ * Three states, because one size does not fit every screen:
+ *
+ *   wide    - full sidebar, collapsible to an icon rail so a 1366 laptop can
+ *             reclaim ~180px of horizontal space
+ *   narrow  - the sidebar becomes an off-canvas drawer behind the menu button
+ *
+ * The menu button is only rendered when it does something. An earlier version
+ * showed it at every width, but the drawer CSS only applied below 900px, so on
+ * a desktop it was a visible control that did nothing when pressed.
  */
 export function AppShell() {
   const { user, logout, isStaff } = useAuth();
   const [view, setView] = useState('worklist');
   const [selectedRoll, setSelectedRoll] = useState(null);
-  const [navOpen, setNavOpen] = useState(false);
-  // Set when another screen sends the user to the directory pre-filtered --
-  // clicking "At risk 480" should land on those 480, not on everyone.
+  const [drawerOpen, setDrawerOpen] = useState(false);
   const [studentsFilter, setStudentsFilter] = useState('all');
+  const [expanded, setExpanded] = useState(() => new Set(['students']));
+  const [collapsed, setCollapsed] = useState(
+    () => localStorage.getItem(NAV_COLLAPSED_KEY) === '1',
+  );
 
-  const nav = NAV.filter((n) => !n.staffOnly || isStaff);
+  const nav = useMemo(() => NAV.filter((n) => !n.staffOnly || isStaff), [isStaff]);
 
-  const go = (id) => {
-    setView(id);
+  useEffect(() => {
+    localStorage.setItem(NAV_COLLAPSED_KEY, collapsed ? '1' : '0');
+  }, [collapsed]);
+
+  /** Scroll to a section on the page that is already open. */
+  const scrollToSection = useCallback((sectionId) => {
+    // Two frames: one for the view swap to commit, one for layout.
+    requestAnimationFrame(() => requestAnimationFrame(() => {
+      const el = document.getElementById(sectionId);
+      if (el) {
+        el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        el.focus?.({ preventScroll: true });
+      }
+    }));
+  }, []);
+
+  const goto = useCallback((item, parent) => {
+    setDrawerOpen(false);
     setSelectedRoll(null);
-    setNavOpen(false);
-    if (id !== 'students') setStudentsFilter('all');
-  };
 
-  /** Drill down from a metric or a chart into the matching student list. */
-  const showStudents = (filter = 'all') => {
+    if (parent?.id === 'students' || item.id === 'students') {
+      setStudentsFilter(item.filter || 'all');
+      setView('students');
+      return;
+    }
+    const targetView = parent ? parent.id : item.id;
+    setView(targetView);
+    if (item.section) scrollToSection(item.section);
+  }, [scrollToSection]);
+
+  /** Drill down from a metric or chart into the matching student list. */
+  const showStudents = useCallback((filter = 'all') => {
     setStudentsFilter(filter);
     setView('students');
     setSelectedRoll(null);
-    setNavOpen(false);
-  };
+    setDrawerOpen(false);
+    setExpanded((e) => new Set(e).add('students'));
+  }, []);
 
-  const openStudent = (rollNo) => {
+  const openStudent = useCallback((rollNo) => {
     setSelectedRoll(rollNo);
-    setNavOpen(false);
-  };
+    setDrawerOpen(false);
+  }, []);
+
+  const toggleExpanded = (id) => setExpanded((prev) => {
+    const next = new Set(prev);
+    if (next.has(id)) next.delete(id); else next.add(id);
+    return next;
+  });
 
   // Close the drawer if the viewport grows past the breakpoint while it is open.
   useEffect(() => {
-    if (!navOpen) return undefined;
-    const mq = window.matchMedia('(min-width: 900px)');
-    const onChange = (e) => { if (e.matches) setNavOpen(false); };
+    if (!drawerOpen) return undefined;
+    const mq = window.matchMedia('(min-width: 1000px)');
+    const onChange = (e) => { if (e.matches) setDrawerOpen(false); };
     mq.addEventListener('change', onChange);
     return () => mq.removeEventListener('change', onChange);
-  }, [navOpen]);
+  }, [drawerOpen]);
 
+  // Escape closes the drawer, which is what every other overlay here does.
+  useEffect(() => {
+    if (!drawerOpen) return undefined;
+    const onKey = (e) => { if (e.key === 'Escape') setDrawerOpen(false); };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [drawerOpen]);
+
+  const current = nav.find((n) => n.id === view);
   const scope = user?.role === 'mentor'
     ? [user.dept, user.section].filter(Boolean).join(' · ') || 'Your sections'
     : 'All departments';
 
   return (
-    <div className="shell">
+    <div className={cx('shell', collapsed && 'shell--rail')}>
       <a className="skip-link" href="#main">Skip to main content</a>
 
-      <aside className={cx('sidebar', navOpen && 'is-open')}>
+      <aside className={cx('sidebar', drawerOpen && 'is-open')}
+        aria-label="Sections">
         <div className="sidebar__brand">
           <span className="sidebar__mark" aria-hidden="true">S</span>
           <span className="sidebar__brand-text">
             <strong>Sahay</strong>
             <small>Early warning &amp; support</small>
           </span>
+          <IconButton
+            label={collapsed ? 'Expand navigation' : 'Collapse navigation'}
+            className="sidebar__collapse"
+            onClick={() => setCollapsed((c) => !c)}
+            icon={<IconMenu width={16} height={16} />}
+          />
         </div>
 
         <nav className="sidebar__nav" aria-label="Main">
           {nav.map((item) => {
             const Icon = NAV_ICONS[item.icon];
-            const active = view === item.id && !selectedRoll;
+            const isCurrent = view === item.id && !selectedRoll;
+            const isOpen = expanded.has(item.id) && !collapsed;
+            const hasChildren = Array.isArray(item.children) && item.children.length > 0;
+
             return (
-              <button
-                key={item.id}
-                type="button"
-                className={cx('nav-item', active && 'is-active')}
-                aria-current={active ? 'page' : undefined}
-                title={item.hint}
-                onClick={() => go(item.id)}
-              >
-                {Icon && <Icon />}
-                <span>{item.label}</span>
-              </button>
+              <div className="nav-group" key={item.id}>
+                <div className={cx('nav-item', isCurrent && 'is-active')}>
+                  <button
+                    type="button"
+                    className="nav-item__main"
+                    aria-current={isCurrent ? 'page' : undefined}
+                    title={collapsed ? `${item.label} — ${item.hint}` : item.hint}
+                    onClick={() => goto(item)}
+                  >
+                    {Icon && <Icon />}
+                    <span className="nav-item__label">{item.label}</span>
+                  </button>
+                  {hasChildren && !collapsed && (
+                    <button
+                      type="button"
+                      className={cx('nav-item__caret', isOpen && 'is-open')}
+                      aria-expanded={isOpen}
+                      aria-label={`${isOpen ? 'Collapse' : 'Expand'} ${item.label}`}
+                      onClick={() => toggleExpanded(item.id)}
+                    >
+                      <svg viewBox="0 0 12 12" width="12" height="12" aria-hidden="true">
+                        <path d="M4 3l4 3-4 3" fill="none" stroke="currentColor"
+                          strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
+                      </svg>
+                    </button>
+                  )}
+                </div>
+
+                {hasChildren && isOpen && (
+                  <ul className="nav-sub">
+                    {item.children.map((child) => {
+                      const active = item.id === 'students'
+                        ? view === 'students' && studentsFilter === child.filter && !selectedRoll
+                        : false;
+                      return (
+                        <li key={child.id}>
+                          <button
+                            type="button"
+                            className={cx('nav-sub__item', active && 'is-active')}
+                            aria-current={active ? 'page' : undefined}
+                            onClick={() => goto(child, item)}
+                          >
+                            {child.label}
+                          </button>
+                        </li>
+                      );
+                    })}
+                  </ul>
+                )}
+              </div>
             );
           })}
         </nav>
@@ -111,18 +209,18 @@ export function AppShell() {
         </div>
       </aside>
 
-      {navOpen && (
+      {drawerOpen && (
         <button type="button" className="scrim" aria-label="Close navigation"
-          onClick={() => setNavOpen(false)} />
+          onClick={() => setDrawerOpen(false)} />
       )}
 
       <div className="shell__main">
         <header className="topbar">
           <IconButton label="Open navigation" className="topbar__menu"
-            onClick={() => setNavOpen(true)} icon={<IconMenu />} />
+            onClick={() => setDrawerOpen(true)} icon={<IconMenu />} />
           <div className="topbar__title">
-            <h1>{selectedRoll ? 'Student record' : currentLabel(nav, view)}</h1>
-            <p>{selectedRoll ? selectedRoll : (nav.find((n) => n.id === view)?.hint || '')}</p>
+            <h1>{selectedRoll ? 'Student record' : (current?.label || 'Sahay')}</h1>
+            <p>{selectedRoll ? selectedRoll : (current?.hint || '')}</p>
           </div>
         </header>
 
@@ -153,10 +251,6 @@ export function AppShell() {
       </div>
     </div>
   );
-}
-
-function currentLabel(nav, view) {
-  return nav.find((n) => n.id === view)?.label || 'Sahay';
 }
 
 function initials(name) {

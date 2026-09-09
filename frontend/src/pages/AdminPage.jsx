@@ -74,7 +74,7 @@ function UploadPanel() {
   };
 
   return (
-    <Card className="stack">
+    <Card className="stack" id="sec-upload" tabIndex={-1}>
       <SectionHeader
         title="Import a spreadsheet"
         subtitle="Attendance registers, internal marks, fees. Nothing is written until you confirm."
@@ -206,7 +206,7 @@ function MaintenancePanel() {
   };
 
   return (
-    <Card className="stack">
+    <Card className="stack" id="sec-maintenance" tabIndex={-1}>
       <SectionHeader title="Maintenance" />
 
       <ul className="ops-list">
@@ -281,7 +281,7 @@ function AuditPanel() {
   const entries = data?.entries || [];
 
   return (
-    <Card className="stack">
+    <Card className="stack" id="sec-activity" tabIndex={-1}>
       <SectionHeader title="Recent activity"
         subtitle="Every write is recorded against the account that made it." />
       <AsyncBoundary
