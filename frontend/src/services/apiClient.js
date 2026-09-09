@@ -93,9 +93,34 @@ export function setUnauthenticatedHandler(fn) {
   onUnauthenticated = fn;
 }
 
-let getToken = () => null;
-export function setTokenGetter(fn) {
-  getToken = fn;
+/**
+ * Where the bearer token lives. Shared with the auth layer so the two cannot
+ * drift apart.
+ */
+export const TOKEN_KEY = 'sahay_token';
+
+/**
+ * Read the token from storage on every request.
+ *
+ * This used to be a getter the auth provider registered, backed by a ref it
+ * updated inside an effect -- and that was a real bug. React runs effects
+ * child-first, so on the render where the token first becomes non-empty the
+ * dashboard's own effects fire their requests *before* the provider's effect
+ * updates the ref. The first batch after a fresh sign-in therefore went out
+ * with no Authorization header, got 401, and the central handler below
+ * cleared the session: sign in, see the dashboard for an instant, get thrown
+ * back to the login screen.
+ *
+ * localStorage is synchronous and login() writes to it before touching state,
+ * so reading it here is always current and has no ordering hazard at all.
+ */
+function getToken() {
+  try {
+    return localStorage.getItem(TOKEN_KEY) || null;
+  } catch {
+    // Storage can throw in private-mode / sandboxed contexts.
+    return null;
+  }
 }
 
 export async function request(path, { method = 'GET', body, signal,

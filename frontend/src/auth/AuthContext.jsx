@@ -2,12 +2,10 @@ import {
   createContext, useCallback, useContext, useEffect, useMemo, useRef, useState,
 } from 'react';
 import api from '../services/api';
-import { setTokenGetter, setUnauthenticatedHandler } from '../services/apiClient';
+import { TOKEN_KEY, setUnauthenticatedHandler } from '../services/apiClient';
 
 const AuthCtx = createContext(null);
 export const useAuth = () => useContext(AuthCtx);
-
-const TOKEN_KEY = 'sahay_token';
 
 /**
  * Session handling.
@@ -25,8 +23,6 @@ export function AuthProvider({ children }) {
   const [user, setUser] = useState(null);
   const [token, setToken] = useState(() => localStorage.getItem(TOKEN_KEY) || '');
   const [checking, setChecking] = useState(Boolean(localStorage.getItem(TOKEN_KEY)));
-  const tokenRef = useRef(token);
-
   // Which token we have already established a user for. Without this, a fresh
   // login was immediately followed by a redundant /auth/me and, worse, by
   // setChecking(true) -- which makes the router swap the whole app out for the
@@ -34,14 +30,9 @@ export function AuthProvider({ children }) {
   // the worklist's three requests fired four times each on sign-in.
   const validatedToken = useRef(null);
 
-  // The client reads the token through a getter so it always sees the current
-  // one, without every request closing over a stale value. Writing the ref in
-  // an effect rather than during render keeps render pure.
-  useEffect(() => {
-    tokenRef.current = token;
-  }, [token]);
-
-  useEffect(() => { setTokenGetter(() => tokenRef.current); }, []);
+  // No token plumbing here on purpose: apiClient reads it straight from
+  // storage on every request. Handing it a getter backed by a ref meant the
+  // first requests after a fresh sign-in raced the effect that populated it.
 
   const clearSession = useCallback(() => {
     localStorage.removeItem(TOKEN_KEY);
