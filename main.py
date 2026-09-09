@@ -767,3 +767,34 @@ def index():
         "frontend": "served separately from frontend/ (npm run dev, or the "
                     "deployed build)",
     }
+
+
+@app.get("/api/health")
+def health(con=Depends(get_con)):
+    """Readiness, and which database this instance is actually talking to.
+
+    Deliberately public and deliberately free of anything sensitive: no DSN,
+    no host, no credentials, no personal data. What it does report is the one
+    thing that is otherwise impossible to determine from outside -- whether a
+    deployed instance is connected to the database you think it is.
+
+    This exists because a sign-in failure is ambiguous. auth.login returns the
+    same message whether the account is missing or the password is wrong,
+    which is right for anti-enumeration but means a 401 cannot distinguish a
+    bad password from an instance pointed at an empty database. These counts
+    settle it in one request.
+    """
+    out = {"status": "ok", "database": "unreachable",
+           "students": None, "accounts": None, "seeded": False}
+    try:
+        out["students"] = con.execute(
+            "SELECT COUNT(*) c FROM students").fetchone()["c"]
+        out["accounts"] = con.execute(
+            "SELECT COUNT(*) c FROM users").fetchone()["c"]
+        out["database"] = "connected"
+        out["seeded"] = bool(out["students"])
+    except psycopg2.Error as e:
+        out["status"] = "degraded"
+        # The class of failure is useful; the message can carry the host.
+        out["reason"] = type(e).__name__
+    return out
