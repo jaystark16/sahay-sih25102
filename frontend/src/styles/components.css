@@ -1257,3 +1257,69 @@
   pointer-events: none;
   animation: drift 24s ease-in-out infinite alternate;
 }
+
+/* ------------------------------------------------- model evaluation ---- */
+/* The comparison table, confusion matrices and methodology on the Model page.
+   Reuses .table, .card, .facts and .badge; only the pieces with no existing
+   equivalent are defined here. */
+.eval-note { display: flex; flex-direction: column; gap: var(--s-2); }
+.eval-note .muted-note { line-height: 1.55; }
+.eval-f1 { color: var(--label-primary); font-weight: 650; }
+
+.eval-facts {
+  display: flex; flex-wrap: wrap; gap: var(--s-4);
+  font-size: 12.5px; color: var(--label-secondary);
+}
+.eval-facts > span { display: inline-flex; align-items: center; gap: 6px; }
+
+.conf-block {
+  display: flex; flex-direction: column; gap: var(--s-2);
+  padding-bottom: var(--s-3); border-bottom: 1px solid var(--separator);
+}
+.conf-block:last-child { border-bottom: none; padding-bottom: 0; }
+.conf-block__head {
+  display: flex; align-items: center; gap: var(--s-2); flex-wrap: wrap;
+  font-size: 13.5px; color: var(--label-primary);
+}
+
+/* Two matrices side by side, stacking on a narrow card. min() so auto-fit
+   cannot honour a minimum wider than the container -- the same trap the
+   student-detail grid fell into. */
+.conf-pair {
+  display: grid; gap: var(--s-3);
+  grid-template-columns: repeat(auto-fit, minmax(min(190px, 100%), 1fr));
+}
+.conf {
+  display: flex; flex-direction: column; gap: 6px;
+  padding: var(--s-3); border-radius: var(--r-sm);
+  background: var(--fill-primary); border: 1px solid var(--separator);
+}
+.conf__title {
+  display: flex; align-items: center; gap: 5px;
+  font-size: 11px; font-weight: 600; text-transform: uppercase;
+  letter-spacing: 0.04em; color: var(--label-tertiary);
+}
+.conf__grid { width: 100%; border-collapse: collapse; font-size: 12.5px; }
+.conf__grid th {
+  font-size: 10.5px; font-weight: 550; color: var(--label-tertiary);
+  text-transform: uppercase; letter-spacing: 0.03em;
+  padding: 3px 6px; text-align: right; white-space: nowrap;
+}
+.conf__grid thead th { text-align: right; }
+.conf__grid tbody th { text-align: left; }
+.conf__grid td {
+  padding: 5px 6px; text-align: right; font-variant-numeric: tabular-nums;
+  font-weight: 600;
+}
+/* Correct calls read normally; the two error cells are tinted, because which
+   cell a count lands in is the whole point of the matrix. */
+.conf__ok { color: var(--label-primary); }
+.conf__bad { color: var(--danger); }
+.conf__foot { font-size: 11px; color: var(--label-tertiary); }
+
+.method { display: flex; flex-direction: column; gap: var(--s-3); }
+.method__item { display: flex; flex-direction: column; gap: 3px; }
+.method__heading {
+  font-size: 12px; font-weight: 600; color: var(--label-primary);
+}
+.method__text { font-size: 12.5px; color: var(--label-secondary); line-height: 1.55; }

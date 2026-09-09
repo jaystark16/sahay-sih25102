@@ -1045,6 +1045,26 @@ def _model_report():
         return None
 
 
+def model_evaluation():
+    """The Logistic Regression / Random Forest / XGBoost comparison.
+
+    Read out of model_report.json, which ml.py --evaluate writes and which
+    travels with the deployment. Nothing is computed here: the numbers come
+    from real predictions on a held-out fold at training time, and this host
+    has no scikit-learn to recompute them with even if it wanted to.
+
+    Returns available:False rather than an empty table when the evaluation has
+    not been run, so the UI can say which it is instead of rendering zeros.
+    """
+    report = _model_report() or {}
+    ev = report.get("model_evaluation")
+    if not ev:
+        return {"available": False,
+                "reason": "No model comparison has been run yet.",
+                "hint": "python ml.py --evaluate"}
+    return {"available": True, **ev}
+
+
 def _stored_prediction_count(con):
     """How many students currently have a stored model prediction."""
     try:

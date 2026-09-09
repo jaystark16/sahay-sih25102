@@ -3,6 +3,7 @@ import api from '../services/api';
 import { Badge, Card, HelpTip, Metric, SectionHeader } from '../components/ui/Primitives';
 import { AsyncBoundary, EmptyState } from '../components/ui/States';
 import { ABSENT, count, decimal, isNum, label, num } from '../lib/format';
+import { ModelEvaluation } from './ModelEvaluation';
 
 /**
  * What the model is, and — just as importantly — what it is not.
@@ -25,6 +26,11 @@ export function ModelPage() {
       >
         {data && (data.trained ? <TrainedModel info={data} /> : <RulesOnly info={data} />)}
       </AsyncBoundary>
+
+      {/* Its own boundary, so a missing evaluation cannot blank the page above
+          it -- the two read different endpoints and either can be absent
+          without the other being wrong. */}
+      <ModelEvaluation />
     </div>
   );
 }
@@ -50,7 +56,7 @@ function TrainedModel({ info }) {
 
   return (
     <>
-      <Card className="stack">
+      <Card className="stack" id="sec-model-claim" tabIndex={-1}>
         <SectionHeader
           title="What the model predicts"
           actions={<Badge tone={info.mode?.includes('stored') ? 'neutral' : 'info'}>

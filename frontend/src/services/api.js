@@ -122,6 +122,19 @@ export const model = {
   /** -> {trained, mode, kind, horizon_weeks, target, target_is_not,
    *      excluded_features, beats_baselines, overall, data, ...} */
   status: (opts) => get('/model', opts),
+
+  /**
+   * The model comparison, computed by `python ml.py --evaluate` from real
+   * predictions on a held-out fold and shipped in model_report.json.
+   *
+   * -> {available, dataset:{...}, table:[...], methodology:[...],
+   *     models:{logistic_regression|random_forest|xgboost|...:
+   *       {model, role, roc_auc, pr_auc, brier_score,
+   *        at_default_threshold:{accuracy,precision,recall,f1,confusion_matrix,basis},
+   *        at_alert_threshold:{...}}}}
+   * When the evaluation has not been run: {available:false, reason, hint}.
+   */
+  evaluation: (opts) => get('/model-evaluation', opts),
 };
 
 export const config = {

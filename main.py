@@ -495,6 +495,20 @@ def model_info(con=Depends(get_con), user=Depends(require_active_user)):
     return service.model_status(con)
 
 
+@app.get("/api/model-evaluation")
+def model_evaluation(user=Depends(require_active_user)):
+    """Logistic Regression vs Random Forest vs XGBoost, on one test set.
+
+    Accuracy, precision, recall, F1, ROC-AUC, PR-AUC, Brier score and a
+    confusion matrix per model, plus the methodology that produced them.
+
+    No database, and no scikit-learn: the numbers are computed by
+    `python ml.py --evaluate` from real predictions on a held-out fold and
+    travel with the deployment in model_report.json. This route reads them.
+    """
+    return service.model_evaluation()
+
+
 @app.get("/api/student/{roll_no}")
 def student(roll_no: str, con=Depends(get_con), user=Depends(require_active_user)):
     roll_no = roll_no.upper()

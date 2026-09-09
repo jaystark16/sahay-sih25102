@@ -166,8 +166,69 @@ who needs help. The receipt still sums to the same number.
 
 ## What it predicts
 
-Observable disengagement: mean attendance over the next 6 weeks falling below 50%.
-**Not dropout.** Dropout labels do not exist, so the system does not claim to predict it.
+**Not dropout.** Dropout labels do not exist, so the system does not claim to
+predict it.
+
+What the model is actually fitted to is a student-level flag in the training
+data. In `demo_data` that flag is `(backlogs >= 2) or (engagement < 0.7 and
+rand() < 0.3)`, and `backlogs` is deliberately excluded as a feature, so the
+model infers a mostly-backlog-driven label from the shape of attendance alone.
+
+`ml.py` contains `label_at()`, which implements the better design this README
+originally described -- stand at week *t*, predict whether mean attendance over
+*t+1..t+H* falls below 50%. **It is not currently used**: `build_dataset()`
+reads the dataset's own flag instead. The gap is recorded in
+`model_report.json` under `task.target_implementation_note` rather than papered
+over, because the label is also why a linear baseline is hard to beat here (see
+below).
+
+The output is a **ranking score, not a calibrated probability**. Measured on
+the demo cohort at four standpoints, the mean prediction is ~40 where the
+observed six-week disengagement rate is ~1.5%, so the ordering is trustworthy
+and the magnitude is not. The UI says so.
+
+## Model evaluation
+
+    python ml.py --evaluate        # writes model_report.json -> model_evaluation
+    GET /api/model-evaluation      # the same numbers, for the UI
+    Model page -> Model comparison / Confusion matrices / Methodology
+
+Three models on one held-out fold: **Logistic Regression** (baseline),
+**Random Forest** (comparison) and the **XGBoost already in service**
+(primary). XGBoost is *not* retrained for this -- it is loaded from
+`model.joblib` and scored on a reproduced split, verified exact against the
+stored report (same 15,000 test rows, same 2,550 positives, ROC-AUC 0.7856
+either way).
+
+Held fixed so the comparison means something: same rows, same 70/30 split
+grouped **by student**, same 17 features, same target, same metrics.
+Disjointness of the folds is asserted at run time. Logistic Regression is
+fitted inside a `Pipeline` with a `StandardScaler` fitted on the training fold
+only; trees take the raw matrix. Class imbalance (~17% positive) is handled by
+cost reweighting for all three: `scale_pos_weight` for XGBoost,
+`class_weight='balanced'` and `'balanced_subsample'` for the others.
+
+Three thresholds are kept apart, because conflating them is how model tables
+mislead:
+
+| kind | metrics | threshold |
+|---|---|---|
+| threshold-free | ROC-AUC, PR-AUC | none — measures *ranking* |
+| calibration | Brier score | none — n/a for the non-ML baselines, which emit scores not probabilities |
+| thresholded | accuracy, precision, recall, F1, confusion matrix | reported **twice**: at 0.5, and at the top-5% operating point the product deploys at |
+
+That 5% is the original `p@5%` methodology, unchanged. It reflects a mentor's
+weekly capacity, and is restated as a confusion matrix so F1 is comparable
+across models.
+
+**The result, stated plainly:** on this target the Logistic Regression baseline
+ranks best (PR-AUC 0.470 vs XGBoost's 0.439) and Random Forest is best
+calibrated (Brier 0.180). XGBoost remains the model in service and the one SHAP
+explains. That a linear baseline wins is a finding, not a failure: the label is
+close to linear in these features and carries an irreducible 30% random
+component, which is exactly the situation where extra model capacity buys
+nothing. It is the strongest argument for changing the *target* rather than the
+algorithm.
 
 ## What the model never sees
 

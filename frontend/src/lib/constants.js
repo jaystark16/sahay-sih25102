@@ -84,6 +84,12 @@ export const NAV = [
   {
     id: 'model', label: 'Model', icon: 'bolt',
     hint: 'What the model does and does not do',
+    children: [
+      { id: 'model:claim', label: 'What it predicts', section: 'sec-model-claim' },
+      { id: 'model:evaluation', label: 'Model comparison', section: 'sec-evaluation' },
+      { id: 'model:confusion', label: 'Confusion matrices', section: 'sec-confusion' },
+      { id: 'model:methodology', label: 'Methodology', section: 'sec-methodology' },
+    ],
   },
   {
     id: 'admin', label: 'Data & admin', icon: 'settings', staffOnly: true,
