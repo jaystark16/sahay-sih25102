@@ -68,6 +68,16 @@
   }
 }
 
+/* Ordered/unordered lists here are layout, not prose: the priority list
+   renders its own rank and the others are card rows. The browser's markers
+   duplicated the rank digit and added bullets, so they are reset and
+   re-enabled explicitly where a real list is wanted (.ledger__guardrails ul,
+   .review__group ul, .playbook__steps, .state__fields). */
+.priority-list, .watch-list, .alert-list, .onboard-list, .iv-list,
+.audit-list, .ops-list, .sidebar__nav, .excluded, .fairness {
+  list-style: none; padding-left: 0; margin: 0;
+}
+
 /* ------------------------------------------------------------ layout ---- */
 .shell { display: flex; min-height: 100vh; background: var(--bg-primary); }
 
@@ -155,7 +165,10 @@
   background: var(--bg-primary);
   position: sticky; top: 0; z-index: 20;
 }
-.topbar__menu { display: none; }
+/* Specificity raised deliberately: .icon-btn is declared later in this
+   file with the same weight, so a bare .topbar__menu rule loses to its
+   display:inline-grid and the menu button showed on desktop. */
+.topbar .topbar__menu { display: none; }
 .topbar__title h1 { font-size: 17px; font-weight: 600; color: var(--label-primary); }
 .topbar__title p { font-size: 12.5px; color: var(--label-tertiary); margin-top: 1px; }
 
@@ -857,7 +870,7 @@
     box-shadow: 0 0 40px rgba(0, 0, 0, 0.5);
   }
   .sidebar.is-open { transform: translateX(0); }
-  .topbar__menu { display: inline-grid; }
+  .topbar .topbar__menu { display: inline-grid; }
   .content { padding: var(--s-4); }
   .hide-sm { display: none !important; }
 }

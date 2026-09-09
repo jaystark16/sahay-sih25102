@@ -36,3 +36,8 @@ venv/
 # `COPY . .`, so the deployed container needs demo_data/ for POST
 # /api/demo/reset and model.joblib for anything above Rules Mode. Ignoring
 # them silently downgrades the deployed app.
+
+# Playwright MCP screenshots and snapshots
+.playwright-mcp/
+*.png
+!frontend/public/*.png
