@@ -415,12 +415,9 @@ def _statement(prob, bundle):
     six weeks is ~2%, so it is useful for ranking and misleading as a
     likelihood. The wording says "score", not "chance", for that reason.
     """
-    p = min(max(prob, DISPLAY_FLOOR), DISPLAY_CEIL)
-    lead = ("over 99" if prob > DISPLAY_CEIL else
-            "under 1" if prob < DISPLAY_FLOOR else f"{p * 100:.0f}")
-    return (f"Disengagement score {lead}/100 -- how much this student's "
-            f"attendance pattern resembles those the model was trained to "
-            f"flag. A ranking, not a probability.")
+    return ("How much this student's attendance pattern resembles those the "
+            "model was trained to flag. Use it to rank who to contact first; "
+            "it is not a probability.")
 
 
 def predict_batch(bundle, students, n_weeks=None):
@@ -576,7 +573,10 @@ if __name__ == "__main__":
         r = rows[0]
         print("\nSample inference:")
         p = predict(bundle, r["att"], r["marks"], nw)
-        print(f"  {r['roll_no']}: {p['statement']}")
+        # The score is printed here rather than inside statement(), because the
+        # UI already shows the figure and repeating it there read as a stutter.
+        print(f"  {r['roll_no']}: disengagement score {p['percent']:.0f}/100")
+        print(f"    {p['statement']}")
         for c in p["contributions"][:4]:
             print(f"    {c['label']:32s} {c['value']:8.1f}  {c['log_odds']:+.2f}  {c['direction']}")
         print(f"  {forecast_attendance(r['att'])['statement']}")

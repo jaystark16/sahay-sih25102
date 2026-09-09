@@ -640,9 +640,9 @@ def _stored_model_result(con, roll_no):
         # carries no time dimension, and on this cohort it averages ~40% where
         # the observed six-week rate is ~2%. It ranks well (ROC AUC 0.91
         # against a real six-week outcome); it does not quantify.
-        "statement": f"Disengagement score {pct:.0f}/100 -- how much this "
-                     f"student's attendance pattern resembles those the model "
-                     f"was trained to flag. A ranking, not a probability.",
+        "statement": "How much this student's attendance pattern resembles "
+                     "those the model was trained to flag. Use it to rank who "
+                     "to contact first; it is not a probability.",
         "computed": "stored",
         "note": "Served from the last scoring run rather than recomputed now.",
     }
