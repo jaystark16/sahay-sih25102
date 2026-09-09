@@ -1,0 +1,18 @@
+# Model training and scoring. Local only -- never installed on the server.
+#
+#     pip install -r requirements.txt -r requirements-ml.txt
+#
+# Needed by ml.py (train and predict) and by service.refresh_scores, which
+# writes each student's probability into risk_snapshots.model_pct. Run the
+# scoring locally and the deployed API will serve those stored predictions:
+#
+#     python ml.py            # train, writes model.joblib + model_report.json
+#     python service.py       # rebuild + score, writes model_pct to Supabase
+#
+# Kept out of requirements.txt because these four come to roughly 220 MB and a
+# Vercel Python function is capped at 250 MB unzipped.
+-r requirements.txt
+scikit-learn==1.9.0
+joblib==1.5.3
+xgboost==3.4.1
+shap==0.52.0

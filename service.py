@@ -19,7 +19,24 @@ import jsonsafe
 
 import auth
 import lifecycle
-import ml
+
+# ml is optional, because the deployed API does not ship it.
+#
+# scikit-learn, xgboost, shap and scipy come to roughly 220 MB, and a Vercel
+# Python function is capped at 250 MB unzipped -- so the model libraries cannot
+# be installed on the server. They stay in requirements-ml.txt and are used on
+# your own machine, where `python ml.py` trains and `python service.py`
+# refreshes; refresh_scores writes each student's probability into
+# risk_snapshots.model_pct. The deployed API then reads that stored number out
+# of the database instead of recomputing it (see _stored_model_result).
+#
+# What is lost is only live recomputation: the attendance forecast on the
+# student page, and the model's delta in what-if. Both were already optional --
+# every call site guards on `if b:` -- so they simply do not appear.
+try:
+    import ml
+except ImportError:                     # pragma: no cover - depends on install
+    ml = None
 import outcomes
 from ingest import ingest_file
 from risk_engine import (DEFAULT_CONFIG, WHAT_IF_FIELDS, apply_changes,
@@ -534,6 +551,11 @@ def get_model():
     timestamp costs nothing and also picks up a retrained model.
     """
     global _BUNDLE, _BUNDLE_MTIME
+    if ml is None:
+        # No model libraries installed -- the deployed API. Every caller
+        # already treats None as "Rules Mode", and the stored model_pct on
+        # risk_snapshots covers the display case.
+        return None
     try:
         mtime = os.path.getmtime(ml.MODEL_PATH)
     except OSError:
@@ -548,9 +570,84 @@ def get_model():
     return _BUNDLE
 
 
+REPORT_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)),
+                           "model_report.json")
+
+
+def _model_report():
+    """The training report, read without importing the model libraries.
+
+    model_report.json is plain JSON written by ml.py, so it can be read
+    anywhere -- including the deployed API, which has no scikit-learn. That
+    lets /api/model keep reporting what the model actually is and how it
+    scored, instead of claiming no model was ever trained.
+    """
+    try:
+        with open(REPORT_PATH, encoding="utf-8") as f:
+            return json.load(f)
+    except (OSError, ValueError):
+        return None
+
+
+def _stored_model_result(con, roll_no):
+    """This student's prediction as of the last refresh, from the database.
+
+    refresh_scores writes model_pct into risk_snapshots wherever it runs. When
+    the model libraries are absent we serve that stored number rather than
+    dropping the prediction entirely.
+
+    probability is derived back from the stored percentage, which ml.predict
+    clamps to [1%, 99%] for display. Inside that range the round-trip is exact;
+    outside it the true probability was more extreme than what is shown. Only
+    the two disagreement thresholds in _hybrid read it, and both sit well
+    inside the clamp, so the reconstruction is safe for that use.
+    """
+    row = con.execute("SELECT model_pct FROM risk_snapshots WHERE roll_no=?",
+                      (roll_no,)).fetchone()
+    if not row or row["model_pct"] is None:
+        return {"available": False,
+                "reason": "No stored prediction for this student yet. Run "
+                          "`python service.py` to refresh the scores."}
+    pct = float(row["model_pct"])
+    report = _model_report() or {}
+    return {
+        "available": True,
+        "probability": round(pct / 100.0, 4),
+        "percent": round(pct, 1),
+        "horizon_weeks": (report.get("task") or {}).get("horizon_weeks"),
+        "statement": f"About {pct:.0f}% likely to fall further within the next "
+                     f"{(report.get('task') or {}).get('horizon_weeks', 6)} weeks.",
+        "computed": "stored",
+        "note": "Served from the last scoring run rather than recomputed now.",
+    }
+
+
 def model_status(con):
     b = get_model()
     if not b:
+        report = _model_report()
+        if ml is None and report:
+            # The libraries are not installed here, but a trained model exists
+            # and its report travels with the repo. Report it honestly: the
+            # predictions on the student pages are real, they were just
+            # computed elsewhere.
+            return {"trained": True, "mode": "Rules + Model (stored)",
+                    "kind": report.get("shipped_model"),
+                    "horizon_weeks": report["task"]["horizon_weeks"],
+                    "target": report["task"]["target"],
+                    "target_is_not": report["task"]["target_is_not"],
+                    "excluded_features": report["task"]["excluded_features"],
+                    "beats_baselines": report["model_beats_baselines"],
+                    "beats_rules_ledger": report.get("beats_rules_ledger"),
+                    "beats_persistence_baseline": report.get("beats_persistence_baseline"),
+                    "early_warning_gain_over_rules":
+                        report.get("early_warning_pr_auc_gain_over_rules"),
+                    "early_warning": report.get("early_warning"),
+                    "overall": report["overall"],
+                    "data": report["data"],
+                    "why": "Predictions are computed during scoring and stored, "
+                           "because the model libraries are too large to deploy "
+                           "as a serverless function."}
         return {"trained": False, "mode": "Rules Mode",
                 "why": "No model file. Threshold rules only, which is the correct "
                        "state before an institution has enough history."}
@@ -1007,6 +1104,12 @@ def get_student(con, roll_no):
             fc = ml.forecast_attendance(f["weekly_attendance"])
         except Exception as e:
             mlres = {"available": False, "reason": f"{type(e).__name__}: {e}"}
+    elif ml is None and stage["scoring"] == "hybrid":
+        # No model libraries here, but refresh_scores stored this student's
+        # probability when it last ran somewhere that had them. Serving the
+        # stored value keeps the prediction on the page; only the live
+        # recomputation and the forecast are unavailable.
+        mlres = _stored_model_result(con, roll_no)
 
     att = con.execute("SELECT week_index, week_start, pct FROM attendance "
                       "WHERE roll_no=? ORDER BY week_index", (roll_no,)).fetchall()

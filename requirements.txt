@@ -1,12 +1,15 @@
+# Runtime dependencies. This is what the deployed API installs.
+#
+# The model libraries are deliberately NOT here -- see requirements-ml.txt.
+# scikit-learn, xgboost, shap and scipy total ~220 MB, and a Vercel Python
+# function is capped at 250 MB unzipped, so shipping them fails the build.
+# Predictions are computed locally during scoring and stored in
+# risk_snapshots.model_pct, which the API serves from the database.
 fastapi==0.141.1
 uvicorn[standard]==0.52.4
 python-multipart==0.0.32
 pandas==3.0.5
 openpyxl==3.1.5
-scikit-learn==1.9.0
-joblib==1.5.3
-xgboost==3.4.1
-shap==0.52.0
 psycopg2-binary==2.9.12
 python-dotenv==1.2.3
 bcrypt==5.0.0
