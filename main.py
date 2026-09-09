@@ -23,8 +23,7 @@ from fastapi import (Depends, FastAPI, File, HTTPException, Query, Request,
                      UploadFile)
 from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import FileResponse, JSONResponse
-from fastapi.staticfiles import StaticFiles
+from fastapi.responses import JSONResponse
 from starlette.exceptions import HTTPException as StarletteHTTPException
 from typing import Annotated, List, Optional
 
@@ -87,7 +86,6 @@ def _fields(m):
 FiniteFloat = Annotated[float, Field(allow_inf_nan=False)]
 
 BASE = os.path.dirname(os.path.abspath(__file__))
-STATIC = os.path.join(BASE, "static")
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -743,16 +741,25 @@ def demo_reset(con=Depends(get_con), user=Depends(require_mentor)):
 # ----------------------------------------------------------------------------
 # Frontend
 # ----------------------------------------------------------------------------
-if os.path.isdir(STATIC):
-    app.mount("/static", StaticFiles(directory=STATIC), name="static")
-
-
 @app.get("/")
 def index():
-    p = os.path.join(STATIC, "index.html")
-    if os.path.exists(p):
-        return FileResponse(p)
-    return JSONResponse({
-        "status": "backend running, frontend not built yet",
-        "try": ["/docs", "/api/summary", "/api/worklist", "/api/analytics/effectiveness"],
-    })
+    """Service information.
+
+    This deliberately does not serve a UI. There used to be a second,
+    hand-written frontend at static/index.html which this route returned, but
+    it had no concept of authentication -- no token handling anywhere in it --
+    so once every endpoint required a bearer token it could only render
+    errors. Two frontends also meant two places to fix every change.
+
+    The React application in frontend/ is now the only UI. In the deployed
+    setup it is served at / and this API is mounted under /api, so this route
+    is reached only when the backend is run on its own, where a JSON pointer
+    is more useful than a broken page.
+    """
+    return {
+        "service": "Sahay API",
+        "status": "ok",
+        "docs": "/docs",
+        "frontend": "served separately from frontend/ (npm run dev, or the "
+                    "deployed build)",
+    }

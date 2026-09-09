@@ -38,31 +38,85 @@ For a deployed build, set `VITE_API_BASE` to the API's origin, and set
 
 ## Deploying
 
-The frontend and the API deploy separately, because the API's dependencies
-(scikit-learn, xgboost, scipy) total ~300 MB and will not fit in a serverless
-function bundle.
+One target: **Vercel**, serving both halves from a single project, with
+**Supabase** for Postgres. Both free tiers.
 
-| Piece | Where | Config |
+| Piece | Where | Notes |
 |---|---|---|
-| React frontend | Vercel (Hobby) | Root Directory `frontend`; set `VITE_API_BASE` |
-| FastAPI backend | Render (free web service) | `render.yaml` + `Dockerfile`; set `SUPABASE_DATABASE_URL` and `CORS_ORIGINS` |
-| Postgres | Supabase (free) | — |
+| React app | Vercel static build | `frontend/dist`, built by `vercel.json`'s `buildCommand` |
+| FastAPI | Vercel Python function | `api/index.py` re-exports `main:app`; `/api/*` is rewritten to it |
+| Postgres | Supabase | set `SUPABASE_DATABASE_URL` in Vercel's environment variables |
 
-Render's free tier spins down after ~15 minutes idle, so the first request
-after a quiet spell takes around 50 seconds.
+Vercel's **Root Directory must be the repository root** (not `frontend`), or the
+Python function at `api/index.py` is invisible to the build.
 
-There is deliberately no `vercel.json`. The Vercel project's Root Directory is
-set to `frontend`, so Vercel's zero-config detection already does the right
-thing: `npm install`, `npm run build`, serve `dist/`. A repo-root `vercel.json`
-with a `cd frontend` build command fails, because the build already starts
-inside `frontend/`. There is no client-side router either, so no SPA rewrite is
-needed.
+Because both halves share one origin, `VITE_API_BASE` and `CORS_ORIGINS` are not
+needed. Set them only if you split the frontend and API across different hosts.
+
+### Why the model libraries are not deployed
+
+A Vercel Python function is capped at 250 MB unzipped. scikit-learn, xgboost,
+shap and scipy come to roughly 220 MB of that, so they are in
+`requirements-ml.txt` and are **not** installed on the server — the deployed
+function imports at about 92 MB.
+
+Nothing is lost from the product, because scoring already stores each student's
+model probability in `risk_snapshots.model_pct`:
+
+```bash
+pip install -r requirements.txt -r requirements-ml.txt   # local only
+python ml.py                                             # train
+python service.py                                        # score -> writes model_pct
+```
+
+The deployed API serves those stored predictions, and `/api/model` reads
+`model_report.json` directly, so it still reports the real trained model. What
+genuinely is not available on the server is *live recomputation*: the attendance
+forecast on the student page, and the model's delta inside what-if. Both degrade
+to absent rather than to a wrong number.
+
+`Dockerfile` and `render.yaml` remain for anyone who would rather run the API as
+a container, where the size cap does not apply and every ML feature works live.
+They are not used by the Vercel deployment.
+
+## Frontend
+
+One frontend: the React app in `frontend/`. A second, hand-written
+`static/index.html` used to be served at `/` as well; it was retired because it
+had no way to send a bearer token, so once every endpoint required
+authentication it could only render errors — and two UIs meant two places to
+make every change.
+
+```
+frontend/src/
+  app/          App (providers + the one routing decision), AppShell (layout)
+  auth/         session handling, exposed through one context
+  services/     apiClient.js  — the only place fetch is called
+                api.js        — every endpoint, with its response shape documented
+  hooks/        useApi (loading/error/abort), useAction, useDebounced
+  components/
+    ui/         Button, Badge, Card, Modal, DataTable, Toast, states, icons
+    risk/       RiskBadge, RiskLedger, ScoreSummary, ModelOpinion
+  features/     student/WhatIfPanel, student/InterventionPanel
+  pages/        Login, Worklist, Students, StudentDetail, Analytics, Model, Admin
+  lib/          format.js (value states), constants.js
+  styles/       components.css, over the tokens in index.css
+```
+
+Two rules the code holds to, both of which were previously broken:
+
+- **A failed request throws.** It never resolves to empty data. Several call
+  sites used to skip the status check, so an error body parsed cleanly, the
+  expected key came back `undefined`, and the dashboard rendered *"0 students
+  flagged"* during an outage — an outage shown to the mentor as good news.
+- **Missing is not zero.** `format.js` returns an explicit absent marker for
+  null/NaN. A student with no recorded attendance and a student at 0% are
+  different situations and never render the same.
 
 ## Files
 
 | File | What it is |
 |---|---|
-| `static/index.html` | The whole frontend. No CDN, no build step, works offline. |
 | `main.py` | FastAPI. Thin routing only. **This is what ships.** |
 | `service.py` | Business logic + persistence. Snapshot scoring, caching. |
 | `risk_engine.py` | Additive ledger, change detection, cohort anomalies, what-if. |

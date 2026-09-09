@@ -84,8 +84,22 @@ for m in ("ingest", "risk_engine", "ml", "lifecycle", "service", "main"):
 # ---- data files ------------------------------------------------------------
 for f, fix in [("demo_data/master.csv", "python generate_demo_data.py"),
                ("demo_data/01_attendance_register.xlsx", "python generate_demo_data.py"),
-               ("static/index.html", "index.html must be in a folder named static/")]:
+               # The React app is the only frontend now; the hand-written
+               # static/index.html was retired when every endpoint began
+               # requiring a bearer token, which it had no way to send.
+               ("frontend/src/main.jsx", "the React frontend is missing")]:
     check(f, (lambda p=f: os.path.exists(os.path.join(BASE, p))), fix)
+
+
+def _frontend_deps():
+    """node_modules present, so `npm run dev` will actually start."""
+    if not os.path.isdir(os.path.join(BASE, "frontend", "node_modules")):
+        return False
+    return "installed"
+
+
+check("frontend dependencies", _frontend_deps,
+      "cd frontend && npm install", fatal=False)
 
 check("model.joblib (optional)",
       lambda: os.path.exists(os.path.join(BASE, "model.joblib")),
