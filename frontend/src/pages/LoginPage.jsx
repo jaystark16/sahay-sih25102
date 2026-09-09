@@ -96,6 +96,33 @@ export function LoginPage() {
           </Button>
         </form>
 
+        {/* The demo accounts, on the screen where they are needed.
+            This app was locked out of three times by credentials that existed
+            only in a chat message: a generated password nobody had, a
+            must_change_password flag, and then a rotation that invalidated
+            what had been written down. Printing them here is deliberate and
+            safe for THIS deployment -- the data is synthetic and the
+            student-facing view carries no scores. Remove this block before it
+            ever holds a real institution's records. */}
+        <div className="auth-demo">
+          <p className="auth-demo__title">Demo accounts</p>
+          <p className="auth-demo__row">
+            <code>hod@gmail.com</code>
+            <span>head of department &middot; all 5,003 students</span>
+          </p>
+          <p className="auth-demo__row">
+            <code>mentor@gmail.com</code>
+            <span>mentor &middot; a 27-student caseload</span>
+          </p>
+          <p className="auth-demo__row auth-demo__row--muted">
+            <code>mentor2@gmail.com</code>
+            <span>&hellip; through <code>mentor6@gmail.com</code></span>
+          </p>
+          <p className="auth-demo__pw">
+            Password for all of them: <code>sahay12345</code>
+          </p>
+        </div>
+
         <p className="auth-foot">
           Accounts are issued by your institution&rsquo;s administrator.
         </p>

@@ -186,13 +186,37 @@ def generate_password() -> str:
 # Seed
 # --------------------------------------------------------------------------- #
 
-def seed_users(con, mentors: dict, echo=False):
+# The one password every demo account uses.
+#
+# Fixed and checked in on purpose. The previous behaviour -- a fresh random
+# password per account, shown once, with must_change_password=1 -- is not
+# suitable for a demo and locked the operator out three separate times:
+#
+#   1. accounts seeded at startup got a random password nobody ever saw, so a
+#      newly created mentor could not sign in at all;
+#   2. must_change_password=1 meant even a known password only bought you the
+#      change-password screen;
+#   3. rotating the passwords invalidated whatever had been written down, which
+#      is what produced "Invalid email or password" on a correct-looking form.
+#
+# Ten characters because change_password() enforces a ten-character floor, so
+# an operator can also set this from the UI without hitting the limit.
+#
+# What this costs: the deployment is public and anyone reading this repository
+# can sign in. That is an accepted trade for a hackathon demo whose data is
+# entirely synthetic and whose student-facing view exposes no scores. It is NOT
+# suitable for an institution's real records -- for that, drop
+# DEMO_PASSWORD/reset_demo_passwords and go back to generated credentials.
+DEMO_PASSWORD = "sahay12345"
+
+
+def seed_users(con, mentors: dict, echo=False, password=DEMO_PASSWORD):
     """Idempotent — only inserts if the user doesn't exist yet.
 
-    Each new account gets a random password and must_change_password=1, so it
-    cannot be used for anything except setting a real password. Returns the
-    generated credentials so a human can be given them once; they are not
-    recoverable afterwards.
+    New accounts get DEMO_PASSWORD and must_change_password=0, so an account
+    that appears is an account that can be used. Pass password=None to get the
+    old behaviour: a generated secret per account, shown once, that must be
+    changed on first sign-in.
     """
     ensure_auth_schema(con)
     now = datetime.now().isoformat(timespec="seconds")
@@ -201,15 +225,16 @@ def seed_users(con, mentors: dict, echo=False):
     existing = {r["id"] for r in con.execute("SELECT id FROM users")}
     created = {}
     rows = []
+    must_change = 0 if password else 1
     for uid, info in mentors.items():
         if uid in existing:
             continue
-        pwd = generate_password()
+        pwd = password or generate_password()
         created[uid] = pwd
         rows.append((uid, default_email(uid), info["name"], info["role"],
                      info.get("scope", (None, None))[0],
                      info.get("section"),
-                     _hash(pwd), "", now, 1))
+                     _hash(pwd), "", now, must_change))
     if rows:
         con.executebatch(
             "INSERT INTO users (id,email,name,role,dept,section,password_hash,"
@@ -217,11 +242,26 @@ def seed_users(con, mentors: dict, echo=False):
             rows)
         con.commit()
     if created and echo:
-        print(f"\n  {len(created)} account(s) created. These are shown once:")
+        print(f"\n  {len(created)} account(s) created.")
         for uid, pwd in sorted(created.items())[:200]:
             print(f"    {default_email(uid):40s} {pwd}")
-        print("  Each must be changed on first sign-in.\n")
+        print()
     return created
+
+
+def reset_demo_passwords(con, password=DEMO_PASSWORD):
+    """Put every account back on the shared demo password.
+
+    The recovery path. If sign-in ever fails again, this is one command and it
+    is guaranteed to work, because it also clears must_change_password -- the
+    flag that made a correct password still refuse entry.
+    """
+    ensure_auth_schema(con)
+    rows = con.execute("SELECT id, email, role FROM users ORDER BY role, id").fetchall()
+    for r in rows:
+        set_password(con, r["id"], password, must_change=False)
+    con.commit()
+    return [{"id": r["id"], "email": r["email"], "role": r["role"]} for r in rows]
 
 
 # --------------------------------------------------------------------------- #
@@ -399,10 +439,20 @@ if __name__ == "__main__":
             flag = "  (must change password)" if r.get("must_change_password") else ""
             print(f"  {r['id']:14} {default_email(r['id']):34} {r['role']:8}{flag}")
         print("\nSet a password with:  python auth.py reset <email-or-id> [password]")
+        print(f"Restore every demo account to '{DEMO_PASSWORD}':  "
+              f"python auth.py demo-passwords")
     elif cmd == "reset" and len(args) >= 2:
         pwd = set_password(con, args[1], args[2] if len(args) > 2 else None)
         print(f"Password for {args[1]} is now: {pwd}")
+    elif cmd in ("demo-passwords", "demo"):
+        # The recovery command. One thing to run, guaranteed to work.
+        rows = reset_demo_passwords(con)
+        print(f"{len(rows)} account(s) reset to: {DEMO_PASSWORD}\n")
+        for r in rows:
+            print(f"  {r['email']:26} {r['role']}")
+        print("\nmust_change_password cleared on all of them.")
     else:
         print(__doc__)
-        print("Usage: python auth.py [list | reset <email-or-id> [password]]")
+        print("Usage: python auth.py [list | reset <email-or-id> [password] "
+              "| demo-passwords]")
     con.close()

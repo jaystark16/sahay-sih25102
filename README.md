@@ -3,6 +3,34 @@ SIH25102 · AI-based drop-out prediction and counseling system
 
 ## Run it
 
+### Signing in
+
+Every demo account uses one fixed password:
+
+| Email | Role | Sees |
+|---|---|---|
+| `hod@gmail.com` | head of department | all 5,003 students, all departments |
+| `mentor@gmail.com` | mentor | a 27-student caseload |
+| `mentor2@gmail.com` .. `mentor6@gmail.com` | mentor | 21 / 34 / 24 / 39 / 31 students |
+
+    Password (all accounts):  sahay12345
+
+If sign-in ever fails, this is the one command that fixes it:
+
+    python auth.py demo-passwords
+
+It resets every account to that password and clears `must_change_password`,
+which is the flag that makes a *correct* password still refuse entry. The same
+credentials are printed on the sign-in screen, so they cannot be lost.
+
+`auth.DEMO_PASSWORD` is fixed and checked in deliberately. Generated
+credentials shown once are the right default for real records and the wrong one
+for a demo: they locked this project out three separate times. Before this ever
+holds a real institution's data, delete `DEMO_PASSWORD` and
+`reset_demo_passwords()` and pass `password=None` to `seed_users()` to get
+per-account secrets back.
+
+
 Needs a Postgres database. Supabase's free tier is fine.
 
 ```bash

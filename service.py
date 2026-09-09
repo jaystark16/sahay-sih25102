@@ -789,7 +789,7 @@ def reset_db(actor="admin"):
     # Postgres doesn't have executescript by default with ?, but our wrapper supports it.
     # However we need to drop all tables first to truly reset.
     con.executescript("""
-        DROP TABLE IF EXISTS students, attendance, interventions, feedback, audit, settings, uploads, risk_snapshots, mentors, effectiveness_cache, cohort_alerts CASCADE;
+        DROP TABLE IF EXISTS students, attendance, interventions, feedback, audit, settings, uploads, risk_snapshots, mentors, mentor_assignments, effectiveness_cache, cohort_alerts CASCADE;
     """ + SCHEMA)
 
     weeks = {}
@@ -864,10 +864,22 @@ def reset_db(actor="admin"):
     _seed_mentors(con)
     m = outcomes.measure_all(con, audit_fn=audit, actor=actor)
     joined = _seed_recent_admissions(con, actor)
-    # Recent admissions can open sections that did not exist a moment ago, and a
-    # section with no mentor is a student no mentor can ever see. Re-seed after
-    # they land so every section has an owner, then issue the login accounts.
-    n_mentors = _seed_mentors(con)
+
+    # Rebuild the ROLES, not one mentor holding the institution.
+    #
+    # This used to end with _seed_mentors(), which creates a single account and
+    # runs `UPDATE students SET mentor_id = 'mentor'` across all 5,003 rows. A
+    # demo reset therefore undid the whole role model: no HOD, no caseloads,
+    # one mentor owning everything, and mentor_assignments left holding rows
+    # for students that had just been dropped and recreated. seed_role_demo
+    # rebuilds the HOD, the six mentors and their 20-40 student caseloads, and
+    # is safe to call here because refresh_scores has already run above.
+    roles = seed_role_demo(con, actor=actor)
+    n_mentors = len(roles["mentors"])
+    load_mentors(con)
+    # Accounts last, so every mentor that now exists has a login. seed_users
+    # gives new accounts auth.DEMO_PASSWORD with must_change_password=0, so an
+    # account that appears here is an account that can actually be used.
     auth.seed_users(con, MENTORS)
     con.execute("UPDATE students SET weeks_of_data = (SELECT COUNT(*) FROM attendance a "
                 "WHERE a.roll_no = students.roll_no)")
