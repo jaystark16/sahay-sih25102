@@ -778,9 +778,21 @@ def _hybrid(ledger, mlres, stage):
            "model": None, "disagreement": None}
     if stage["scoring"] != "hybrid" or not mlres or not mlres.get("available"):
         if stage["scoring"] == "hybrid" and not get_model():
-            out["model_note"] = ("No prediction model has been trained yet, so this "
-                                 "student is scored on the transparent rules alone. "
-                                 "Run the training step to enable predictions.")
+            # Two different situations, and saying the wrong one is a lie the
+            # /api/model page immediately contradicts. Where the libraries are
+            # simply absent -- the deployed function, which cannot carry
+            # 220 MB of scikit-learn and friends -- a model does exist and its
+            # predictions are stored; this student just has none yet.
+            if ml is None:
+                out["model_note"] = (
+                    "Predictions are computed during scoring and stored, and "
+                    "none is stored for this student yet. Run `python "
+                    "service.py` to refresh the scores.")
+            else:
+                out["model_note"] = (
+                    "No prediction model has been trained yet, so this student "
+                    "is scored on the transparent rules alone. Run the "
+                    "training step to enable predictions.")
         else:
             out["model_note"] = (mlres or {}).get("reason") or stage["explain"]
         return out
